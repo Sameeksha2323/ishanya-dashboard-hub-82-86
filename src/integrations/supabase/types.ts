@@ -801,7 +801,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      run_sql: {
+        Args: {
+          query: string
+        }
+        Returns: {
+          result: Json
+        }[]
+      }
     }
     Enums: {
       tasks_stage: "To Do" | "In Progress" | "Review" | "Done"
