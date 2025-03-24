@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 type EmployeeFormProps = {
   employee: any;
@@ -18,10 +19,19 @@ type EmployeeFormProps = {
 };
 
 const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
-  const [formData, setFormData] = useState({ ...employee });
+  const [formData, setFormData] = useState(() => {
+    // Set created_at to current date if not provided
+    const initialData = { ...employee };
+    if (!initialData.created_at) {
+      initialData.created_at = new Date().toISOString().split('T')[0];
+    }
+    return initialData;
+  });
+  
   const [centers, setCenters] = useState<any[]>([]);
   const [programs, setPrograms] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const fetchCentersAndPrograms = async () => {
@@ -63,21 +73,71 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+    // Clear error when field is changed
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: '' });
+    }
   };
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData({ ...formData, [name]: value });
+    // Clear error when field is changed
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: '' });
+    }
   };
 
   const handleDateChange = (name: string, date: Date | undefined) => {
     if (date) {
       const formattedDate = format(date, 'yyyy-MM-dd');
       setFormData({ ...formData, [name]: formattedDate });
+      // Clear error when field is changed
+      if (errors[name]) {
+        setErrors({ ...errors, [name]: '' });
+      }
     }
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    // Required fields
+    const requiredFields = [
+      'name', 'gender', 'designation', 'department', 'employment_type',
+      'email', 'phone', 'date_of_birth', 'date_of_joining', 'emergency_contact_name',
+      'emergency_contact', 'center_id'
+    ];
+    
+    requiredFields.forEach(field => {
+      if (!formData[field]) {
+        newErrors[field] = `${field.replace(/_/g, ' ')} is required`;
+      }
+    });
+    
+    // Basic email validation
+    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Invalid email format';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Ensure created_at is set
+    if (!formData.created_at) {
+      formData.created_at = new Date().toISOString().split('T')[0];
+    }
+    
+    // Validate form
+    if (!validateForm()) {
+      toast.error('Please fix the errors in the form');
+      return;
+    }
+    
+    console.log("Submitting employee data:", formData);
     onSave(formData);
   };
 
@@ -113,96 +173,132 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {formFields.map((field) => (
           <div key={field.name} className="space-y-2">
-            <Label htmlFor={field.name}>{field.label}</Label>
+            <Label htmlFor={field.name}>
+              {field.label} 
+              {field.name !== 'blood_group' && 
+               field.name !== 'work_location' && 
+               field.name !== 'date_of_leaving' && 
+               field.name !== 'program_id' && 
+               field.name !== 'status' && (
+                <span className="text-red-500 ml-1">*</span>
+              )}
+            </Label>
             
             {field.type === 'input' && (
-              <Input
-                id={field.name}
-                name={field.name}
-                value={formData[field.name] || ''}
-                onChange={handleInputChange}
-              />
+              <>
+                <Input
+                  id={field.name}
+                  name={field.name}
+                  value={formData[field.name] || ''}
+                  onChange={handleInputChange}
+                  className={errors[field.name] ? "border-red-500" : ""}
+                />
+                {errors[field.name] && (
+                  <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
+                )}
+              </>
             )}
             
             {field.type === 'select' && (
-              <Select 
-                value={formData[field.name] || ''} 
-                onValueChange={(value) => handleSelectChange(field.name, value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={`Select ${field.label}`} />
-                </SelectTrigger>
-                <SelectContent>
-                  {field.options?.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <>
+                <Select 
+                  value={formData[field.name] || ''} 
+                  onValueChange={(value) => handleSelectChange(field.name, value)}
+                >
+                  <SelectTrigger className={errors[field.name] ? "border-red-500" : ""}>
+                    <SelectValue placeholder={`Select ${field.label}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {field.options?.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors[field.name] && (
+                  <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
+                )}
+              </>
             )}
             
             {field.type === 'date' && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !formData[field.name] && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData[field.name] ? format(new Date(formData[field.name]), 'PPP') : `Select ${field.label}`}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={formData[field.name] ? new Date(formData[field.name]) : undefined}
-                    onSelect={(date) => handleDateChange(field.name, date)}
-                    className="pointer-events-auto"
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !formData[field.name] && "text-muted-foreground",
+                        errors[field.name] && "border-red-500"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData[field.name] ? format(new Date(formData[field.name]), 'PPP') : `Select ${field.label}`}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={formData[field.name] ? new Date(formData[field.name]) : undefined}
+                      onSelect={(date) => handleDateChange(field.name, date)}
+                      className="pointer-events-auto"
+                      initialFocus
+                      captionLayout="dropdown-buttons"
+                      fromYear={1950}
+                      toYear={new Date().getFullYear()}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {errors[field.name] && (
+                  <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
+                )}
+              </>
             )}
             
             {field.type === 'center' && (
-              <Select 
-                value={formData[field.name]?.toString() || ''} 
-                onValueChange={(value) => handleSelectChange(field.name, value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Center" />
-                </SelectTrigger>
-                <SelectContent>
-                  {centers.map((center) => (
-                    <SelectItem key={center.center_id} value={center.center_id.toString()}>
-                      {center.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <>
+                <Select 
+                  value={formData[field.name]?.toString() || ''} 
+                  onValueChange={(value) => handleSelectChange(field.name, value)}
+                >
+                  <SelectTrigger className={errors[field.name] ? "border-red-500" : ""}>
+                    <SelectValue placeholder="Select Center" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {centers.map((center) => (
+                      <SelectItem key={center.center_id} value={center.center_id.toString()}>
+                        {center.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors[field.name] && (
+                  <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
+                )}
+              </>
             )}
             
             {field.type === 'program' && (
-              <Select 
-                value={formData[field.name]?.toString() || ''} 
-                onValueChange={(value) => handleSelectChange(field.name, value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Program" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">None</SelectItem>
-                  {programs.map((program) => (
-                    <SelectItem key={program.program_id} value={program.program_id.toString()}>
-                      {program.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <>
+                <Select 
+                  value={formData[field.name]?.toString() || ''} 
+                  onValueChange={(value) => handleSelectChange(field.name, value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Program" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">None</SelectItem>
+                    {programs.map((program) => (
+                      <SelectItem key={program.program_id} value={program.program_id.toString()}>
+                        {program.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
             )}
           </div>
         ))}
