@@ -42,17 +42,26 @@ type FilteredTableViewProps = {
   table: any;
 };
 
+// Define a basic record type to handle Supabase responses
+type RecordWithID = {
+  id?: string;
+  student_id?: number;
+  employee_id?: number;
+  center_id?: number;
+  [key: string]: any;
+}
+
 const FilteredTableView = ({ table }: FilteredTableViewProps) => {
   const user = getCurrentUser();
   const userRole = user?.role || '';
   
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<RecordWithID[]>([]);
   const [columns, setColumns] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredData, setFilteredData] = useState<any[]>([]);
-  const [selectedRow, setSelectedRow] = useState<any | null>(null);
+  const [filteredData, setFilteredData] = useState<RecordWithID[]>([]);
+  const [selectedRow, setSelectedRow] = useState<RecordWithID | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [formData, setFormData] = useState<Record<string, any>>({});
@@ -108,7 +117,7 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
         
         // Get the highest ID value for reference
         if (tableData && tableData.length > 0) {
-          const validData = tableData as Array<Record<string, any>>;
+          const validData = tableData as RecordWithID[];
           
           if (tableName === 'students') {
             const maxId = Math.max(...validData.map(item => Number(item.student_id) || 0));
@@ -184,7 +193,7 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
     setFilteredData(filtered);
   }, [searchTerm, filterColumn, data]);
 
-  const handleRowClick = (row: any) => {
+  const handleRowClick = (row: RecordWithID) => {
     setSelectedRow(row);
     setIsEditing(false);
     
@@ -260,7 +269,7 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
         // Insert new record
         const { data: insertedData, error } = await supabase
           .from(tableName)
-          .insert(formData)
+          .insert([formData]) // Wrap in array for proper type
           .select();
         
         if (error) {
@@ -294,7 +303,7 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
           if (existingData && existingData.length === 0) {
             const { error: syncError } = await supabase
               .from(otherTable)
-              .insert(syncData);
+              .insert([syncData]); // Wrap in array for proper type
               
             if (syncError) {
               console.error(`Error syncing with ${otherTable}:`, syncError);
@@ -310,22 +319,16 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
           setData(newData);
           setFilteredData(newData);
           
+          // Safely cast insertedData to our RecordWithID type
+          const typedInsertedData = insertedData as RecordWithID[];
+          
           // Update last record ID
-          if (tableName === 'students') {
-            const studentId = insertedData[0].student_id as number;
-            if (studentId) {
-              setLastRecordId(studentId);
-            }
-          } else if ((tableName === 'employees' || tableName === 'educators')) {
-            const employeeId = insertedData[0].employee_id as number;
-            if (employeeId) {
-              setLastRecordId(employeeId);
-            }
-          } else if (tableName === 'centers') {
-            const centerId = insertedData[0].center_id as number;
-            if (centerId) {
-              setLastRecordId(centerId);
-            }
+          if (tableName === 'students' && typedInsertedData[0].student_id) {
+            setLastRecordId(typedInsertedData[0].student_id);
+          } else if ((tableName === 'employees' || tableName === 'educators') && typedInsertedData[0].employee_id) {
+            setLastRecordId(typedInsertedData[0].employee_id);
+          } else if (tableName === 'centers' && typedInsertedData[0].center_id) {
+            setLastRecordId(typedInsertedData[0].center_id);
           }
         }
       }
@@ -341,7 +344,7 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
     }
   };
 
-  const handleDelete = async (row: any) => {
+  const handleDelete = async (row: RecordWithID) => {
     if (window.confirm('Are you sure you want to delete this record?')) {
       try {
         const tableName = table.name.toLowerCase();
@@ -451,6 +454,7 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
         }}
         onUpload={() => setShowUpload(true)}
         onRefresh={() => window.location.reload()}
+        table={table}
       />
       
       {showUpload && (

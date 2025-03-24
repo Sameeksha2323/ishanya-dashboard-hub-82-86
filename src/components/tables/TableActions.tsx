@@ -14,7 +14,7 @@ export type TableActionsProps = {
   table?: any; // Added this prop to fix the type error
 };
 
-const TableActions = ({ tableName, onInsert, onRefresh, onUpload }: TableActionsProps) => {
+const TableActions = ({ tableName, onInsert, onRefresh, onUpload, table }: TableActionsProps) => {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
 
   const handleCloseUpload = () => {
