@@ -11,7 +11,7 @@ export type TableActionsProps = {
   onInsert: () => void;
   onRefresh: () => void;
   onUpload?: () => void;
-  table?: any; // Added this prop to fix the type error
+  table?: any; // For access to center_id and other table properties
 };
 
 const TableActions = ({ tableName, onInsert, onRefresh, onUpload, table }: TableActionsProps) => {
