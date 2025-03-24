@@ -108,14 +108,16 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
         
         // Get the highest ID value for reference
         if (tableData && tableData.length > 0) {
+          const validData = tableData as Array<Record<string, any>>;
+          
           if (tableName === 'students') {
-            const maxId = Math.max(...tableData.map(item => item.student_id || 0));
+            const maxId = Math.max(...validData.map(item => Number(item.student_id) || 0));
             setLastRecordId(maxId);
           } else if (tableName === 'employees' || tableName === 'educators') {
-            const maxId = Math.max(...tableData.map(item => item.employee_id || 0));
+            const maxId = Math.max(...validData.map(item => Number(item.employee_id) || 0));
             setLastRecordId(maxId);
           } else if (tableName === 'centers') {
-            const maxId = Math.max(...tableData.map(item => item.center_id || 0));
+            const maxId = Math.max(...validData.map(item => Number(item.center_id) || 0));
             setLastRecordId(maxId);
           }
         }
@@ -258,7 +260,7 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
         // Insert new record
         const { data: insertedData, error } = await supabase
           .from(tableName)
-          .insert([formData])
+          .insert(formData)
           .select();
         
         if (error) {
@@ -292,7 +294,7 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
           if (existingData && existingData.length === 0) {
             const { error: syncError } = await supabase
               .from(otherTable)
-              .insert([syncData]);
+              .insert(syncData);
               
             if (syncError) {
               console.error(`Error syncing with ${otherTable}:`, syncError);
@@ -309,12 +311,21 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
           setFilteredData(newData);
           
           // Update last record ID
-          if (tableName === 'students' && insertedData[0].student_id) {
-            setLastRecordId(insertedData[0].student_id);
-          } else if ((tableName === 'employees' || tableName === 'educators') && insertedData[0].employee_id) {
-            setLastRecordId(insertedData[0].employee_id);
-          } else if (tableName === 'centers' && insertedData[0].center_id) {
-            setLastRecordId(insertedData[0].center_id);
+          if (tableName === 'students') {
+            const studentId = insertedData[0].student_id as number;
+            if (studentId) {
+              setLastRecordId(studentId);
+            }
+          } else if ((tableName === 'employees' || tableName === 'educators')) {
+            const employeeId = insertedData[0].employee_id as number;
+            if (employeeId) {
+              setLastRecordId(employeeId);
+            }
+          } else if (tableName === 'centers') {
+            const centerId = insertedData[0].center_id as number;
+            if (centerId) {
+              setLastRecordId(centerId);
+            }
           }
         }
       }
