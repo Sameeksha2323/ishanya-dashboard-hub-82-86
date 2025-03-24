@@ -1,6 +1,5 @@
 
 import { ReactNode, useState } from 'react';
-import Header from './Header';
 import { DashboardNav } from './DashboardNav';
 import { ArrowLeft, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -27,7 +26,6 @@ const Layout = ({ title, subtitle, children, showBackButton = false, onBack }: L
   
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-      <Header title={title} subtitle={subtitle} />
       <div className="container px-4 py-6 mx-auto max-w-7xl">
         <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
           <div className="flex items-center gap-3">

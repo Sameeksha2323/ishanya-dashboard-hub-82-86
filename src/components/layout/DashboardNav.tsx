@@ -17,7 +17,9 @@ export function DashboardNav() {
   const handleLogout = () => {
     logout();
     navigate('/login');
-    toast.success(t('login.logout_success'));
+    toast.success(t('login.logout_success'), {
+      duration: 3000, // Auto-dismiss after 3 seconds
+    });
   };
 
   const getButtonClassName = (path: string) => {

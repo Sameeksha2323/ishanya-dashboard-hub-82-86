@@ -48,7 +48,9 @@ const Login = () => {
       const result = await authenticateUser(data.email, data.password, data.role);
       
       if (result.success) {
-        toast.success("Login successful");
+        toast.success("Login successful", {
+          duration: 3000, // Auto-dismiss after 3 seconds
+        });
         
         // Store user info in localStorage
         localStorage.setItem('user', JSON.stringify(result.user));
@@ -71,11 +73,15 @@ const Login = () => {
             navigate('/');
         }
       } else {
-        toast.error(result.message || "Invalid credentials");
+        toast.error(result.message || "Invalid credentials", {
+          duration: 3000, // Auto-dismiss after 3 seconds
+        });
       }
     } catch (error) {
       console.error('Login error:', error);
-      toast.error("An error occurred during login");
+      toast.error("An error occurred during login", {
+        duration: 3000, // Auto-dismiss after 3 seconds
+      });
     } finally {
       setIsLoading(false);
     }
@@ -86,12 +92,7 @@ const Login = () => {
       <div className="w-full max-w-md">
         <div className="flex justify-between items-center mb-6">
           <div className="text-center flex-1">
-            <img 
-              src="/lovable-uploads/17953c8a-6715-4e58-af68-a3918c44fd33.png" 
-              alt="Ishanya Foundation" 
-              className="h-16 mx-auto"
-            />
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mt-4">Ishanya Foundation</h2>
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Ishanya Foundation</h2>
             <p className="text-gray-500 dark:text-gray-400 mt-1">Journey to Inclusion</p>
           </div>
           <div className="ml-auto">
@@ -134,7 +135,13 @@ const Login = () => {
                       <FormControl>
                         <div className="relative">
                           <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
-                          <Input type="password" placeholder="******" className="pl-10 dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600" {...field} />
+                          <Input 
+                            type="password" 
+                            placeholder="******" 
+                            className="pl-10 dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600" 
+                            {...field} 
+                            showPasswordToggle
+                          />
                         </div>
                       </FormControl>
                       <FormMessage />

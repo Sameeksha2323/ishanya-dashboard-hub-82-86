@@ -75,7 +75,7 @@ export const validationRules: Record<string, Record<string, ValidationRule>> = {
 const handleError = (error: any, customMessage?: string) => {
   console.error('API Error:', error);
   console.error('Error details:', JSON.stringify(error, null, 2));
-  toast.error(customMessage || 'An error occurred. Please try again.');
+  toast.error(customMessage || 'An error occurred. Please try again.', { duration: 3000 });
   return null;
 };
 
@@ -419,7 +419,7 @@ export const insertRow = async (tableName: string, rowData: any): Promise<{ succ
     const { isValid, errors } = validateData(tableName, processedData);
     
     if (!isValid) {
-      toast.error('Please correct the validation errors');
+      toast.error('Please correct the validation errors', { duration: 3000 });
       return { success: false, errors };
     }
     
@@ -440,24 +440,24 @@ export const insertRow = async (tableName: string, rowData: any): Promise<{ succ
       
       // Show specific error messages
       if (error.message.includes('duplicate key')) {
-        toast.error('A record with this ID already exists');
+        toast.error('A record with this ID already exists', { duration: 3000 });
       } else if (error.message.includes('violates foreign key constraint')) {
-        toast.error('This record references data that doesn\'t exist');
+        toast.error('This record references data that doesn\'t exist', { duration: 3000 });
       } else if (error.message.includes('malformed array literal')) {
-        toast.error('Invalid array format. Please use a comma-separated list or remove brackets');
+        toast.error('Invalid array format. Please use a comma-separated list or remove brackets', { duration: 3000 });
       } else if (error.message.includes('invalid input syntax for type timestamp')) {
-        toast.error('Invalid date format. Please use YYYY-MM-DD or leave empty');
+        toast.error('Invalid date format. Please use YYYY-MM-DD or leave empty', { duration: 3000 });
       } else if (error.message.includes('invalid input syntax for type integer')) {
-        toast.error('Invalid number format. Please enter a valid number or leave empty');
+        toast.error('Invalid number format. Please enter a valid number or leave empty', { duration: 3000 });
       } else {
-        toast.error(error.message);
+        toast.error(error.message, { duration: 3000 });
       }
       
       return { success: false, errors: { general: error.message } };
     }
     
     console.log(`Successfully inserted row into ${tableName}:`, data);
-    toast.success('Record added successfully');
+    toast.success('Record added successfully', { duration: 3000 });
     return { success: true, data };
   } catch (error: any) {
     handleError(error, 'Failed to add row');
@@ -484,7 +484,7 @@ export const updateRow = async (tableName: string, id: number, rowData: any): Pr
     const { isValid, errors } = validateData(tableName, processedData);
     
     if (!isValid) {
-      toast.error('Please correct the validation errors');
+      toast.error('Please correct the validation errors', { duration: 3000 });
       return { success: false, errors };
     }
     
@@ -501,20 +501,20 @@ export const updateRow = async (tableName: string, id: number, rowData: any): Pr
       
       // Show specific error messages based on error type
       if (error.message.includes('malformed array literal')) {
-        toast.error('Invalid array format. Please use a comma-separated list or remove brackets');
+        toast.error('Invalid array format. Please use a comma-separated list or remove brackets', { duration: 3000 });
       } else if (error.message.includes('invalid input syntax for type timestamp')) {
-        toast.error('Invalid date format. Please use YYYY-MM-DD or leave empty');
+        toast.error('Invalid date format. Please use YYYY-MM-DD or leave empty', { duration: 3000 });
       } else if (error.message.includes('invalid input syntax for type integer')) {
-        toast.error('Invalid number format. Please enter a valid number or leave empty');
+        toast.error('Invalid number format. Please enter a valid number or leave empty', { duration: 3000 });
       } else {
-        toast.error(error.message);
+        toast.error(error.message, { duration: 3000 });
       }
       
       return { success: false, errors: { general: error.message } };
     }
     
     console.log(`Successfully updated row in ${tableName}:`, data);
-    toast.success('Record updated successfully');
+    toast.success('Record updated successfully', { duration: 3000 });
     return { success: true, data };
   } catch (error: any) {
     handleError(error, 'Failed to update row');
@@ -536,12 +536,12 @@ export const deleteRow = async (tableName: string, id: number): Promise<boolean>
     if (error) {
       console.error(`Delete error in ${tableName}:`, error);
       console.error('Error details:', JSON.stringify(error, null, 2));
-      toast.error(error.message);
+      toast.error(error.message, { duration: 3000 });
       return false;
     }
     
     console.log(`Successfully deleted row with id ${id} from ${tableName}`);
-    toast.success('Record deleted successfully');
+    toast.success('Record deleted successfully', { duration: 3000 });
     return true;
   } catch (error) {
     handleError(error, 'Failed to delete row');
@@ -582,7 +582,7 @@ export const bulkInsert = async (tableName: string, rows: any[]): Promise<{ succ
     
     if (invalidRows.length > 0) {
       const message = `Validation failed for rows: ${invalidRows.join(', ')}`;
-      toast.error(message);
+      toast.error(message, { duration: 3000 });
       return { success: false, message };
     }
     
@@ -598,11 +598,11 @@ export const bulkInsert = async (tableName: string, rows: any[]): Promise<{ succ
     if (error) {
       console.error('Bulk insert error:', error);
       console.error('Error details:', JSON.stringify(error, null, 2));
-      toast.error(error.message);
+      toast.error(error.message, { duration: 3000 });
       return { success: false, message: error.message };
     }
     
-    toast.success(`${validRows.length} records added successfully`);
+    toast.success(`${validRows.length} records added successfully`, { duration: 3000 });
     return { success: true, message: `${validRows.length} records added successfully` };
   } catch (error: any) {
     handleError(error, 'Failed to bulk insert rows');
