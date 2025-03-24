@@ -196,7 +196,8 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
             <SelectValue placeholder="Select program" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">None</SelectItem>
+            {/* Changed from empty string to "none" with a value */}
+            <SelectItem value="0">None</SelectItem>
             {programs.map((program) => (
               <SelectItem key={program.program_id} value={safeToString(program.program_id)}>
                 {program.name}
@@ -227,7 +228,8 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
           </SelectTrigger>
           <SelectContent>
             {fieldName === 'secondary_educator_employee_id' && (
-              <SelectItem value="">None</SelectItem>
+              // Changed from empty string to "0" with a value
+              <SelectItem value="0">None</SelectItem>
             )}
             {employees.map((employee) => (
               <SelectItem key={employee.employee_id} value={safeToString(employee.employee_id)}>
@@ -264,7 +266,10 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
           <SelectContent>
             <SelectItem value="true">Yes</SelectItem>
             <SelectItem value="false">No</SelectItem>
-            {!isRequired && <SelectItem value="">Not specified</SelectItem>}
+            {!isRequired && (
+              // Changed from empty string to "null" with a value
+              <SelectItem value="null">Not specified</SelectItem>
+            )}
           </SelectContent>
         </Select>
       );
@@ -289,7 +294,10 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
             <SelectItem value="Male">Male</SelectItem>
             <SelectItem value="Female">Female</SelectItem>
             <SelectItem value="Other">Other</SelectItem>
-            {!isRequired && <SelectItem value="">Not specified</SelectItem>}
+            {!isRequired && (
+              // Changed from empty string to "unspecified" with a value
+              <SelectItem value="unspecified">Not specified</SelectItem>
+            )}
           </SelectContent>
         </Select>
       );
@@ -344,7 +352,10 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
             <SelectItem value="AB-">AB-</SelectItem>
             <SelectItem value="O+">O+</SelectItem>
             <SelectItem value="O-">O-</SelectItem>
-            {!isRequired && <SelectItem value="">Not specified</SelectItem>}
+            {!isRequired && (
+              // Changed from empty string to "unknown" with a value
+              <SelectItem value="unknown">Not specified</SelectItem>
+            )}
           </SelectContent>
         </Select>
       );
@@ -370,7 +381,10 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
             <SelectItem value="Contract">Contract</SelectItem>
             <SelectItem value="Temporary">Temporary</SelectItem>
             <SelectItem value="Intern">Intern</SelectItem>
-            {!isRequired && <SelectItem value="">Not specified</SelectItem>}
+            {!isRequired && (
+              // Changed from empty string to "unspecified" with a value
+              <SelectItem value="unspecified">Not specified</SelectItem>
+            )}
           </SelectContent>
         </Select>
       );
@@ -398,7 +412,10 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
             <SelectItem value="IT">IT</SelectItem>
             <SelectItem value="Operations">Operations</SelectItem>
             <SelectItem value="Support Staff">Support Staff</SelectItem>
-            {!isRequired && <SelectItem value="">Not specified</SelectItem>}
+            {!isRequired && (
+              // Changed from empty string to "unspecified" with a value  
+              <SelectItem value="unspecified">Not specified</SelectItem>
+            )}
           </SelectContent>
         </Select>
       );
