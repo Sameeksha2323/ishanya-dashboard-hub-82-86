@@ -19,9 +19,10 @@ type PayrollFormProps = {
     current_salary?: number;
     last_paid?: string;
   };
+  onCancel?: () => void;
 };
 
-const PayrollForm = ({ employeeId, onSuccess, initialData }: PayrollFormProps) => {
+const PayrollForm = ({ employeeId, onSuccess, initialData, onCancel }: PayrollFormProps) => {
   const [currentSalary, setCurrentSalary] = useState<number | undefined>(
     initialData?.current_salary
   );
@@ -46,11 +47,11 @@ const PayrollForm = ({ employeeId, onSuccess, initialData }: PayrollFormProps) =
         throw error;
       }
       
-      toast.success('Payroll information saved');
+      toast.success('Payroll information saved', { duration: 3000 });
       onSuccess();
     } catch (error) {
       console.error('Error saving payroll:', error);
-      toast.error('Failed to save payroll information');
+      toast.error('Failed to save payroll information', { duration: 3000 });
     }
   };
 
@@ -99,7 +100,12 @@ const PayrollForm = ({ employeeId, onSuccess, initialData }: PayrollFormProps) =
             </Popover>
           </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex justify-between">
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
           <Button type="submit">Save</Button>
         </CardFooter>
       </form>

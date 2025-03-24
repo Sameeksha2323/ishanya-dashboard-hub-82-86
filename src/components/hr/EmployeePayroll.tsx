@@ -166,8 +166,8 @@ const EmployeePayroll = ({ employeeId }: EmployeePayrollProps) => {
           </DialogHeader>
           <PayrollForm
             employeeId={employeeId}
-            existingData={selectedPayroll}
-            onSave={handlePayrollSaved}
+            initialData={selectedPayroll || undefined}
+            onSuccess={handlePayrollSaved}
             onCancel={handleDialogClose}
           />
         </DialogContent>

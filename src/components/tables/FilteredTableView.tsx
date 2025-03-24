@@ -258,7 +258,7 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
         // Insert new record
         const { data: insertedData, error } = await supabase
           .from(tableName)
-          .insert(formData)
+          .insert([formData])
           .select();
         
         if (error) {
@@ -292,7 +292,7 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
           if (existingData && existingData.length === 0) {
             const { error: syncError } = await supabase
               .from(otherTable)
-              .insert(syncData);
+              .insert([syncData]);
               
             if (syncError) {
               console.error(`Error syncing with ${otherTable}:`, syncError);
@@ -303,12 +303,12 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
         toast.success('Record added successfully', { duration: 3000 });
         
         // Update the records in the UI
-        const newData = [...data, ...(insertedData || [])];
-        setData(newData);
-        setFilteredData(newData);
-        
-        // Update last record ID
         if (insertedData && insertedData.length > 0) {
+          const newData = [...data, ...insertedData];
+          setData(newData);
+          setFilteredData(newData);
+          
+          // Update last record ID
           if (tableName === 'students' && insertedData[0].student_id) {
             setLastRecordId(insertedData[0].student_id);
           } else if ((tableName === 'employees' || tableName === 'educators') && insertedData[0].employee_id) {
@@ -438,7 +438,7 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
           setIsFormEditing(true);
           setShowDetails(true);
         }}
-        onUpload={() => setShowUpload(true)} 
+        onUpload={() => setShowUpload(true)}
         onRefresh={() => window.location.reload()}
       />
       

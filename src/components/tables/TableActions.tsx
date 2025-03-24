@@ -10,14 +10,23 @@ export type TableActionsProps = {
   tableName: string;
   onInsert: () => void;
   onRefresh: () => void;
+  onUpload?: () => void;
   table?: any; // Added this prop to fix the type error
 };
 
-const TableActions = ({ tableName, onInsert, onRefresh }: TableActionsProps) => {
+const TableActions = ({ tableName, onInsert, onRefresh, onUpload }: TableActionsProps) => {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
 
   const handleCloseUpload = () => {
     setIsUploadOpen(false);
+  };
+
+  const handleUploadClick = () => {
+    if (onUpload) {
+      onUpload();
+    } else {
+      setIsUploadOpen(true);
+    }
   };
 
   return (
@@ -39,7 +48,7 @@ const TableActions = ({ tableName, onInsert, onRefresh }: TableActionsProps) => 
           variant="outline"
           size="sm"
           className="border-ishanya-green text-ishanya-green hover:bg-ishanya-green/10"
-          onClick={() => setIsUploadOpen(true)}
+          onClick={handleUploadClick}
         >
           <Upload className="h-4 w-4 mr-2" />
           Import CSV
