@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -49,6 +48,96 @@ type RecordWithID = {
   employee_id?: number;
   center_id?: number;
   [key: string]: any;
+}
+
+// Define specific types for each table
+type EducatorRecord = {
+  center_id: number;
+  employee_id: number;
+  name: string;
+  designation: string;
+  email: string;
+  phone: string;
+  date_of_birth: string;
+  date_of_joining: string;
+  work_location: string;
+  photo?: string;
+  created_at?: string;
+  id?: string;
+}
+
+type EmployeeRecord = {
+  employee_id: number;
+  name: string;
+  gender: string;
+  designation: string;
+  department: string;
+  employment_type: string;
+  email: string;
+  phone: string;
+  date_of_birth: string;
+  date_of_joining: string;
+  status: string;
+  emergency_contact_name: string;
+  emergency_contact: string;
+  center_id: number;
+  password: string;
+  work_location?: string;
+  program_id?: number;
+  date_of_leaving?: string;
+  blood_group?: string;
+  LOR?: string;
+  created_at?: string;
+  id?: string;
+}
+
+type StudentRecord = {
+  student_id: number;
+  first_name: string;
+  last_name: string;
+  gender: string;
+  dob: string;
+  enrollment_year: number;
+  status: string;
+  student_email: string;
+  program_id: number;
+  educator_employee_id: number;
+  contact_number: string;
+  center_id: number;
+  address?: string;
+  program_2_id?: number;
+  secondary_educator_employee_id?: number;
+  photo?: string;
+  primary_diagnosis?: string;
+  comorbidity?: string;
+  udid?: string;
+  timings?: string;
+  days_of_week?: any[];
+  session_type?: string;
+  fathers_name?: string;
+  mothers_name?: string;
+  blood_group?: string;
+  allergies?: string;
+  alt_contact_number?: string;
+  parents_email?: string;
+  transport?: string;
+  strengths?: string;
+  weakness?: string;
+  comments?: string;
+  created_at?: string;
+  id?: string;
+  number_of_sessions?: number;
+}
+
+type CenterRecord = {
+  center_id: number;
+  name: string;
+  location?: string;
+  num_of_student?: number;
+  num_of_educator?: number;
+  num_of_employees?: number;
+  created_at?: string;
+  id?: string;
 }
 
 const FilteredTableView = ({ table }: FilteredTableViewProps) => {
@@ -267,9 +356,33 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
         setFilteredData(updatedData);
       } else {
         // Insert new record
+        let insertData;
+        
+        // Create typed data for insertion based on the table type
+        if (tableName === 'educators') {
+          // Create a properly typed educator record
+          const educatorData: Partial<EducatorRecord> = { ...formData };
+          insertData = [educatorData];
+        } else if (tableName === 'employees') {
+          // Create a properly typed employee record
+          const employeeData: Partial<EmployeeRecord> = { ...formData };
+          insertData = [employeeData];
+        } else if (tableName === 'students') {
+          // Create a properly typed student record
+          const studentData: Partial<StudentRecord> = { ...formData };
+          insertData = [studentData];
+        } else if (tableName === 'centers') {
+          // Create a properly typed center record
+          const centerData: Partial<CenterRecord> = { ...formData };
+          insertData = [centerData];
+        } else {
+          // Generic fallback for other tables
+          insertData = [formData];
+        }
+        
         const { data: insertedData, error } = await supabase
           .from(tableName)
-          .insert([formData]) // Wrap in array for proper type
+          .insert(insertData)
           .select();
         
         if (error) {
@@ -301,9 +414,20 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
             .limit(1);
             
           if (existingData && existingData.length === 0) {
+            // Create properly typed sync data based on the target table
+            let syncInsertData;
+            
+            if (otherTable === 'educators') {
+              const educatorSyncData: Partial<EducatorRecord> = { ...syncData };
+              syncInsertData = [educatorSyncData];
+            } else {
+              const employeeSyncData: Partial<EmployeeRecord> = { ...syncData };
+              syncInsertData = [employeeSyncData];
+            }
+            
             const { error: syncError } = await supabase
               .from(otherTable)
-              .insert([syncData]); // Wrap in array for proper type
+              .insert(syncInsertData);
               
             if (syncError) {
               console.error(`Error syncing with ${otherTable}:`, syncError);
