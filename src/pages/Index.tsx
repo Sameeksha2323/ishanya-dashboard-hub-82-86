@@ -15,6 +15,8 @@ import FilteredTableView from '@/components/tables/FilteredTableView';
 import AnnouncementBoard from '@/components/announcements/AnnouncementBoard';
 import { Button } from '@/components/ui/button';
 import { supabase } from "@/integrations/supabase/client";
+import StudentFormHandler from '@/components/admin/StudentFormHandler';
+import StudentForm from '@/components/admin/StudentForm';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -25,6 +27,7 @@ const Index = () => {
     totalEducators: 0,
     totalEmployees: 0
   });
+  const [showStudentForm, setShowStudentForm] = useState(false);
 
   // Navigation state
   const [selectedCenter, setSelectedCenter] = useState<Center | null>(null);
@@ -49,7 +52,6 @@ const Index = () => {
     loadCenters();
     fetchStats();
     
-    // Set up real-time listeners for each table
     const studentsChannel = supabase
       .channel('students-changes')
       .on('postgres_changes', {
@@ -84,7 +86,6 @@ const Index = () => {
       .subscribe();
     
     return () => {
-      // Clean up subscriptions
       supabase.removeChannel(studentsChannel);
       supabase.removeChannel(educatorsChannel);
       supabase.removeChannel(employeesChannel);
@@ -93,7 +94,6 @@ const Index = () => {
   
   const fetchStats = async () => {
     try {
-      // Simple COUNT queries as requested
       const { count: studentCount, error: studentError } = await supabase
         .from('students')
         .select('*', { count: 'exact', head: true });
@@ -145,10 +145,53 @@ const Index = () => {
       setSelectedCenter(null);
     }
   };
+  
+  const handleAddStudent = async (data: any) => {
+    try {
+      const { error } = await supabase
+        .from('students')
+        .insert([data]);
+        
+      if (error) {
+        throw error;
+      }
+      
+      toast.success('Student added successfully');
+      fetchStats();
+      return Promise.resolve();
+    } catch (error: any) {
+      console.error('Error adding student:', error);
+      toast.error(error.message || 'Failed to add student');
+      return Promise.reject(error);
+    }
+  };
 
   const renderContent = () => {
     if (selectedTable && selectedProgram) {
-      return <FilteredTableView table={selectedTable} />;
+      return (
+        <>
+          <FilteredTableView table={selectedTable} />
+          
+          {selectedTable.name === 'students' && (
+            <StudentFormHandler
+              isOpen={showStudentForm}
+              onClose={() => setShowStudentForm(false)}
+              onSubmit={handleAddStudent}
+              centerId={selectedCenter?.center_id}
+              programId={selectedProgram?.program_id}
+            >
+              {(handleSubmit, lastStudentId, centerId, programId) => (
+                <StudentForm
+                  onSubmit={handleSubmit}
+                  lastStudentId={lastStudentId}
+                  centerId={centerId}
+                  programId={programId}
+                />
+              )}
+            </StudentFormHandler>
+          )}
+        </>
+      );
     }
     
     if (selectedProgram) {

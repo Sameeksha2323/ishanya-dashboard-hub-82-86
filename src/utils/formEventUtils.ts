@@ -1,3 +1,4 @@
+
 /**
  * Utility functions for form-related events across the application
  */
@@ -14,11 +15,6 @@ export const openAddRecordForm = (
   formData: Record<string, any>,
   sourceEntry?: any
 ) => {
-  // Remove created_at as the database will handle it
-  if (formData.created_at) {
-    delete formData.created_at;
-  }
-  
   window.dispatchEvent(new CustomEvent('openAddRecordForm', {
     detail: { 
       tableName,
@@ -34,11 +30,6 @@ export const openAddRecordForm = (
  * @param formData The data to set in the form
  */
 export const setFormData = (formData: Record<string, any>) => {
-  // Remove created_at as the database will handle it
-  if (formData.created_at) {
-    delete formData.created_at;
-  }
-  
   window.dispatchEvent(new CustomEvent('setFormData', {
     detail: { formData }
   }));
@@ -120,6 +111,9 @@ export const formatColumnName = (columnName: string): string => {
   if (columnName.toLowerCase() === 'dob') return 'DOB';
   if (columnName.toLowerCase() === 'udid') return 'UDID';
   if (columnName.toLowerCase() === 'lor') return 'LOR';
+  if (columnName === 'educator_employee_id') return 'Educator Name';
+  if (columnName === 'secondary_educator_employee_id') return 'Secondary Educator Name';
+  if (columnName === 'alt_contact_number') return 'Alternate Contact Number';
   
   // Replace underscores with spaces and capitalize first letter of each word
   return columnName
@@ -158,4 +152,46 @@ export const listenForVoiceInputDialog = (
   return () => {
     window.removeEventListener('openVoiceInputDialog', handleEvent as EventListener);
   };
+};
+
+/**
+ * Check if two educators are the same
+ * 
+ * @param primaryEducatorId The primary educator ID
+ * @param secondaryEducatorId The secondary educator ID
+ * @returns True if they are the same, false otherwise
+ */
+export const isSameEducator = (
+  primaryEducatorId: number | null | undefined,
+  secondaryEducatorId: number | null | undefined
+): boolean => {
+  if (!primaryEducatorId || !secondaryEducatorId) return false;
+  return primaryEducatorId === secondaryEducatorId;
+};
+
+/**
+ * Checks if a field is required based on table name and column name
+ * 
+ * @param tableName The name of the table
+ * @param columnName The name of the column
+ * @returns True if the field is required, false otherwise
+ */
+export const isFieldRequired = (tableName: string, columnName: string): boolean => {
+  const requiredFields: Record<string, string[]> = {
+    students: [
+      'first_name', 'last_name', 'gender', 'dob', 'student_id', 'enrollment_year', 
+      'status', 'student_email', 'program_id', 'educator_employee_id', 'contact_number', 'center_id'
+    ],
+    educators: [
+      'center_id', 'employee_id', 'name', 'designation', 'email', 'phone', 
+      'date_of_birth', 'date_of_joining', 'work_location'
+    ],
+    employees: [
+      'employee_id', 'name', 'gender', 'designation', 'department', 'employment_type', 
+      'email', 'phone', 'date_of_birth', 'date_of_joining', 'emergency_contact_name', 
+      'emergency_contact', 'center_id', 'password'
+    ]
+  };
+  
+  return requiredFields[tableName]?.includes(columnName) || false;
 };
