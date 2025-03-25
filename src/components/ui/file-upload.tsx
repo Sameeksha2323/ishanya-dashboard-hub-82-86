@@ -1,131 +1,125 @@
 
-import { useState } from 'react';
+import { useState, useRef, ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Upload, X } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { trackDatabaseChange } from '@/utils/dbTracking';
+import { FileIcon, UploadCloud, X } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
-type FileUploadProps = {
-  bucketName: string;
+interface FileUploadProps {
   onFileUpload: (url: string) => void;
-  existingUrl?: string;
-  entityType: 'student' | 'employee' | 'educator';
-  entityId?: string | number;
-};
+  label?: string;
+  value?: string;
+  bucket?: string;
+  folder?: string;
+  accept?: string; // file types to accept
+  maxSize?: number; // in MB
+  fileType?: 'image' | 'document' | 'any';
+}
 
-const FileUpload = ({ bucketName, onFileUpload, existingUrl, entityType, entityId }: FileUploadProps) => {
+const FileUpload = ({
+  onFileUpload,
+  label = 'Upload File',
+  value,
+  bucket = 'documents',
+  folder = '',
+  accept = '*',
+  maxSize = 5, // 5MB default
+  fileType = 'any'
+}: FileUploadProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(existingUrl || null);
+  const [uploadedUrl, setUploadedUrl] = useState<string>(value || '');
+  const [displayFileName, setDisplayFileName] = useState<string>(value ? value.split('/').pop() || '' : '');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const selectedFile = e.target.files[0];
-      
-      // Check file size (5MB limit)
-      if (selectedFile.size > 5 * 1024 * 1024) {
-        toast.error("File too large. Maximum size is 5MB.");
-        return;
-      }
-      
-      // Check file type for images
-      if (bucketName.includes('photo') && !selectedFile.type.startsWith('image/')) {
-        toast.error("Only image files are allowed for photos.");
-        return;
-      }
-      
-      setFile(selectedFile);
-      
-      // Create preview (for images only)
-      if (selectedFile.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setPreviewUrl(reader.result as string);
-        };
-        reader.readAsDataURL(selectedFile);
-      } else {
-        // For non-image files, just show the filename
-        setPreviewUrl(null);
-      }
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) {
+      return;
     }
+    
+    const selectedFile = e.target.files[0];
+    
+    // Check file type if needed
+    if (fileType === 'image' && !selectedFile.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+    
+    if (fileType === 'document' && !selectedFile.type.includes('pdf') && 
+        !selectedFile.type.includes('doc') && !selectedFile.type.includes('sheet') && 
+        !selectedFile.type.includes('presentation')) {
+      toast.error('Please upload a document file (PDF, Word, Excel, etc.)');
+      return;
+    }
+    
+    // Check file size
+    const fileSizeMB = selectedFile.size / (1024 * 1024);
+    if (fileSizeMB > maxSize) {
+      toast.error(`File size exceeds ${maxSize}MB limit`);
+      return;
+    }
+    
+    setFile(selectedFile);
+    setDisplayFileName(selectedFile.name);
   };
 
   const handleUpload = async () => {
     if (!file) {
-      toast.error("Please select a file first.");
+      toast.error('Please select a file first');
       return;
     }
     
     try {
       setUploading(true);
+      const timestamp = new Date().getTime();
+      const fileExtension = file.name.split('.').pop();
+      const filePath = folder 
+        ? `${folder}/${timestamp}-${file.name}`
+        : `${timestamp}-${file.name}`;
       
-      // Create a unique file name based on entity type and ID
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${entityType}-${entityId || Date.now()}.${fileExt}`;
-      
-      // Determine the correct bucket based on entityType and bucket name
-      let targetBucket = bucketName;
-      
-      // For photos
-      if (entityType === 'student' && bucketName.includes('photo')) {
-        targetBucket = 'student-photos';
-      } else if (entityType === 'employee' && bucketName.includes('photo')) {
-        targetBucket = 'employee-photos';
-      } else if (entityType === 'educator' && bucketName.includes('photo')) {
-        targetBucket = 'employee-photos'; // Use employee-photos for educators too
+      // Check if bucket exists, if not try to create it
+      const { data: buckets } = await supabase.storage.listBuckets();
+      if (!buckets?.find(b => b.name === bucket)) {
+        const { error: bucketError } = await supabase.storage.createBucket(bucket, {
+          public: true
+        });
+        
+        if (bucketError) {
+          console.error('Error creating bucket:', bucketError);
+          toast.error('Error creating storage bucket');
+          setUploading(false);
+          return;
+        }
       }
       
-      // For LOR documents
-      if (bucketName.includes('lor')) {
-        targetBucket = 'employee-lor'; // Use employee-lor for all LOR documents
-      }
-      
-      console.log(`Uploading to bucket: ${targetBucket}, filename: ${fileName}`);
-      
-      // Upload file to Supabase Storage
+      // Upload the file
       const { data, error } = await supabase.storage
-        .from(targetBucket)
-        .upload(fileName, file, {
+        .from(bucket)
+        .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true
         });
       
       if (error) {
-        throw error;
+        console.error('Error uploading file:', error);
+        toast.error('Error uploading file');
+        setUploading(false);
+        return;
       }
       
       // Get the public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from(targetBucket)
-        .getPublicUrl(data.path);
+      const { data: publicUrlData } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(filePath);
       
+      const publicUrl = publicUrlData.publicUrl;
+      setUploadedUrl(publicUrl);
       onFileUpload(publicUrl);
-      toast.success("File uploaded successfully!");
-      
-      // If this is an educator employee, also add to educator-lor bucket if it's a LOR doc
-      if (entityType === 'employee' && bucketName.includes('lor')) {
-        const { data: employeeData } = await supabase
-          .from('employees')
-          .select('designation')
-          .eq('employee_id', entityId)
-          .single();
-          
-        if (employeeData?.designation === 'Educator') {
-          await supabase.storage
-            .from('educator-lor')
-            .copy(`${targetBucket}/${fileName}`, fileName);
-        }
-      }
-      
-      // Track the file upload
-      await trackDatabaseChange(`${targetBucket} (file upload)`, 'insert');
-      
-    } catch (error: any) {
-      console.error('Error uploading file:', error);
-      toast.error(error.message || "Failed to upload file.");
+      toast.success('File uploaded successfully');
+    } catch (error) {
+      console.error('Error in upload process:', error);
+      toast.error('File upload failed');
     } finally {
       setUploading(false);
     }
@@ -133,84 +127,115 @@ const FileUpload = ({ bucketName, onFileUpload, existingUrl, entityType, entityI
 
   const handleClearFile = () => {
     setFile(null);
-    setPreviewUrl(existingUrl || null);
-  };
-
-  // Function to correctly handle the entityType with proper typing
-  const getEntityTypeName = (type: 'student' | 'employee' | 'educator'): string => {
-    switch (type) {
-      case 'student': return 'Student';
-      case 'employee': return 'Employee';
-      case 'educator': return 'Employee'; // Changed to Employee
+    setUploadedUrl('');
+    setDisplayFileName('');
+    onFileUpload('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
-  // Determine if this is a document upload (for LOR) rather than an image
-  const isDocumentUpload = bucketName.includes('lor');
-  const fileTypeText = isDocumentUpload ? 'Document' : 'Photo';
-  const acceptTypes = isDocumentUpload ? 
-    ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.txt,.rtf,.zip,.rar,.xlsx,.xls,.ppt,.pptx" : 
-    "image/*";
+  const getFileIcon = () => {
+    if (file || uploadedUrl) {
+      if (fileType === 'image' || (file && file.type.startsWith('image/'))) {
+        return uploadedUrl ? (
+          <img 
+            src={uploadedUrl} 
+            alt="Preview" 
+            className="w-12 h-12 object-cover rounded"
+          />
+        ) : null;
+      } else {
+        return <FileIcon className="h-8 w-8 text-blue-500" />;
+      }
+    }
+    return null;
+  };
+
+  const formatFileSize = (size: number) => {
+    if (size < 1024) {
+      return size + ' B';
+    } else if (size < 1024 * 1024) {
+      return (size / 1024).toFixed(2) + ' KB';
+    } else {
+      return (size / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+  };
 
   return (
-    <div className="space-y-4">
-      <Label htmlFor="file-upload">Upload {getEntityTypeName(entityType)} {fileTypeText}</Label>
-      
-      <div className="flex items-center gap-4">
-        <Input
-          id="file-upload"
-          type="file"
-          accept={acceptTypes}
-          onChange={handleFileChange}
-          className="max-w-sm"
-        />
-        
-        {file && (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="block text-sm font-medium text-gray-700">{label}</label>
+        {(file || uploadedUrl) && (
           <Button 
-            type="button" 
+            variant="ghost" 
+            size="sm" 
+            className="h-6 px-2 text-red-500 hover:text-red-700 hover:bg-red-50"
             onClick={handleClearFile}
-            variant="outline"
-            size="icon"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4 mr-1" />
+            Clear
           </Button>
         )}
       </div>
       
-      {previewUrl && !isDocumentUpload && (
-        <div className="relative w-32 h-32 border rounded overflow-hidden bg-gray-50">
-          <img 
-            src={previewUrl} 
-            alt="Preview" 
-            className="w-full h-full object-cover"
-          />
-        </div>
-      )}
+      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
+        {(file || uploadedUrl) ? (
+          <div className="flex items-center space-x-3">
+            {getFileIcon()}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {displayFileName}
+              </p>
+              {file && (
+                <p className="text-xs text-gray-500">
+                  {formatFileSize(file.size)}
+                </p>
+              )}
+            </div>
+            {!uploadedUrl && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleUpload}
+                disabled={uploading}
+              >
+                {uploading ? 'Uploading...' : 'Upload'}
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div 
+            className="flex flex-col items-center justify-center py-3 cursor-pointer"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <UploadCloud className="h-10 w-10 text-gray-400" />
+            <p className="mt-2 text-sm text-gray-500">
+              Click to select a file
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              {fileType === 'image' 
+                ? 'JPG, PNG, GIF up to ' 
+                : fileType === 'document' 
+                  ? 'PDF, DOCX, XLSX up to '
+                  : 'Any file up to '}
+              {maxSize}MB
+            </p>
+          </div>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          onChange={handleFileChange}
+          accept={accept}
+        />
+      </div>
       
-      {previewUrl && isDocumentUpload && (
-        <div className="text-sm text-blue-600">
-          <a href={previewUrl} target="_blank" rel="noopener noreferrer">
-            View uploaded document
-          </a>
+      {uploading && (
+        <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+          <div className="bg-blue-600 h-2.5 rounded-full w-1/2"></div>
         </div>
-      )}
-      
-      {file && !previewUrl && (
-        <div className="text-sm text-gray-500">
-          Selected file: {file.name}
-        </div>
-      )}
-      
-      {file && (
-        <Button 
-          type="button" 
-          onClick={handleUpload}
-          disabled={uploading}
-          className="mt-2"
-        >
-          <Upload className="h-4 w-4 mr-2" />
-          {uploading ? 'Uploading...' : 'Upload'}
-        </Button>
       )}
     </div>
   );

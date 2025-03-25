@@ -19,9 +19,10 @@ import {
 } from 'recharts';
 import { motion } from 'framer-motion';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 
 // Define chart color scheme
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+const COLORS = ['#8884d8', '#00C49F', '#FFBB28', '#FF8042', '#9b87f5', '#D946EF'];
 
 const AnalyticsDashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -81,26 +82,42 @@ const AnalyticsDashboard = () => {
           setCenterNameMap(centerMap);
         }
 
-        // Fetch students grouped by program
-        const { data: programData, error: programError } = await supabase
-          .from('students')
-          .select('program_id, count')
-          .select('program_id');
-          
-        if (programError) throw programError;
+        // Fetch students grouped by program using the provided SQL query through RPC
+        const { data: programData, error: programError } = await supabase.rpc('get_students_by_program');
         
-        if (programData) {
-          const programCounts: {[key: string]: number} = {};
+        if (programError) {
+          console.error('Error with RPC, falling back to standard query:', programError);
           
-          programData.forEach(student => {
-            const programId = student.program_id?.toString() || 'Unknown';
-            programCounts[programId] = (programCounts[programId] || 0) + 1;
-          });
+          // Fallback: use a standard query to get program data
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from('students')
+            .select('program_id, programs!inner(name)')
+            .order('program_id');
+            
+          if (fallbackError) throw fallbackError;
           
-          const formattedProgramData = Object.entries(programCounts).map(([programId, count]) => ({
-            programId,
-            programName: programNameMap[programId] || `Program ${programId}`,
-            count
+          if (fallbackData) {
+            // Process and count program data
+            const programCounts: {[key: string]: number} = {};
+            
+            fallbackData.forEach(student => {
+              // @ts-ignore - we know this structure exists
+              const programName = student.programs?.name || 'Unknown';
+              programCounts[programName] = (programCounts[programName] || 0) + 1;
+            });
+            
+            const formattedProgramData = Object.entries(programCounts).map(([name, count]) => ({
+              name,
+              count
+            }));
+            
+            setStudentsByProgram(formattedProgramData);
+          }
+        } else if (programData) {
+          // Format the RPC data
+          const formattedProgramData = programData.map((item: any) => ({
+            name: item.name,
+            count: Number(item.total_students)
           }));
           
           setStudentsByProgram(formattedProgramData);
@@ -263,7 +280,7 @@ const AnalyticsDashboard = () => {
       <h2 className="text-2xl font-bold">Analytics Dashboard</h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Students by Program */}
+        {/* Students by Program - Now a Pie Chart */}
         <motion.div
           initial="hidden"
           animate="visible"
@@ -277,14 +294,35 @@ const AnalyticsDashboard = () => {
             <CardContent>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={studentsByProgram}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="programName" tick={{fontSize: 12}} />
-                    <YAxis />
-                    <Tooltip />
+                  <PieChart>
+                    <Pie
+                      data={studentsByProgram}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="count"
+                      nameKey="name"
+                      label={({ name, count }) => `${name}: ${count}`}
+                    >
+                      {studentsByProgram.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-white p-2 border border-gray-200 rounded shadow-md">
+                            <p className="font-semibold">{payload[0].payload.name}</p>
+                            <p>Students: {payload[0].value}</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }} />
                     <Legend />
-                    <Bar dataKey="count" name="Number of Students" fill="#8884d8" />
-                  </BarChart>
+                  </PieChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>
