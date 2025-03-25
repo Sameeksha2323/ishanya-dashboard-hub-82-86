@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -65,8 +64,16 @@ const TableView = ({ table }: TableViewProps) => {
         
         setColumns(columnsData);
         
-        // Remove duplicate columns like enrollment_year
-        const uniqueColumns = [...new Set(columnsData)];
+        // Remove duplicate columns and created_at
+        const uniqueColumns = [...new Set(columnsData)].filter(col => {
+          // Filter out duplicate enrollment_year
+          if (col === 'enrollment_year' && 
+              columnsData.indexOf(col) !== columnsData.lastIndexOf(col)) {
+            return columnsData.indexOf(col) === columnsData.indexOf('enrollment_year');
+          }
+          return true;
+        });
+        
         setProcessedColumns(uniqueColumns);
         
         let query = supabase.from(tableName).select('*');
@@ -90,7 +97,7 @@ const TableView = ({ table }: TableViewProps) => {
         
         const defaultFormData: Record<string, any> = {};
         uniqueColumns.forEach(col => {
-          // Don't set default values for system fields
+          // Don't set default values for system fields like created_at
           if (col !== 'created_at' && col !== 'updated_at') {
             defaultFormData[col] = '';
           }
@@ -165,7 +172,10 @@ const TableView = ({ table }: TableViewProps) => {
     
     const rowFormData: Record<string, any> = {};
     columns.forEach(col => {
-      rowFormData[col] = row[col] !== null ? row[col] : '';
+      // Skip created_at as it's handled by the database
+      if (col !== 'created_at') {
+        rowFormData[col] = row[col] !== null ? row[col] : '';
+      }
     });
     
     setFormData(rowFormData);
@@ -245,8 +255,8 @@ const TableView = ({ table }: TableViewProps) => {
       const updateData: Record<string, any> = {};
       columns.forEach(col => {
         // Skip created_at to let the database handle it
-        if (col !== 'created_at') {
-          updateData[col] = formData[col] !== null ? formData[col] : null;
+        if (col !== 'created_at' && col !== 'updated_at') {
+          updateData[col] = formData[col] !== undefined ? formData[col] : null;
         }
       });
       
@@ -297,8 +307,8 @@ const TableView = ({ table }: TableViewProps) => {
       
       const insertData: Record<string, any> = {};
       columns.forEach(col => {
-        // Skip created_at field to let database set it automatically
-        if (col !== 'created_at' && formData[col] !== undefined) {
+        // Skip created_at and updated_at fields to let database set them automatically
+        if (col !== 'created_at' && col !== 'updated_at' && formData[col] !== undefined) {
           insertData[col] = formData[col] !== null && formData[col] !== '' ? formData[col] : null;
         }
       });
@@ -309,6 +319,8 @@ const TableView = ({ table }: TableViewProps) => {
         setLoading(false);
         return;
       }
+      
+      console.log("Inserting data:", insertData);
       
       const { data: newRecord, error: insertError } = await supabase
         .from(tableName)
@@ -407,6 +419,20 @@ const TableView = ({ table }: TableViewProps) => {
     );
   }
 
+  // Filter out duplicate columns and system fields
+  const displayColumns = processedColumns.filter(column => {
+    // Filter out created_at and updated_at from the display
+    if (column === 'created_at' || column === 'updated_at') return false;
+    
+    // Keep only one instance of enrollment_year if duplicated
+    if (column === 'enrollment_year' && 
+        processedColumns.indexOf(column) !== processedColumns.lastIndexOf(column)) {
+      return processedColumns.indexOf(column) === processedColumns.indexOf('enrollment_year');
+    }
+    
+    return true;
+  });
+
   return (
     <div>
       <TableActions
@@ -418,7 +444,7 @@ const TableView = ({ table }: TableViewProps) => {
           setFormDataSource(null);
           
           const defaultFormData: Record<string, any> = {};
-          processedColumns.forEach(col => {
+          displayColumns.forEach(col => {
             // Skip system fields
             if (col !== 'created_at' && col !== 'updated_at') {
               defaultFormData[col] = '';
@@ -473,15 +499,14 @@ const TableView = ({ table }: TableViewProps) => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {processedColumns.map((column) => {
-                // Skip system fields
-                if (column === 'created_at') return null;
-                if (column === 'updated_at') return null;
+              {displayColumns.map((column) => {
+                // Skip system fields and duplicates
+                if (column === 'created_at' || column === 'updated_at') return null;
                 
-                // Skip duplicate fields
+                // Skip duplicate enrollment_year
                 if (column === 'enrollment_year' && 
-                    processedColumns.indexOf(column) !== processedColumns.lastIndexOf(column) && 
-                    processedColumns.indexOf(column) > processedColumns.indexOf('enrollment_year')) {
+                    processedColumns.indexOf(column) !== processedColumns.lastIndexOf(column) &&
+                    processedColumns.indexOf(column) !== processedColumns.indexOf('enrollment_year')) {
                   return null;
                 }
                 
@@ -497,7 +522,7 @@ const TableView = ({ table }: TableViewProps) => {
                   <div key={column} className="space-y-2">
                     <Label htmlFor={column}>
                       {formatColumnName(column)}
-                      {(isEditing || !isEditing) && isRequired && <span className="text-red-500 ml-1">*</span>}
+                      {isRequired && <span className="text-red-500 ml-1">*</span>}
                     </Label>
                     <TableFieldFormatter
                       fieldName={column}
@@ -554,7 +579,7 @@ const TableView = ({ table }: TableViewProps) => {
           <Table>
             <TableHeader>
               <TableRow>
-                {processedColumns.slice(0, 6).map((column) => (
+                {displayColumns.slice(0, 6).map((column) => (
                   <TableHead key={column}>
                     {formatColumnName(column)}
                   </TableHead>
@@ -565,14 +590,14 @@ const TableView = ({ table }: TableViewProps) => {
             <TableBody>
               {filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={processedColumns.slice(0, 6).length + 1} className="h-24 text-center">
+                  <TableCell colSpan={displayColumns.slice(0, 6).length + 1} className="h-24 text-center">
                     No records found
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredData.map((row) => (
                   <TableRow key={row[entityIdField]}>
-                    {processedColumns.slice(0, 6).map((column) => (
+                    {displayColumns.slice(0, 6).map((column) => (
                       <TableCell key={column}>
                         <TableFieldFormatter
                           fieldName={column}

@@ -70,6 +70,8 @@ const FileUpload = ({ bucketName, onFileUpload, existingUrl, entityType, entityI
         targetBucket = 'educator-photos';
       }
       
+      console.log(`Uploading to bucket: ${targetBucket}, filename: ${fileName}`);
+      
       // Upload file to Supabase Storage
       const { data, error } = await supabase.storage
         .from(targetBucket)
@@ -104,12 +106,11 @@ const FileUpload = ({ bucketName, onFileUpload, existingUrl, entityType, entityI
   };
 
   const getEntityTypeName = () => {
-    const entityTypeString = entityType as string;
-    switch (entityTypeString) {
+    switch (entityType) {
       case 'student': return 'Student';
       case 'employee': return 'Employee';
       case 'educator': return 'Educator';
-      default: return entityTypeString.charAt(0).toUpperCase() + entityTypeString.slice(1);
+      default: return entityType.charAt(0).toUpperCase() + entityType.slice(1);
     }
   };
 
