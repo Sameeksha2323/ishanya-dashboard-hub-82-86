@@ -158,7 +158,7 @@ export const fetchTablesByProgram = async (programId: number): Promise<TableInfo
     const center_id = programData.center_id;
     console.log(`Found center_id ${center_id} for program_id ${programId}`);
     
-    // Excluding the courses table as requested
+    // Only include students and employees tables as requested
     const tables: TableInfo[] = [
       { 
         id: 1, 
@@ -166,14 +166,6 @@ export const fetchTablesByProgram = async (programId: number): Promise<TableInfo
         program_id: programId, 
         description: 'Student information',
         display_name: 'Students',
-        center_id: center_id
-      },
-      { 
-        id: 2, 
-        name: 'educators', 
-        program_id: programId, 
-        description: 'Educator information',
-        display_name: 'Educators',
         center_id: center_id
       },
       { 
@@ -378,9 +370,9 @@ const processFieldData = (data: Record<string, any>): Record<string, any> => {
 };
 
 // Fetch data from a specific table with proper logging and improved error handling
-export const fetchTableData = async (tableName: string, center_id?: number): Promise<any[] | null> => {
+export const fetchTableData = async (tableName: string, center_id?: number, program_id?: number): Promise<any[] | null> => {
   try {
-    console.log(`Fetching data from ${tableName} ${center_id ? `for center_id: ${center_id}` : ''}`);
+    console.log(`Fetching data from ${tableName} ${center_id ? `for center_id: ${center_id}` : ''} ${program_id ? `for program_id: ${program_id}` : ''}`);
     
     // Query the actual table
     let query = supabase.from(tableName.toLowerCase()).select('*');
@@ -388,6 +380,11 @@ export const fetchTableData = async (tableName: string, center_id?: number): Pro
     // Filter by center_id if provided
     if (center_id) {
       query = query.eq('center_id', center_id);
+    }
+    
+    // Filter by program_id if provided and the table has this column
+    if (program_id && tableName.toLowerCase() !== 'employees') {
+      query = query.eq('program_id', program_id);
     }
     
     const { data, error } = await query;

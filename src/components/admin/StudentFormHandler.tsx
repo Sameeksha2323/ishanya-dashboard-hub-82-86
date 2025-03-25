@@ -14,6 +14,8 @@ interface StudentFormHandlerProps {
   ) => React.ReactNode);
   centerId?: number;
   programId?: number;
+  formType?: 'student' | 'employee';
+  title?: string;
 }
 
 const StudentFormHandler = ({ 
@@ -22,39 +24,61 @@ const StudentFormHandler = ({
   onSubmit, 
   children,
   centerId,
-  programId
+  programId,
+  formType = 'student',
+  title
 }: StudentFormHandlerProps) => {
   const [lastStudentId, setLastStudentId] = useState<number | null>(null);
+  const [lastEmployeeId, setLastEmployeeId] = useState<number | null>(null);
   
   useEffect(() => {
-    // Fetch the last student ID when component mounts
-    const fetchLastStudentId = async () => {
+    // Fetch the last ID when component mounts
+    const fetchLastIds = async () => {
       try {
-        const { data, error } = await supabase
-          .from('students')
-          .select('student_id')
-          .order('student_id', { ascending: false })
-          .limit(1);
+        if (formType === 'student') {
+          const { data, error } = await supabase
+            .from('students')
+            .select('student_id')
+            .order('student_id', { ascending: false })
+            .limit(1);
+            
+          if (error) {
+            console.error('Error fetching last student ID:', error);
+            return;
+          }
           
-        if (error) {
-          console.error('Error fetching last student ID:', error);
-          return;
-        }
-        
-        if (data && data.length > 0) {
-          setLastStudentId(data[0].student_id);
-        } else {
-          setLastStudentId(1000); // Default starting ID if no students exist
+          if (data && data.length > 0) {
+            setLastStudentId(data[0].student_id);
+          } else {
+            setLastStudentId(1000); // Default starting ID if no students exist
+          }
+        } else if (formType === 'employee') {
+          const { data, error } = await supabase
+            .from('employees')
+            .select('employee_id')
+            .order('employee_id', { ascending: false })
+            .limit(1);
+            
+          if (error) {
+            console.error('Error fetching last employee ID:', error);
+            return;
+          }
+          
+          if (data && data.length > 0) {
+            setLastEmployeeId(data[0].employee_id);
+          } else {
+            setLastEmployeeId(1000); // Default starting ID if no employees exist
+          }
         }
       } catch (err) {
-        console.error('Error in fetchLastStudentId:', err);
+        console.error('Error in fetchLastIds:', err);
       }
     };
     
     if (isOpen) {
-      fetchLastStudentId();
+      fetchLastIds();
     }
-  }, [isOpen]);
+  }, [isOpen, formType]);
   
   // Handle successful form submission
   const handleFormSubmitSuccess = () => {
@@ -65,7 +89,8 @@ const StudentFormHandler = ({
     onClose();
     
     // Show a success message
-    toast.success('Student record added successfully');
+    const entityType = formType === 'student' ? 'Student' : 'Employee';
+    toast.success(`${entityType} record added successfully`);
   };
   
   // Handle form submission
@@ -92,15 +117,21 @@ const StudentFormHandler = ({
       handleFormSubmitSuccess();
     } catch (error) {
       console.error('Error submitting form:', error);
-      toast.error('Failed to add student record');
+      const entityType = formType === 'student' ? 'Student' : 'Employee';
+      toast.error(`Failed to add ${entityType.toLowerCase()} record`);
     }
+  };
+  
+  const getSheetTitle = () => {
+    if (title) return title;
+    return formType === 'student' ? 'Add Student Record' : 'Add Employee Record';
   };
   
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent className="sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Add Student Record</SheetTitle>
+          <SheetTitle>{getSheetTitle()}</SheetTitle>
         </SheetHeader>
         <div className="mt-6">
           {typeof children === 'function'

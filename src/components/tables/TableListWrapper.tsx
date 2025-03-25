@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TableInfo, fetchTablesByProgram } from '@/lib/api';
+import { TableInfo } from '@/lib/api';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { Button } from '@/components/ui/button';
 import { Program } from '@/lib/api';
@@ -76,7 +76,9 @@ const TableListWrapper = ({ program, onSelectTable, selectedTable }: TableListWr
       {tables.map((table) => (
         <Card 
           key={table.id}
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className={`cursor-pointer hover:shadow-md transition-shadow ${
+            selectedTable?.name === table.name ? 'ring-2 ring-primary' : ''
+          }`}
           onClick={() => onSelectTable(table)}
         >
           <CardHeader className="pb-2">

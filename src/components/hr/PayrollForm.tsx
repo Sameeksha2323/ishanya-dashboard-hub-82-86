@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { trackDatabaseChange } from '@/utils/dbTracking';
 
 type PayrollFormProps = {
   employeeId: number;
@@ -46,6 +47,9 @@ const PayrollForm = ({ employeeId, onSuccess, initialData, onCancel }: PayrollFo
       if (error) {
         throw error;
       }
+      
+      // Track the database change
+      await trackDatabaseChange('employee_payroll', 'update');
       
       toast.success('Payroll information saved', { duration: 3000 });
       onSuccess();

@@ -19,7 +19,6 @@ import EmployeeDetailPage from './pages/EmployeeDetailPage';
 import LandingPage from './pages/LandingPage';
 import StudentPerformance from './pages/StudentPerformance';
 import StudentDetails from './pages/StudentDetails';
-import { X } from 'lucide-react';
 
 const queryClient = new QueryClient({
   defaultOptions: {

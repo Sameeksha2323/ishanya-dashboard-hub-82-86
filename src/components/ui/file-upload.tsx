@@ -70,7 +70,7 @@ const FileUpload = ({ bucketName, onFileUpload, existingUrl, entityType, entityI
       let targetBucket = bucketName;
       
       // For photos
-      if (entityType === 'student') {
+      if (entityType === 'student' && bucketName.includes('photo')) {
         targetBucket = 'student-photos';
       } else if (entityType === 'employee' && bucketName.includes('photo')) {
         targetBucket = 'employee-photos';
@@ -105,12 +105,19 @@ const FileUpload = ({ bucketName, onFileUpload, existingUrl, entityType, entityI
       onFileUpload(publicUrl);
       toast.success("File uploaded successfully!");
       
-      // If this is an educator, also add to educator LOR bucket if it's a LOR doc
-      if (entityType === 'employee' && bucketName.includes('lor') && 
-          formData && formData.designation === 'Educator') {
-        await supabase.storage
-          .from('educator-lor')
-          .copy(`${targetBucket}/${fileName}`, fileName);
+      // If this is an educator employee, also add to educator-lor bucket if it's a LOR doc
+      if (entityType === 'employee' && bucketName.includes('lor')) {
+        const { data: employeeData } = await supabase
+          .from('employees')
+          .select('designation')
+          .eq('employee_id', entityId)
+          .single();
+          
+        if (employeeData?.designation === 'Educator') {
+          await supabase.storage
+            .from('educator-lor')
+            .copy(`${targetBucket}/${fileName}`, fileName);
+        }
       }
       
       // Track the file upload
