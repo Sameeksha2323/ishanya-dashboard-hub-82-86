@@ -33,7 +33,6 @@ const TableActions = ({
       // Only proceed if this is the correct table
       if (eventTableName === tableName) {
         console.log('Opening add record form with prefilled data:', formData);
-        setPrefilledData(formData);
         
         // Store the source entry information in sessionStorage for retrieval after form submission
         if (sourceEntry) {
@@ -45,6 +44,11 @@ const TableActions = ({
         
         // Trigger the form to open
         onInsert();
+        
+        // Dispatch a new event to provide form data to the record form component
+        window.dispatchEvent(new CustomEvent('setFormData', {
+          detail: { formData }
+        }));
       }
     };
 
