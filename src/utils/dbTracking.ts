@@ -33,9 +33,9 @@ export const trackDatabaseChange = async (tableName: string, action: 'insert' | 
         userName = employeeData.name;
       }
     } else if (userRole === 'teacher' || userRole === 'educator') {
-      // Fetch from educators table
+      // Use employees table as well - educators are now employees with educator designation
       const { data: educatorData } = await supabase
-        .from('educators')
+        .from('employees')
         .select('name')
         .eq('id', user.id)
         .single();

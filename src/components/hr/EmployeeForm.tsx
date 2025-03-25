@@ -29,6 +29,7 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
   const [programs, setPrograms] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [centerName, setCenterName] = useState<string>('');
 
   useEffect(() => {
     const fetchCentersAndPrograms = async () => {
@@ -43,6 +44,18 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
           console.error('Error fetching centers:', centersError);
         } else if (centersData) {
           setCenters(centersData);
+          
+          // If center_id exists, get the center name
+          if (formData.center_id) {
+            const center = centersData.find(c => c.center_id === parseInt(formData.center_id));
+            if (center) {
+              setCenterName(center.name);
+              setFormData(prev => ({
+                ...prev,
+                work_location: center.name
+              }));
+            }
+          }
         }
         
         const { data: programsData, error: programsError } = await supabase
@@ -63,7 +76,7 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
     };
     
     fetchCentersAndPrograms();
-  }, []);
+  }, [formData.center_id]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -74,7 +87,37 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData({ ...formData, [name]: value });
+    let updatedFormData = { ...formData, [name]: value };
+    
+    // Handle designation change and set department automatically
+    if (name === 'designation') {
+      let department = '';
+      
+      if (value === 'Educator') {
+        department = 'Education';
+      } else if (value === 'HR') {
+        department = 'Human Resources';
+      } else if (value === 'Administrator') {
+        department = 'Management';
+      }
+      
+      updatedFormData = { ...updatedFormData, department };
+    }
+    
+    // Handle center_id change and update work_location
+    if (name === 'center_id') {
+      const center = centers.find(c => c.center_id === parseInt(value));
+      if (center) {
+        updatedFormData = { 
+          ...updatedFormData, 
+          work_location: center.name 
+        };
+        setCenterName(center.name);
+      }
+    }
+    
+    setFormData(updatedFormData);
+    
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
@@ -101,9 +144,9 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
     const newErrors: Record<string, string> = {};
     
     const requiredFields = [
-      'name', 'gender', 'designation', 'department', 'employment_type',
-      'email', 'phone', 'date_of_birth', 'date_of_joining', 'emergency_contact_name',
-      'emergency_contact', 'center_id'
+      'name', 'gender', 'designation', 'employment_type',
+      'email', 'phone', 'date_of_birth', 'date_of_joining', 'center_id',
+      'employee_id'
     ];
     
     requiredFields.forEach(field => {
@@ -114,6 +157,11 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
     
     if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Invalid email format';
+    }
+    
+    // Check if employee_id is an integer
+    if (formData.employee_id && isNaN(parseInt(formData.employee_id))) {
+      newErrors.employee_id = 'Employee ID must be a number';
     }
     
     setErrors(newErrors);
@@ -130,11 +178,18 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
       return;
     }
     
+    // Convert employee_id to an integer
+    if (submissionData.employee_id) {
+      submissionData.employee_id = parseInt(submissionData.employee_id);
+    }
+    
     console.log("Submitting employee data:", submissionData);
     onSave(submissionData);
   };
 
+  // This array defines the form fields and their properties
   const formFields = [
+    { name: 'employee_id', label: 'Employee ID', type: 'number' },
     { name: 'name', label: 'Full Name', type: 'input' },
     { name: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Other'] },
     { name: 'date_of_birth', label: 'Date of Birth', type: 'date' },
@@ -145,11 +200,11 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
     { name: 'emergency_contact_name', label: 'Emergency Contact Name', type: 'input' },
     { name: 'emergency_contact', label: 'Emergency Contact', type: 'input' },
     
-    { name: 'designation', label: 'Designation', type: 'input' },
-    { name: 'department', label: 'Department', type: 'input' },
+    { name: 'designation', label: 'Designation', type: 'select', options: ['Administrator', 'HR', 'Educator'] },
+    { name: 'department', label: 'Department', type: 'department' },
     { name: 'employment_type', label: 'Employment Type', type: 'select', options: ['Full-time', 'Part-time', 'Contract', 'Temporary'] },
     { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive', 'On Leave'] },
-    { name: 'work_location', label: 'Work Location', type: 'input' },
+    { name: 'work_location', label: 'Work Location', type: 'work_location' },
     { name: 'date_of_joining', label: 'Date of Joining', type: 'date' },
     { name: 'date_of_leaving', label: 'Date of Leaving', type: 'date' },
     
@@ -162,149 +217,196 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {formFields.map((field) => (
-          <div key={field.name} className="space-y-2">
-            <Label htmlFor={field.name}>
-              {field.label} 
-              {field.name !== 'blood_group' && 
-               field.name !== 'work_location' && 
-               field.name !== 'date_of_leaving' && 
-               field.name !== 'program_id' && 
-               field.name !== 'status' && 
-               field.name !== 'photo' && 
-               field.name !== 'lor' && (
-                <span className="text-red-500 ml-1">*</span>
+        {formFields.map((field) => {
+          // Check if this field should be shown based on conditions
+          if (field.name === 'department' && !formData.designation) {
+            return null;
+          }
+          
+          return (
+            <div key={field.name} className="space-y-2">
+              <Label htmlFor={field.name}>
+                {field.label} 
+                {field.name !== 'blood_group' && 
+                 field.name !== 'date_of_leaving' && 
+                 field.name !== 'program_id' && 
+                 field.name !== 'status' && 
+                 field.name !== 'photo' && 
+                 field.name !== 'lor' &&
+                 field.name !== 'emergency_contact_name' &&
+                 field.name !== 'emergency_contact' && (
+                  <span className="text-red-500 ml-1">*</span>
+                )}
+              </Label>
+              
+              {field.type === 'input' && (
+                <>
+                  <Input
+                    id={field.name}
+                    name={field.name}
+                    value={formData[field.name] || ''}
+                    onChange={handleInputChange}
+                    className={errors[field.name] ? "border-red-500" : ""}
+                  />
+                  {errors[field.name] && (
+                    <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
+                  )}
+                </>
               )}
-            </Label>
-            
-            {field.type === 'input' && (
-              <>
+              
+              {field.type === 'number' && (
+                <>
+                  <Input
+                    id={field.name}
+                    name={field.name}
+                    type="number"
+                    value={formData[field.name] || ''}
+                    onChange={handleInputChange}
+                    className={errors[field.name] ? "border-red-500" : ""}
+                  />
+                  {errors[field.name] && (
+                    <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
+                  )}
+                </>
+              )}
+              
+              {field.type === 'select' && (
+                <>
+                  <Select 
+                    value={formData[field.name] || ''} 
+                    onValueChange={(value) => handleSelectChange(field.name, value)}
+                  >
+                    <SelectTrigger className={errors[field.name] ? "border-red-500" : ""}>
+                      <SelectValue placeholder={`Select ${field.label}`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {field.options?.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors[field.name] && (
+                    <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
+                  )}
+                </>
+              )}
+              
+              {field.type === 'date' && (
+                <>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !formData[field.name] && "text-muted-foreground",
+                          errors[field.name] && "border-red-500"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formData[field.name] ? format(new Date(formData[field.name]), 'PPP') : `Select ${field.label}`}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 max-w-[350px]">
+                      <Calendar
+                        mode="single"
+                        selected={formData[field.name] ? new Date(formData[field.name]) : undefined}
+                        onSelect={(date) => handleDateChange(field.name, date)}
+                        className="pointer-events-auto"
+                        initialFocus
+                        captionLayout="dropdown-buttons"
+                        fromYear={1950}
+                        toYear={new Date().getFullYear() + 10}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {errors[field.name] && (
+                    <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
+                  )}
+                </>
+              )}
+              
+              {field.type === 'file' && (
+                <FileUpload
+                  bucketName={field.fileType === 'lor' ? 'employee-lor' : 'employee-photos'}
+                  onFileUpload={(url) => handleFileUpload(field.name, url)}
+                  existingUrl={formData[field.name]}
+                  entityType="employee"
+                  entityId={formData.employee_id}
+                />
+              )}
+              
+              {field.type === 'center' && (
+                <>
+                  <Select 
+                    value={formData[field.name]?.toString() || ''} 
+                    onValueChange={(value) => handleSelectChange(field.name, value)}
+                  >
+                    <SelectTrigger className={errors[field.name] ? "border-red-500" : ""}>
+                      <SelectValue placeholder="Select Center" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {centers.map((center) => (
+                        <SelectItem key={center.center_id} value={center.center_id.toString()}>
+                          {center.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors[field.name] && (
+                    <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
+                  )}
+                </>
+              )}
+              
+              {field.type === 'program' && (
+                <>
+                  <Select 
+                    value={formData[field.name]?.toString() || ''} 
+                    onValueChange={(value) => handleSelectChange(field.name, value)}
+                    disabled
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Program" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">None</SelectItem>
+                      {programs.map((program) => (
+                        <SelectItem key={program.program_id} value={program.program_id.toString()}>
+                          {program.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
+              
+              {field.type === 'department' && (
                 <Input
                   id={field.name}
                   name={field.name}
                   value={formData[field.name] || ''}
-                  onChange={handleInputChange}
-                  className={errors[field.name] ? "border-red-500" : ""}
+                  disabled
+                  readOnly
+                  className="bg-gray-100"
                 />
-                {errors[field.name] && (
-                  <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
-                )}
-              </>
-            )}
-            
-            {field.type === 'select' && (
-              <>
-                <Select 
-                  value={formData[field.name] || ''} 
-                  onValueChange={(value) => handleSelectChange(field.name, value)}
-                >
-                  <SelectTrigger className={errors[field.name] ? "border-red-500" : ""}>
-                    <SelectValue placeholder={`Select ${field.label}`} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {field.options?.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors[field.name] && (
-                  <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
-                )}
-              </>
-            )}
-            
-            {field.type === 'date' && (
-              <>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !formData[field.name] && "text-muted-foreground",
-                        errors[field.name] && "border-red-500"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData[field.name] ? format(new Date(formData[field.name]), 'PPP') : `Select ${field.label}`}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={formData[field.name] ? new Date(formData[field.name]) : undefined}
-                      onSelect={(date) => handleDateChange(field.name, date)}
-                      className="pointer-events-auto"
-                      initialFocus
-                      captionLayout="dropdown-buttons"
-                      fromYear={1950}
-                      toYear={new Date().getFullYear()}
-                    />
-                  </PopoverContent>
-                </Popover>
-                {errors[field.name] && (
-                  <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
-                )}
-              </>
-            )}
-            
-            {field.type === 'file' && (
-              <FileUpload
-                bucketName={field.fileType === 'lor' ? 'employee-lor' : 'employee-photos'}
-                onFileUpload={(url) => handleFileUpload(field.name, url)}
-                existingUrl={formData[field.name]}
-                entityType="employee"
-                entityId={formData.employee_id}
-              />
-            )}
-            
-            {field.type === 'center' && (
-              <>
-                <Select 
-                  value={formData[field.name]?.toString() || ''} 
-                  onValueChange={(value) => handleSelectChange(field.name, value)}
-                >
-                  <SelectTrigger className={errors[field.name] ? "border-red-500" : ""}>
-                    <SelectValue placeholder="Select Center" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {centers.map((center) => (
-                      <SelectItem key={center.center_id} value={center.center_id.toString()}>
-                        {center.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors[field.name] && (
-                  <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
-                )}
-              </>
-            )}
-            
-            {field.type === 'program' && (
-              <>
-                <Select 
-                  value={formData[field.name]?.toString() || ''} 
-                  onValueChange={(value) => handleSelectChange(field.name, value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Program" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">None</SelectItem>
-                    {programs.map((program) => (
-                      <SelectItem key={program.program_id} value={program.program_id.toString()}>
-                        {program.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </>
-            )}
-          </div>
-        ))}
+              )}
+              
+              {field.type === 'work_location' && (
+                <Input
+                  id={field.name}
+                  name={field.name}
+                  value={formData[field.name] || centerName}
+                  disabled
+                  readOnly
+                  className="bg-gray-100"
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
       
       <div className="flex justify-end space-x-2">

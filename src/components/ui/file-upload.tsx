@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Upload, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { trackDatabaseChange } from '@/utils/dbTracking';
 
 type FileUploadProps = {
   bucketName: string;
@@ -33,15 +34,6 @@ const FileUpload = ({ bucketName, onFileUpload, existingUrl, entityType, entityI
       // Check file type for images
       if (bucketName.includes('photo') && !selectedFile.type.startsWith('image/')) {
         toast.error("Only image files are allowed for photos.");
-        return;
-      }
-      
-      // For LOR uploads, allow PDF and document files
-      if (bucketName.includes('lor') && 
-          !selectedFile.type.startsWith('application/pdf') && 
-          !selectedFile.type.startsWith('application/msword') && 
-          !selectedFile.type.includes('document')) {
-        toast.error("Only PDF and document files are allowed for LOR.");
         return;
       }
       
@@ -83,16 +75,12 @@ const FileUpload = ({ bucketName, onFileUpload, existingUrl, entityType, entityI
       } else if (entityType === 'employee' && bucketName.includes('photo')) {
         targetBucket = 'employee-photos';
       } else if (entityType === 'educator' && bucketName.includes('photo')) {
-        targetBucket = 'educator-photos';
+        targetBucket = 'employee-photos'; // Use employee-photos for educators too
       }
       
       // For LOR documents
       if (bucketName.includes('lor')) {
-        if (entityType === 'employee') {
-          targetBucket = 'employee-lor';
-        } else if (entityType === 'educator') {
-          targetBucket = 'educator-lor';
-        }
+        targetBucket = 'employee-lor'; // Use employee-lor for all LOR documents
       }
       
       console.log(`Uploading to bucket: ${targetBucket}, filename: ${fileName}`);
@@ -117,6 +105,17 @@ const FileUpload = ({ bucketName, onFileUpload, existingUrl, entityType, entityI
       onFileUpload(publicUrl);
       toast.success("File uploaded successfully!");
       
+      // If this is an educator, also add to educator LOR bucket if it's a LOR doc
+      if (entityType === 'employee' && bucketName.includes('lor') && 
+          formData && formData.designation === 'Educator') {
+        await supabase.storage
+          .from('educator-lor')
+          .copy(`${targetBucket}/${fileName}`, fileName);
+      }
+      
+      // Track the file upload
+      await trackDatabaseChange(`${targetBucket} (file upload)`, 'insert');
+      
     } catch (error: any) {
       console.error('Error uploading file:', error);
       toast.error(error.message || "Failed to upload file.");
@@ -135,7 +134,7 @@ const FileUpload = ({ bucketName, onFileUpload, existingUrl, entityType, entityI
     switch (type) {
       case 'student': return 'Student';
       case 'employee': return 'Employee';
-      case 'educator': return 'Educator';
+      case 'educator': return 'Employee'; // Changed to Employee
     }
   };
 
@@ -143,7 +142,7 @@ const FileUpload = ({ bucketName, onFileUpload, existingUrl, entityType, entityI
   const isDocumentUpload = bucketName.includes('lor');
   const fileTypeText = isDocumentUpload ? 'Document' : 'Photo';
   const acceptTypes = isDocumentUpload ? 
-    ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" : 
+    ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.txt,.rtf,.zip,.rar,.xlsx,.xls,.ppt,.pptx" : 
     "image/*";
 
   return (

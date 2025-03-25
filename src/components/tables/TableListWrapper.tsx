@@ -3,12 +3,12 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TableInfo, fetchTablesByProgram } from '@/lib/api';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
-import FilteredTableView from './FilteredTableView';
+import { Button } from '@/components/ui/button';
+import { Program } from '@/lib/api';
+import { Users, UserRound } from 'lucide-react';
 
 type TableListWrapperProps = {
-  program: any;
+  program: Program;
   onSelectTable: (table: TableInfo) => void;
   selectedTable: TableInfo | null;
 };
@@ -19,53 +19,60 @@ const TableListWrapper = ({ program, onSelectTable, selectedTable }: TableListWr
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchTables = async () => {
+    const loadTables = async () => {
       try {
         setLoading(true);
-        setError(null);
         
-        const tablesData = await fetchTablesByProgram(program.program_id);
-        if (!tablesData) {
-          setError('Failed to fetch tables');
-          return;
-        }
+        // Only include students and employees tables
+        const filteredTables = [
+          { 
+            id: 1, 
+            name: 'students', 
+            program_id: program.program_id, 
+            description: 'Student information',
+            display_name: 'Students',
+            center_id: program.center_id
+          },
+          { 
+            id: 3, 
+            name: 'employees', 
+            program_id: program.program_id, 
+            description: 'Employee information',
+            display_name: 'Employees',
+            center_id: program.center_id
+          }
+        ];
         
-        setTables(tablesData);
-      } catch (err) {
-        console.error('Error in fetchTables:', err);
-        setError('An unexpected error occurred');
+        setTables(filteredTables);
+      } catch (error) {
+        console.error('Error fetching tables:', error);
+        setError('Failed to load tables. Please try again.');
       } finally {
         setLoading(false);
       }
     };
-    
-    fetchTables();
+
+    loadTables();
   }, [program]);
 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <LoadingSpinner size="lg" />
+        <LoadingSpinner />
       </div>
     );
   }
 
   if (error) {
     return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
+      <div className="text-red-500 p-4 border border-red-300 rounded-md">
+        {error}
+      </div>
     );
   }
 
-  if (selectedTable) {
-    return <FilteredTableView table={selectedTable} />;
-  }
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {tables.map((table) => (
         <Card 
           key={table.id}
@@ -73,10 +80,27 @@ const TableListWrapper = ({ program, onSelectTable, selectedTable }: TableListWr
           onClick={() => onSelectTable(table)}
         >
           <CardHeader className="pb-2">
-            <CardTitle>{table.display_name || table.name}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              {table.name === 'students' ? (
+                <Users className="h-5 w-5 text-blue-500" />
+              ) : (
+                <UserRound className="h-5 w-5 text-purple-500" />
+              )}
+              {table.display_name || table.name}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">{table.description || `Manage ${table.name}`}</p>
+            <p className="text-muted-foreground text-sm">{table.description}</p>
+            <Button 
+              variant="outline" 
+              className="mt-4 w-full"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectTable(table);
+              }}
+            >
+              Manage {table.display_name || table.name}
+            </Button>
           </CardContent>
         </Card>
       ))}
