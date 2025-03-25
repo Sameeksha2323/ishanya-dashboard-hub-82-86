@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,8 +9,8 @@ import { cn } from '@/lib/utils';
 import { format, isValid, parse } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { fetchCenters, fetchProgramsByCenter } from '@/lib/api';
 import { supabase } from '@/integrations/supabase/client';
+import FileUpload from '@/components/ui/file-upload';
 
 type TableFieldFormatterProps = {
   fieldName: string;
@@ -17,6 +18,8 @@ type TableFieldFormatterProps = {
   onChange: (value: any) => void;
   isEditing: boolean;
   isRequired?: boolean;
+  tableName?: string;
+  entityId?: string | number;
 };
 
 // Helper function to capitalize first letter of each word
@@ -26,10 +29,43 @@ export const capitalizeFirstLetter = (str: string): string => {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
-export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isRequired = false }: TableFieldFormatterProps) => {
+// Check if a field is required based on table name and field name
+export const isFieldRequired = (tableName: string = '', fieldName: string): boolean => {
+  const requiredFields: Record<string, string[]> = {
+    students: [
+      'first_name', 'last_name', 'gender', 'dob', 'student_id', 
+      'enrollment_year', 'status', 'student_email', 'program_id', 
+      'educator_employee_id', 'contact_number', 'center_id'
+    ],
+    educators: [
+      'center_id', 'employee_id', 'name', 'designation', 'email',
+      'phone', 'dob', 'date_of_joining', 'work_location'
+    ],
+    employees: [
+      'employee_id', 'name', 'gender', 'designation', 'department',
+      'employment_type', 'email', 'phone', 'date_of_birth',
+      'date_of_joining', 'emergency_contact_name', 'emergency_contact',
+      'center_id', 'password'
+    ]
+  };
+  
+  return requiredFields[tableName]?.includes(fieldName) || false;
+};
+
+export const TableFieldFormatter = ({ 
+  fieldName, 
+  value, 
+  onChange, 
+  isEditing, 
+  isRequired = false,
+  tableName = '',
+  entityId
+}: TableFieldFormatterProps) => {
   const [centers, setCenters] = useState<any[]>([]);
   const [programs, setPrograms] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
+  const [educators, setEducators] = useState<any[]>([]);
+  const [years, setYears] = useState<number[]>([]);
   
   // Safe toString conversion that handles undefined/null values
   const safeToString = (val: any): string => {
@@ -38,8 +74,19 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
   };
 
   useEffect(() => {
-    // Fetch centers for center_id field
-    if (fieldName === 'center_id' && isEditing) {
+    // Generate years list from 2015 to current year + 5
+    const currentYear = new Date().getFullYear();
+    const yearsList = [];
+    for (let year = 2015; year <= currentYear + 5; year++) {
+      yearsList.push(year);
+    }
+    setYears(yearsList);
+    
+    // Only fetch data if in editing mode
+    if (!isEditing) return;
+    
+    // Fetch centers
+    if (fieldName === 'center_id') {
       const loadCenters = async () => {
         try {
           const { data, error } = await supabase
@@ -58,8 +105,8 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
       loadCenters();
     }
     
-    // Fetch programs for program_id field
-    if ((fieldName === 'program_id' || fieldName === 'program_2_id') && isEditing) {
+    // Fetch programs
+    if (fieldName === 'program_id' || fieldName === 'program_2_id') {
       const loadPrograms = async () => {
         try {
           const { data, error } = await supabase
@@ -78,12 +125,12 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
       loadPrograms();
     }
     
-    // Fetch employees/educators for educator fields
-    if ((fieldName === 'educator_employee_id' || fieldName === 'secondary_educator_employee_id') && isEditing) {
+    // Fetch employees
+    if (fieldName === 'employee_id' || fieldName === 'educator_employee_id' || fieldName === 'secondary_educator_employee_id') {
       const loadEmployees = async () => {
         try {
           const { data, error } = await supabase
-            .from('educators')
+            .from('employees')
             .select('employee_id, name')
             .order('name');
             
@@ -91,13 +138,97 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
             setEmployees(data);
           }
         } catch (err) {
-          console.error('Error loading educators:', err);
+          console.error('Error loading employees:', err);
         }
       };
       
       loadEmployees();
     }
+    
+    // Fetch educators
+    if (fieldName === 'educator_id') {
+      const loadEducators = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('educators')
+            .select('employee_id, name')
+            .order('name');
+            
+          if (!error && data) {
+            setEducators(data);
+          }
+        } catch (err) {
+          console.error('Error loading educators:', err);
+        }
+      };
+      
+      loadEducators();
+    }
   }, [fieldName, isEditing]);
+
+  // Field requirements are based on the table name and field name
+  const shouldShowRequired = isEditing && isRequired;
+
+  // Handle file upload fields
+  if (fieldName === 'photo' || fieldName === 'profile_picture') {
+    let bucketName = 'student-photos';
+    let entityType: 'student' | 'employee' | 'educator' = 'student';
+    
+    if (tableName === 'employees') {
+      bucketName = 'employee-photos';
+      entityType = 'employee';
+    } else if (tableName === 'educators') {
+      bucketName = 'educator-photos';
+      entityType = 'educator';
+    }
+    
+    if (isEditing) {
+      return (
+        <FileUpload
+          bucketName={bucketName}
+          onFileUpload={onChange}
+          existingUrl={value}
+          entityType={entityType}
+          entityId={entityId}
+        />
+      );
+    }
+    
+    if (value) {
+      return (
+        <div className="w-20 h-20 border rounded overflow-hidden bg-gray-50">
+          <img src={value} alt="Photo" className="w-full h-full object-cover" />
+        </div>
+      );
+    }
+    
+    return <div>No photo</div>;
+  }
+  
+  // Special handling for LOR field
+  if (fieldName === 'lor' && tableName === 'employees') {
+    if (isEditing) {
+      return (
+        <FileUpload
+          bucketName="employee-lor"
+          onFileUpload={onChange}
+          existingUrl={value}
+          entityType="employee"
+          entityId={entityId}
+        />
+      );
+    }
+    
+    if (value) {
+      return (
+        <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+          View Document
+        </a>
+      );
+    }
+    
+    return <div>No document</div>;
+  }
 
   // Special handling for password field
   if (fieldName === 'password') {
@@ -107,7 +238,7 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
           type="password"
           value={safeToString(value)}
           onChange={(e) => onChange(e.target.value)}
-          className={isRequired ? "border-red-500" : ""}
+          className={shouldShowRequired ? "border-red-500" : ""}
         />
       );
     }
@@ -125,7 +256,7 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
               className={cn(
                 "w-full justify-start text-left font-normal",
                 !value && "text-muted-foreground",
-                isRequired && "border-red-500"
+                shouldShowRequired && "border-red-500"
               )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
@@ -138,6 +269,10 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
               selected={value ? new Date(value) : undefined}
               onSelect={(date) => onChange(date ? format(date, 'yyyy-MM-dd') : null)}
               initialFocus
+              captionLayout="dropdown-buttons"
+              fromYear={1950}
+              toYear={new Date().getFullYear() + 5}
+              className="pointer-events-auto"
             />
           </PopoverContent>
         </Popover>
@@ -154,6 +289,42 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
     }
   }
 
+  // Handle year field
+  if (fieldName === 'enrollment_year' || fieldName === 'year_of_registration') {
+    if (isEditing) {
+      return (
+        <div className="space-y-2">
+          <Select
+            value={value ? safeToString(value) : ''}
+            onValueChange={(val) => onChange(val ? parseInt(val, 10) : null)}
+          >
+            <SelectTrigger className={shouldShowRequired ? "border-red-500" : ""}>
+              <SelectValue placeholder="Select year" />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map((year) => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            type="number"
+            min={1990}
+            max={2100}
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value ? parseInt(e.target.value, 10) : null)}
+            placeholder="Or enter year manually"
+            className={shouldShowRequired ? "border-red-500" : ""}
+          />
+        </div>
+      );
+    }
+    
+    return <div>{value || '-'}</div>;
+  }
+
   // Handle center_id field
   if (fieldName === 'center_id') {
     if (isEditing) {
@@ -162,7 +333,7 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
           value={value ? safeToString(value) : ''}
           onValueChange={(val) => onChange(val ? parseInt(val, 10) : null)}
         >
-          <SelectTrigger className={isRequired ? "border-red-500" : ""}>
+          <SelectTrigger className={shouldShowRequired ? "border-red-500" : ""}>
             <SelectValue placeholder="Select center" />
           </SelectTrigger>
           <SelectContent>
@@ -191,7 +362,7 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
           value={value ? safeToString(value) : ''}
           onValueChange={(val) => onChange(val ? parseInt(val, 10) : null)}
         >
-          <SelectTrigger className={isRequired ? "border-red-500" : ""}>
+          <SelectTrigger className={shouldShowRequired ? "border-red-500" : ""}>
             <SelectValue placeholder="Select program" />
           </SelectTrigger>
           <SelectContent>
@@ -213,6 +384,35 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
     return <div>{program ? program.name : safeToString(value)}</div>;
   }
 
+  // Handle employee_id field
+  if (fieldName === 'employee_id') {
+    if (isEditing) {
+      return (
+        <Select
+          value={value ? safeToString(value) : ''}
+          onValueChange={(val) => onChange(val ? parseInt(val, 10) : null)}
+        >
+          <SelectTrigger className={shouldShowRequired ? "border-red-500" : ""}>
+            <SelectValue placeholder="Select employee" />
+          </SelectTrigger>
+          <SelectContent>
+            {employees.map((employee) => (
+              <SelectItem key={employee.employee_id} value={safeToString(employee.employee_id)}>
+                {employee.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      );
+    }
+    
+    if (!value) return <div>-</div>;
+    
+    // Try to find the employee name
+    const employee = employees.find(e => e.employee_id === value);
+    return <div>{employee ? employee.name : safeToString(value)}</div>;
+  }
+
   // Handle educator fields
   if (fieldName === 'educator_employee_id' || fieldName === 'secondary_educator_employee_id') {
     if (isEditing) {
@@ -221,7 +421,7 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
           value={value ? safeToString(value) : ''}
           onValueChange={(val) => onChange(val ? parseInt(val, 10) : null)}
         >
-          <SelectTrigger className={isRequired ? "border-red-500" : ""}>
+          <SelectTrigger className={shouldShowRequired ? "border-red-500" : ""}>
             <SelectValue placeholder="Select educator" />
           </SelectTrigger>
           <SelectContent>
@@ -246,7 +446,7 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
   }
 
   // Handle boolean fields
-  if (typeof value === 'boolean' || fieldName.includes('is_')) {
+  if (typeof value === 'boolean' || fieldName.includes('is_') || fieldName === 'transport') {
     if (isEditing) {
       return (
         <Select
@@ -257,7 +457,7 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
             else onChange(null);
           }}
         >
-          <SelectTrigger className={isRequired ? "border-red-500" : ""}>
+          <SelectTrigger className={shouldShowRequired ? "border-red-500" : ""}>
             <SelectValue placeholder="Select value" />
           </SelectTrigger>
           <SelectContent>
@@ -275,6 +475,29 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
     return <div>{value ? 'Yes' : 'No'}</div>;
   }
 
+  // Handle session_type field
+  if (fieldName === 'session_type') {
+    if (isEditing) {
+      return (
+        <Select
+          value={safeToString(value)}
+          onValueChange={onChange}
+        >
+          <SelectTrigger className={shouldShowRequired ? "border-red-500" : ""}>
+            <SelectValue placeholder="Select session type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Online">Online</SelectItem>
+            <SelectItem value="Offline">Offline</SelectItem>
+            <SelectItem value="Hybrid">Hybrid</SelectItem>
+          </SelectContent>
+        </Select>
+      );
+    }
+    
+    return <div>{value || '-'}</div>;
+  }
+
   // Handle gender field
   if (fieldName === 'gender') {
     if (isEditing) {
@@ -283,7 +506,7 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
           value={safeToString(value)}
           onValueChange={onChange}
         >
-          <SelectTrigger className={isRequired ? "border-red-500" : ""}>
+          <SelectTrigger className={shouldShowRequired ? "border-red-500" : ""}>
             <SelectValue placeholder="Select gender" />
           </SelectTrigger>
           <SelectContent>
@@ -309,7 +532,7 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
           value={safeToString(value)}
           onValueChange={onChange}
         >
-          <SelectTrigger className={isRequired ? "border-red-500" : ""}>
+          <SelectTrigger className={shouldShowRequired ? "border-red-500" : ""}>
             <SelectValue placeholder="Select status" />
           </SelectTrigger>
           <SelectContent>
@@ -335,7 +558,7 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
           value={safeToString(value)}
           onValueChange={onChange}
         >
-          <SelectTrigger className={isRequired ? "border-red-500" : ""}>
+          <SelectTrigger className={shouldShowRequired ? "border-red-500" : ""}>
             <SelectValue placeholder="Select blood group" />
           </SelectTrigger>
           <SelectContent>
@@ -366,7 +589,7 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
           value={safeToString(value)}
           onValueChange={onChange}
         >
-          <SelectTrigger className={isRequired ? "border-red-500" : ""}>
+          <SelectTrigger className={shouldShowRequired ? "border-red-500" : ""}>
             <SelectValue placeholder="Select employment type" />
           </SelectTrigger>
           <SelectContent>
@@ -394,7 +617,7 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
           value={safeToString(value)}
           onValueChange={onChange}
         >
-          <SelectTrigger className={isRequired ? "border-red-500" : ""}>
+          <SelectTrigger className={shouldShowRequired ? "border-red-500" : ""}>
             <SelectValue placeholder="Select department" />
           </SelectTrigger>
           <SelectContent>
@@ -436,7 +659,7 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
             onChange(arrayValue);
           }}
           placeholder="Enter comma-separated values (e.g., Monday, Wednesday, Friday)"
-          className={isRequired ? "border-red-500" : ""}
+          className={shouldShowRequired ? "border-red-500" : ""}
         />
       );
     }
@@ -468,7 +691,7 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
         <Textarea
           value={safeToString(value)}
           onChange={(e) => onChange(e.target.value)}
-          className={isRequired ? "border-red-500" : ""}
+          className={shouldShowRequired ? "border-red-500" : ""}
           rows={3}
         />
       );
@@ -479,7 +702,7 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
       <Input
         value={safeToString(value)}
         onChange={(e) => onChange(e.target.value)}
-        className={isRequired ? "border-red-500" : ""}
+        className={shouldShowRequired ? "border-red-500" : ""}
         type={
           fieldName.includes('phone') || fieldName.includes('number') || 
           fieldName.includes('contact') || 

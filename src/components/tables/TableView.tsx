@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,9 +12,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { fetchTableColumns } from '@/lib/api';
 import { toast } from 'sonner';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import TableActions from './TableActions';
 import CsvUpload from './CsvUpload';
+import { TableFieldFormatter, capitalizeFirstLetter, isFieldRequired } from './TableFieldFormatter';
 
 type TableViewProps = {
   table: any;
@@ -32,6 +33,7 @@ const TableView = ({ table }: TableViewProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [formDataSource, setFormDataSource] = useState<any>(null);
+  const [entityIdField, setEntityIdField] = useState<string>('id');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -40,6 +42,18 @@ const TableView = ({ table }: TableViewProps) => {
         setError(null);
         
         const tableName = table.name.toLowerCase();
+        
+        // Determine the entity ID field based on the table name
+        let idField = 'id';
+        if (tableName === 'students') {
+          idField = 'student_id';
+        } else if (tableName === 'employees') {
+          idField = 'employee_id';
+        } else if (tableName === 'educators') {
+          idField = 'employee_id';
+        }
+        
+        setEntityIdField(idField);
         
         const columnsData = await fetchTableColumns(tableName);
         if (!columnsData) {
@@ -96,6 +110,7 @@ const TableView = ({ table }: TableViewProps) => {
         setFormData(prefillData);
         setFormDataSource({ sourceEntry, onSuccess });
         setIsEditing(false);
+        setSelectedRow(null);
         setShowForm(true);
         toast.success('Student form opened with prefilled data');
       }
@@ -144,19 +159,67 @@ const TableView = ({ table }: TableViewProps) => {
     setShowForm(true);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
+  const handleInputChange = (field: string, value: any) => {
     setFormData({
       ...formData,
-      [name]: value,
+      [field]: value,
     });
   };
 
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+  const handleAddToEducators = async (employeeData: any) => {
+    try {
+      // First check if the employee is already an educator
+      const { data: existingEducator, error: checkError } = await supabase
+        .from('educators')
+        .select('*')
+        .eq('employee_id', employeeData.employee_id)
+        .maybeSingle();
+        
+      if (checkError) {
+        console.error('Error checking for existing educator:', checkError);
+        throw new Error('Failed to check if employee is already an educator');
+      }
+      
+      if (existingEducator) {
+        toast.error('This employee is already registered as an educator');
+        return;
+      }
+      
+      // Create educator record
+      const { data: educatorData, error: educatorError } = await supabase
+        .from('educators')
+        .insert([{
+          employee_id: employeeData.employee_id,
+          center_id: employeeData.center_id,
+          name: employeeData.name,
+          designation: employeeData.designation,
+          email: employeeData.email,
+          phone: employeeData.phone,
+          dob: employeeData.date_of_birth,
+          date_of_joining: employeeData.date_of_joining,
+          work_location: employeeData.work_location || null,
+          status: employeeData.status || 'Active',
+          photo: employeeData.photo || null
+        }])
+        .select();
+        
+      if (educatorError) {
+        console.error('Error adding educator:', educatorError);
+        throw new Error('Failed to add educator record');
+      }
+      
+      toast.success('Employee successfully added as an educator');
+      
+      // If we're on the educators table, refresh the data
+      if (table.name.toLowerCase() === 'educators') {
+        window.location.reload();
+      }
+      
+      return educatorData;
+    } catch (err) {
+      console.error('Error in handleAddToEducators:', err);
+      throw err;
+    }
   };
 
   const handleSave = async () => {
@@ -171,10 +234,12 @@ const TableView = ({ table }: TableViewProps) => {
         updateData[col] = formData[col] !== null ? formData[col] : null;
       });
       
+      const idField = entityIdField;
+      
       const { data: updatedData, error: updateError } = await supabase
         .from(tableName)
         .update(updateData)
-        .eq('id', selectedRow.id)
+        .eq(idField, selectedRow[idField])
         .select();
         
       if (updateError) {
@@ -185,9 +250,19 @@ const TableView = ({ table }: TableViewProps) => {
       
       toast.success('Record updated successfully');
       
-      setData(data.map(item => (item.id === selectedRow.id ? updatedData[0] : item)));
-      setFilteredData(filteredData.map(item => (item.id === selectedRow.id ? updatedData[0] : item)));
+      setData(data.map(item => (item[idField] === selectedRow[idField] ? updatedData[0] : item)));
+      setFilteredData(filteredData.map(item => (item[idField] === selectedRow[idField] ? updatedData[0] : item)));
       setShowForm(false);
+      
+      // If this is an employee record, check if we need to update educator record as well
+      if (tableName === 'employees' && formData.is_educator === true) {
+        try {
+          await handleAddToEducators(updatedData[0]);
+        } catch (err) {
+          console.error('Error handling educator record:', err);
+          // Continue even if there's an error with the educator record
+        }
+      }
       
     } catch (err) {
       console.error('Error in handleSave:', err);
@@ -206,8 +281,17 @@ const TableView = ({ table }: TableViewProps) => {
       
       const insertData: Record<string, any> = {};
       columns.forEach(col => {
-        insertData[col] = formData[col] !== null ? formData[col] : null;
+        if (formData[col] !== undefined) {
+          insertData[col] = formData[col] !== null ? formData[col] : null;
+        }
       });
+      
+      // For educators table, handle the employee relationship
+      if (tableName === 'educators' && !insertData.employee_id) {
+        toast.error('Employee ID is required for educators');
+        setLoading(false);
+        return;
+      }
       
       const { data: newRecord, error: insertError } = await supabase
         .from(tableName)
@@ -216,11 +300,22 @@ const TableView = ({ table }: TableViewProps) => {
         
       if (insertError) {
         console.error('Error adding record:', insertError);
-        toast.error('Failed to add record');
+        toast.error(`Failed to add record: ${insertError.message}`);
+        setLoading(false);
         return;
       }
       
       toast.success('Record added successfully');
+      
+      // If this is an employee record, check if we need to create educator record as well
+      if (tableName === 'employees' && formData.is_educator === true) {
+        try {
+          await handleAddToEducators(newRecord[0]);
+        } catch (err) {
+          console.error('Error handling educator record:', err);
+          // Continue even if there's an error with the educator record
+        }
+      }
       
       setData([...data, newRecord[0]]);
       setFilteredData([...filteredData, newRecord[0]]);
@@ -250,11 +345,12 @@ const TableView = ({ table }: TableViewProps) => {
         setError(null);
         
         const tableName = table.name.toLowerCase();
+        const idField = entityIdField;
         
         const { error: deleteError } = await supabase
           .from(tableName)
           .delete()
-          .eq('id', row.id);
+          .eq(idField, row[idField]);
           
         if (deleteError) {
           console.error('Error deleting record:', deleteError);
@@ -264,8 +360,8 @@ const TableView = ({ table }: TableViewProps) => {
         
         toast.success('Record deleted successfully');
         
-        setData(data.filter(item => item.id !== row.id));
-        setFilteredData(filteredData.filter(item => item.id !== row.id));
+        setData(data.filter(item => item[idField] !== row[idField]));
+        setFilteredData(filteredData.filter(item => item[idField] !== row[idField]));
         
       } catch (err) {
         console.error('Error in handleDelete:', err);
@@ -276,7 +372,7 @@ const TableView = ({ table }: TableViewProps) => {
     }
   };
 
-  if (loading) {
+  if (loading && data.length === 0) {
     return (
       <div className="flex justify-center items-center h-64">
         <LoadingSpinner size="lg" />
@@ -353,24 +449,37 @@ const TableView = ({ table }: TableViewProps) => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {columns.map((column) => (
-                <div key={column}>
-                  <Label htmlFor={column}>{column.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</Label>
-                  <Input
-                    id={column}
-                    name={column}
-                    value={formData[column] || ''}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              ))}
+              {columns.map((column) => {
+                // Skip system fields
+                if (column === 'created_at' && !formData[column]) return null;
+                if (column === 'updated_at') return null;
+                
+                const isRequired = isFieldRequired(table.name.toLowerCase(), column);
+                
+                return (
+                  <div key={column} className="space-y-2">
+                    <Label htmlFor={column}>
+                      {capitalizeFirstLetter(column)}
+                      {isEditing && isRequired && <span className="text-red-500 ml-1">*</span>}
+                    </Label>
+                    <TableFieldFormatter
+                      fieldName={column}
+                      value={formData[column]}
+                      onChange={(value) => handleInputChange(column, value)}
+                      isEditing={true}
+                      isRequired={isRequired}
+                      tableName={table.name.toLowerCase()}
+                      entityId={formData[entityIdField]}
+                    />
+                  </div>
+                );
+              })}
             </div>
-            <div className="flex justify-end mt-4">
-              {isEditing ? (
-                <Button onClick={handleSave}>Save</Button>
-              ) : (
-                <Button onClick={handleAdd}>Add</Button>
-              )}
+            <div className="flex justify-end mt-6">
+              <Button onClick={isEditing ? handleSave : handleAdd} disabled={loading}>
+                {loading ? <LoadingSpinner size="sm" className="mr-2" /> : null}
+                {isEditing ? 'Save Changes' : 'Add Record'}
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -410,7 +519,7 @@ const TableView = ({ table }: TableViewProps) => {
               <TableRow>
                 {columns.slice(0, 6).map((column) => (
                   <TableHead key={column}>
-                    {column.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    {capitalizeFirstLetter(column)}
                   </TableHead>
                 ))}
                 <TableHead>Actions</TableHead>
@@ -425,14 +534,17 @@ const TableView = ({ table }: TableViewProps) => {
                 </TableRow>
               ) : (
                 filteredData.map((row) => (
-                  <TableRow key={row.id || row.student_id || row.employee_id}>
+                  <TableRow key={row[entityIdField]}>
                     {columns.slice(0, 6).map((column) => (
                       <TableCell key={column}>
-                        {row[column] !== null && row[column] !== undefined
-                          ? typeof row[column] === 'object'
-                            ? JSON.stringify(row[column])
-                            : String(row[column])
-                          : '-'}
+                        <TableFieldFormatter
+                          fieldName={column}
+                          value={row[column]}
+                          onChange={() => {}}
+                          isEditing={false}
+                          tableName={table.name.toLowerCase()}
+                          entityId={row[entityIdField]}
+                        />
                       </TableCell>
                     ))}
                     <TableCell>
