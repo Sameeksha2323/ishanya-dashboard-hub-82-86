@@ -3,9 +3,12 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Clock, Eye, Check, X } from 'lucide-react';
+import { Clock, Eye, Check, X, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import DetailedFormView from './DetailedFormView';
+import { insertRow } from '@/lib/api';
 
 type FormEntry = {
   id: string;
@@ -20,6 +23,9 @@ const PendingReviews = () => {
   const [entries, setEntries] = useState<FormEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<FormEntry | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<'view' | 'edit'>('view');
 
   useEffect(() => {
     fetchGoogleSheetData();
@@ -69,9 +75,10 @@ const PendingReviews = () => {
         const entry: FormEntry = {
           id: index.toString(),
           name: row[1] || 'N/A', // Assuming name is in column B
-          email: row[2] || 'N/A', // Assuming email is in column C
-          phone: row[3] || 'N/A', // Assuming phone is in column D
+          email: row[14] || 'N/A', // Parent's Email
+          phone: row[12] || 'N/A', // Contact Number
           submittedAt: row[0] || 'N/A', // Assuming timestamp is in column A
+          rowIndex: index + 2, // Google Sheets row index (1-based, + 1 for header, + 1 for 0-based index)
         };
         
         // Add all other columns dynamically
@@ -101,22 +108,189 @@ const PendingReviews = () => {
   };
 
   const handleViewEntry = (entry: FormEntry) => {
-    // For now, just display the entry details in console
-    console.log('View entry details:', entry);
-    toast.info('Entry details opened');
-    // In a real implementation, this would open a modal or navigate to a detail page
+    setSelectedEntry(entry);
+    setDialogMode('view');
+    setIsDialogOpen(true);
   };
 
-  const handleAcceptEntry = (entry: FormEntry) => {
-    console.log('Accept entry:', entry);
-    toast.success('Entry accepted');
-    // In a real implementation, this would fill the student form and then remove from Google Sheet
+  const handleEditEntry = (entry: FormEntry) => {
+    setSelectedEntry(entry);
+    setDialogMode('edit');
+    setIsDialogOpen(true);
   };
 
-  const handleRejectEntry = (entry: FormEntry) => {
-    console.log('Reject entry:', entry);
-    toast.success('Entry rejected');
-    // In a real implementation, this would remove the entry from Google Sheet
+  const handleAcceptEntry = async (entry: FormEntry) => {
+    try {
+      // Convert Google Sheet data to student database structure
+      const studentData = {
+        first_name: entry['First Name'] || '',
+        last_name: entry['Last Name'] || '',
+        gender: entry['Gender'] || '',
+        dob: entry['Date of Birth'] || '',
+        primary_diagnosis: entry['Primary Diagnosis'] || '',
+        comorbidity: entry['Comorbidity'] || '',
+        udid: entry['UDID'] || '',
+        fathers_name: entry["Father's Name"] || '',
+        mothers_name: entry["Mother's Name"] || '',
+        blood_group: entry['Blood Group'] || '',
+        allergies: entry['Allergies'] || '',
+        contact_number: entry['Contact Number'] || '',
+        alt_contact_number: entry['Alternate Contact Number'] || '',
+        parents_email: entry["Parent's Email"] || '',
+        address: entry['Address'] || '',
+        // Add default values for required fields in the students table
+        center_id: 91, // Default center - can be adjusted as needed
+        program_id: 1, // Default program - can be adjusted as needed
+        status: 'Active',
+        created_at: new Date().toISOString()
+      };
+
+      // Insert the student into the database
+      const result = await insertRow('students', studentData);
+      
+      if (result.success) {
+        toast.success('Student added successfully');
+        // Delete entry from Google Sheet
+        await deleteFromGoogleSheet(entry.rowIndex);
+        // Remove from local state
+        setEntries(prev => prev.filter(e => e.id !== entry.id));
+      } else {
+        toast.error('Failed to add student to database');
+        console.error('Insert errors:', result.errors);
+      }
+    } catch (err) {
+      console.error('Error accepting entry:', err);
+      toast.error('Failed to process form submission');
+    }
+  };
+
+  const handleRejectEntry = async (entry: FormEntry) => {
+    try {
+      await deleteFromGoogleSheet(entry.rowIndex);
+      setEntries(prev => prev.filter(e => e.id !== entry.id));
+      toast.success('Entry rejected and removed');
+    } catch (err) {
+      console.error('Error rejecting entry:', err);
+      toast.error('Failed to reject form submission');
+    }
+  };
+
+  const deleteFromGoogleSheet = async (rowIndex: number) => {
+    try {
+      const API_KEY = 'AIzaSyACcbknWrMdZUapY8sQii16PclJ2xlPlqA';
+      const SHEET_ID = '144Qh31BIIsDJYye5vWkE9WFhGI433yZU4TtKLq1wN4w';
+      
+      // Use the Google Sheets API to clear the row
+      const response = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate?key=${API_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            requests: [
+              {
+                deleteDimension: {
+                  range: {
+                    sheetId: 0, // assuming first sheet
+                    dimension: 'ROWS',
+                    startIndex: rowIndex - 1, // 0-based index
+                    endIndex: rowIndex // exclusive end index
+                  }
+                }
+              }
+            ]
+          })
+        }
+      );
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Failed to delete row: ${response.status} ${response.statusText} - ${errorData}`);
+      }
+      
+      return true;
+    } catch (err) {
+      console.error('Error deleting from Google Sheet:', err);
+      throw err;
+    }
+  };
+
+  const updateGoogleSheetEntry = async (entry: FormEntry, updatedData: Record<string, any>) => {
+    try {
+      const API_KEY = 'AIzaSyACcbknWrMdZUapY8sQii16PclJ2xlPlqA';
+      const SHEET_ID = '144Qh31BIIsDJYye5vWkE9WFhGI433yZU4TtKLq1wN4w';
+      
+      // Get headers to know which column is which field
+      const headerResponse = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Form Responses 1!A1:Z1?key=${API_KEY}`
+      );
+      
+      if (!headerResponse.ok) {
+        throw new Error(`Failed to fetch headers: ${headerResponse.status} ${headerResponse.statusText}`);
+      }
+      
+      const headerData = await headerResponse.json();
+      const headers = headerData.values?.[0] || [];
+      
+      // Create row data with updated values
+      const rowData = headers.map((header: string) => {
+        if (updatedData[header] !== undefined) {
+          return updatedData[header];
+        }
+        return entry[header] || '';
+      });
+      
+      // Update the Google Sheet
+      const response = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Form Responses 1!A${entry.rowIndex}:Z${entry.rowIndex}?valueInputOption=RAW&key=${API_KEY}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            range: `Form Responses 1!A${entry.rowIndex}:Z${entry.rowIndex}`,
+            majorDimension: 'ROWS',
+            values: [rowData]
+          })
+        }
+      );
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Failed to update row: ${response.status} ${response.statusText} - ${errorData}`);
+      }
+      
+      // Update local state
+      setEntries(prev => 
+        prev.map(e => 
+          e.id === entry.id 
+            ? { ...e, ...updatedData } 
+            : e
+        )
+      );
+      
+      toast.success('Entry updated successfully');
+      return true;
+    } catch (err) {
+      console.error('Error updating Google Sheet:', err);
+      toast.error('Failed to update entry');
+      throw err;
+    }
+  };
+
+  const handleSaveEdit = async (updatedData: Record<string, any>) => {
+    if (!selectedEntry) return;
+    
+    try {
+      await updateGoogleSheetEntry(selectedEntry, updatedData);
+      setIsDialogOpen(false);
+      fetchGoogleSheetData(); // Refresh data after update
+    } catch (err) {
+      console.error('Error saving edits:', err);
+    }
   };
 
   if (loading) {
@@ -162,84 +336,154 @@ const PendingReviews = () => {
   }
 
   return (
-    <Card className="mb-6">
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-center">
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-ishanya-yellow" />
-            Pending Form Reviews
-          </CardTitle>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={fetchGoogleSheetData}
-          >
-            Refresh
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {entries.length === 0 ? (
-          <div className="text-center py-4 text-gray-500">
-            No pending form submissions to review
+    <>
+      <Card className="mb-6">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-center">
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-ishanya-yellow" />
+              Pending Form Reviews
+            </CardTitle>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={fetchGoogleSheetData}
+            >
+              Refresh
+            </Button>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Submitted</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {entries.map((entry) => (
-                  <TableRow key={entry.id}>
-                    <TableCell className="font-medium">{entry.name}</TableCell>
-                    <TableCell>{entry.email}</TableCell>
-                    <TableCell>{entry.phone}</TableCell>
-                    <TableCell>{entry.submittedAt}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleViewEntry(entry)}
-                          title="View details"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleAcceptEntry(entry)}
-                          className="text-green-600"
-                          title="Accept"
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRejectEntry(entry)}
-                          className="text-red-600"
-                          title="Reject"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+        </CardHeader>
+        <CardContent>
+          {entries.length === 0 ? (
+            <div className="text-center py-4 text-gray-500">
+              No pending form submissions to review
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Submitted</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                </TableHeader>
+                <TableBody>
+                  {entries.map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell className="font-medium">
+                        {entry['First Name'] || ''} {entry['Last Name'] || ''}
+                      </TableCell>
+                      <TableCell>{entry["Parent's Email"] || entry.email}</TableCell>
+                      <TableCell>{entry['Contact Number'] || entry.phone}</TableCell>
+                      <TableCell>{entry.submittedAt}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleViewEntry(entry)}
+                            title="View details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditEntry(entry)}
+                            title="Edit"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleAcceptEntry(entry)}
+                            className="text-green-600"
+                            title="Accept"
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRejectEntry(entry)}
+                            className="text-red-600"
+                            title="Reject"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {selectedEntry && (
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="sm:max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>
+                {dialogMode === 'view' ? 'Form Submission Details' : 'Edit Form Submission'}
+              </DialogTitle>
+              <DialogDescription>
+                Submitted on {selectedEntry.submittedAt}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <DetailedFormView 
+              entry={selectedEntry} 
+              mode={dialogMode} 
+              onSave={handleSaveEdit}
+              onAccept={handleAcceptEntry}
+              onReject={handleRejectEntry}
+            />
+            
+            <DialogFooter className="flex justify-between sm:justify-between">
+              {dialogMode === 'view' && (
+                <div className="flex gap-2">
+                  <Button onClick={() => handleEditEntry(selectedEntry)}>
+                    Edit
+                  </Button>
+                </div>
+              )}
+              <div className="flex gap-2">
+                {dialogMode === 'view' && (
+                  <>
+                    <Button 
+                      onClick={() => handleAcceptEntry(selectedEntry)}
+                      variant="default"
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      Accept & Add Student
+                    </Button>
+                    <Button 
+                      onClick={() => handleRejectEntry(selectedEntry)}
+                      variant="destructive"
+                    >
+                      Reject
+                    </Button>
+                  </>
+                )}
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsDialogOpen(false)}
+                >
+                  Close
+                </Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 };
 
