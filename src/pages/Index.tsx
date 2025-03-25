@@ -13,6 +13,8 @@ import ProgramList from '@/components/programs/ProgramList';
 import TableListWrapper from '@/components/tables/TableListWrapper';
 import FilteredTableView from '@/components/tables/FilteredTableView';
 import AnnouncementBoard from '@/components/announcements/AnnouncementBoard';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
   const [centers, setCenters] = useState<Center[]>([]);
@@ -103,6 +105,16 @@ const Index = () => {
     
     return (
       <>
+        <div className="flex justify-end mb-4">
+          <Button
+            as={Link}
+            to="/admin/student-performance"
+            className="bg-ishanya-green hover:bg-ishanya-green/80 text-white"
+          >
+            View Student Performance
+          </Button>
+        </div>
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <Card className="shadow-md hover:shadow-lg transition-shadow border-t-4 border-ishanya-green">
             <CardHeader className="pb-2">

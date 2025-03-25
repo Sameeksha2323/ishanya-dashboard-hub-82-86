@@ -307,7 +307,7 @@ export type Database = {
         Row: {
           any_behavioral_issues: string | null
           assistance_required: string | null
-          employee_id: number
+          educator_employee_id: number
           parental_support: string | null
           preparedness: string | null
           program_id: number
@@ -318,7 +318,7 @@ export type Database = {
         Insert: {
           any_behavioral_issues?: string | null
           assistance_required?: string | null
-          employee_id: number
+          educator_employee_id: number
           parental_support?: string | null
           preparedness?: string | null
           program_id: number
@@ -329,7 +329,7 @@ export type Database = {
         Update: {
           any_behavioral_issues?: string | null
           assistance_required?: string | null
-          employee_id?: number
+          educator_employee_id?: number
           parental_support?: string | null
           preparedness?: string | null
           program_id?: number
@@ -341,11 +341,11 @@ export type Database = {
       }
       goals_tasks: {
         Row: {
-          assigned_by: number
           category: string | null
           created_at: string
           description: string | null
           due_date: string
+          educator_employee_id: number
           feedback: string | null
           priority: string
           program_id: number
@@ -356,11 +356,11 @@ export type Database = {
           title: string | null
         }
         Insert: {
-          assigned_by: number
           category?: string | null
           created_at: string
           description?: string | null
           due_date: string
+          educator_employee_id: number
           feedback?: string | null
           priority?: string
           program_id: number
@@ -371,11 +371,11 @@ export type Database = {
           title?: string | null
         }
         Update: {
-          assigned_by?: number
           category?: string | null
           created_at?: string
           description?: string | null
           due_date?: string
+          educator_employee_id?: number
           feedback?: string | null
           priority?: string
           program_id?: number
@@ -387,18 +387,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_goals_tasks_educator"
-            columns: ["assigned_by"]
-            isOneToOne: false
-            referencedRelation: "educators"
-            referencedColumns: ["employee_id"]
-          },
-          {
             foreignKeyName: "fk_goals_tasks_student"
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "goals_tasks_educator_employee_id_fkey"
+            columns: ["educator_employee_id"]
+            isOneToOne: false
+            referencedRelation: "educators"
+            referencedColumns: ["employee_id"]
           },
         ]
       }
@@ -502,7 +502,7 @@ export type Database = {
           "9_score": number | null
           area_of_development: string
           description: string | null
-          employee_id: number
+          educator_employee_id: number
           id: string
           program_id: number
           quarter: string
@@ -544,7 +544,7 @@ export type Database = {
           "9_score"?: number | null
           area_of_development: string
           description?: string | null
-          employee_id: number
+          educator_employee_id: number
           id?: string
           program_id: number
           quarter: string
@@ -586,7 +586,7 @@ export type Database = {
           "9_score"?: number | null
           area_of_development?: string
           description?: string | null
-          employee_id?: number
+          educator_employee_id?: number
           id?: string
           program_id?: number
           quarter?: string
@@ -649,21 +649,21 @@ export type Database = {
       }
       reports: {
         Row: {
-          employee_id: number
+          educator_employee_id: number
           program_id: number
           quarter: string
           student_id: number
           url: string | null
         }
         Insert: {
-          employee_id: number
+          educator_employee_id: number
           program_id: number
           quarter: string
           student_id: number
           url?: string | null
         }
         Update: {
-          employee_id?: number
+          educator_employee_id?: number
           program_id?: number
           quarter?: string
           student_id?: number

@@ -17,6 +17,8 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { isAuthenticated, getUserRole } from "./lib/auth";
 import EmployeeDetailPage from './pages/EmployeeDetailPage';
 import LandingPage from './pages/LandingPage';
+import StudentPerformance from './pages/StudentPerformance';
+import StudentDetails from './pages/StudentDetails';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,7 +43,9 @@ const App = () => {
             <BrowserRouter>
               <Routes>
                 {/* Public routes */}
-                <Route path="/" element={<LandingPage />} />
+                <Route path="/" element={
+                  isLoggedIn ? <Navigate to={getDefaultRoute(userRole)} /> : <LandingPage />
+                } />
                 <Route path="/login" element={
                   isLoggedIn ? <Navigate to={getDefaultRoute(userRole)} /> : <Login />
                 } />
@@ -50,6 +54,20 @@ const App = () => {
                 <Route path="/admin" element={
                   <ProtectedRoute allowedRoles={['administrator']}>
                     <Index />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Student Performance - for administrators */}
+                <Route path="/admin/student-performance" element={
+                  <ProtectedRoute allowedRoles={['administrator']}>
+                    <StudentPerformance />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Student Details - for administrators */}
+                <Route path="/admin/student-details/:studentId" element={
+                  <ProtectedRoute allowedRoles={['administrator']}>
+                    <StudentDetails />
                   </ProtectedRoute>
                 } />
                 
