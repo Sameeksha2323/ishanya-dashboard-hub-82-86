@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import TableActions from './TableActions';
 import CsvUpload from './CsvUpload';
 import { TableFieldFormatter, capitalizeFirstLetter, isFieldRequired } from './TableFieldFormatter';
+import { formatColumnName } from '@/utils/formEventUtils';
 
 type TableViewProps = {
   table: any;
@@ -34,6 +35,7 @@ const TableView = ({ table }: TableViewProps) => {
   const [showUpload, setShowUpload] = useState(false);
   const [formDataSource, setFormDataSource] = useState<any>(null);
   const [entityIdField, setEntityIdField] = useState<string>('id');
+  const [processedColumns, setProcessedColumns] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -63,6 +65,10 @@ const TableView = ({ table }: TableViewProps) => {
         
         setColumns(columnsData);
         
+        // Remove duplicate columns like enrollment_year
+        const uniqueColumns = [...new Set(columnsData)];
+        setProcessedColumns(uniqueColumns);
+        
         let query = supabase.from(tableName).select('*');
         
         if (tableName.toLowerCase() === 'students' && table.center_id) {
@@ -83,12 +89,19 @@ const TableView = ({ table }: TableViewProps) => {
         setFilteredData(tableData || []);
         
         const defaultFormData: Record<string, any> = {};
-        columnsData.forEach(col => {
-          defaultFormData[col] = '';
+        uniqueColumns.forEach(col => {
+          // Don't set default values for system fields
+          if (col !== 'created_at' && col !== 'updated_at') {
+            defaultFormData[col] = '';
+          }
         });
         
         if (table.center_id) {
           defaultFormData.center_id = table.center_id;
+        }
+        
+        if (table.program_id) {
+          defaultFormData.program_id = table.program_id;
         }
         
         setFormData(defaultFormData);
@@ -231,7 +244,10 @@ const TableView = ({ table }: TableViewProps) => {
       
       const updateData: Record<string, any> = {};
       columns.forEach(col => {
-        updateData[col] = formData[col] !== null ? formData[col] : null;
+        // Skip created_at to let the database handle it
+        if (col !== 'created_at') {
+          updateData[col] = formData[col] !== null ? formData[col] : null;
+        }
       });
       
       const idField = entityIdField;
@@ -244,7 +260,7 @@ const TableView = ({ table }: TableViewProps) => {
         
       if (updateError) {
         console.error('Error updating record:', updateError);
-        toast.error('Failed to update record');
+        toast.error('Failed to update record: ' + updateError.message);
         return;
       }
       
@@ -300,8 +316,8 @@ const TableView = ({ table }: TableViewProps) => {
         .select();
         
       if (insertError) {
-        console.error('Error adding record:', insertError);
-        toast.error(`Failed to add record: ${insertError.message}`);
+        console.error('Error inserting record:', insertError);
+        toast.error(`Error inserting record: ${insertError.message}`);
         setLoading(false);
         return;
       }
@@ -402,12 +418,19 @@ const TableView = ({ table }: TableViewProps) => {
           setFormDataSource(null);
           
           const defaultFormData: Record<string, any> = {};
-          columns.forEach(col => {
-            defaultFormData[col] = '';
+          processedColumns.forEach(col => {
+            // Skip system fields
+            if (col !== 'created_at' && col !== 'updated_at') {
+              defaultFormData[col] = '';
+            }
           });
           
           if (table.center_id) {
             defaultFormData.center_id = table.center_id;
+          }
+          
+          if (table.program_id) {
+            defaultFormData.program_id = table.program_id;
           }
           
           setFormData(defaultFormData);
@@ -450,28 +473,31 @@ const TableView = ({ table }: TableViewProps) => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {columns.map((column) => {
-                // Skip system fields and duplicates
+              {processedColumns.map((column) => {
+                // Skip system fields
                 if (column === 'created_at') return null;
                 if (column === 'updated_at') return null;
                 
-                // Skip the second occurrence of enrollment_year
-                if (column === 'enrollment_year' && columns.indexOf(column) !== columns.lastIndexOf(column) && 
-                    columns.indexOf(column) > columns.indexOf('enrollment_year')) {
+                // Skip duplicate fields
+                if (column === 'enrollment_year' && 
+                    processedColumns.indexOf(column) !== processedColumns.lastIndexOf(column) && 
+                    processedColumns.indexOf(column) > processedColumns.indexOf('enrollment_year')) {
                   return null;
                 }
                 
                 const isRequired = isFieldRequired(table.name.toLowerCase(), column);
                 
                 // Lock center_id and program_id if they are provided from the table context
-                const isReadOnly = (column === 'center_id' || column === 'program_id') && 
-                                  table[column] !== undefined && table[column] !== null;
+                const isReadOnly = (
+                  (column === 'center_id' && table.center_id !== undefined && table.center_id !== null) || 
+                  (column === 'program_id' && table.program_id !== undefined && table.program_id !== null)
+                );
                 
                 return (
                   <div key={column} className="space-y-2">
                     <Label htmlFor={column}>
-                      {capitalizeFirstLetter(column.replace(/_/g, ' '))}
-                      {isEditing && isRequired && <span className="text-red-500 ml-1">*</span>}
+                      {formatColumnName(column)}
+                      {(isEditing || !isEditing) && isRequired && <span className="text-red-500 ml-1">*</span>}
                     </Label>
                     <TableFieldFormatter
                       fieldName={column}
@@ -528,9 +554,9 @@ const TableView = ({ table }: TableViewProps) => {
           <Table>
             <TableHeader>
               <TableRow>
-                {columns.slice(0, 6).map((column) => (
+                {processedColumns.slice(0, 6).map((column) => (
                   <TableHead key={column}>
-                    {capitalizeFirstLetter(column)}
+                    {formatColumnName(column)}
                   </TableHead>
                 ))}
                 <TableHead>Actions</TableHead>
@@ -539,14 +565,14 @@ const TableView = ({ table }: TableViewProps) => {
             <TableBody>
               {filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={columns.slice(0, 6).length + 1} className="h-24 text-center">
+                  <TableCell colSpan={processedColumns.slice(0, 6).length + 1} className="h-24 text-center">
                     No records found
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredData.map((row) => (
                   <TableRow key={row[entityIdField]}>
-                    {columns.slice(0, 6).map((column) => (
+                    {processedColumns.slice(0, 6).map((column) => (
                       <TableCell key={column}>
                         <TableFieldFormatter
                           fieldName={column}

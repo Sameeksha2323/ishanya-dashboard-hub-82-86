@@ -101,3 +101,39 @@ export const listenForFormSubmitSuccess = (callback: () => void) => {
     window.removeEventListener('formSubmitSuccess', callback);
   };
 };
+
+/**
+ * Formats a column name for display by capitalizing each word and handling special cases
+ * 
+ * @param columnName The column name to format
+ * @returns The formatted column name
+ */
+export const formatColumnName = (columnName: string): string => {
+  // Special case for ID fields
+  if (columnName.toLowerCase() === 'id' || columnName.endsWith('_id')) {
+    // Handle common ID patterns
+    const baseName = columnName.replace(/_id$/, '');
+    if (baseName === columnName) {
+      return 'ID';
+    }
+    return formatColumnName(baseName) + ' ID';
+  }
+  
+  // Special case for DOB
+  if (columnName.toLowerCase() === 'dob') {
+    return 'DOB';
+  }
+  
+  // Special acronyms that should be all caps
+  const acronyms = ['lor', 'url', 'udid'];
+  if (acronyms.includes(columnName.toLowerCase())) {
+    return columnName.toUpperCase();
+  }
+  
+  // Handle general case: split by underscore and capitalize each word
+  return columnName
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+

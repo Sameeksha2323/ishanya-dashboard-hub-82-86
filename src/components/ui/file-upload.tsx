@@ -104,11 +104,12 @@ const FileUpload = ({ bucketName, onFileUpload, existingUrl, entityType, entityI
   };
 
   const getEntityTypeName = () => {
-    switch (entityType) {
+    const entityTypeString = entityType as string;
+    switch (entityTypeString) {
       case 'student': return 'Student';
       case 'employee': return 'Employee';
       case 'educator': return 'Educator';
-      default: return entityType.charAt(0).toUpperCase() + entityType.slice(1);
+      default: return entityTypeString.charAt(0).toUpperCase() + entityTypeString.slice(1);
     }
   };
 
