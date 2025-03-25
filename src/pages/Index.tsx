@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
@@ -197,14 +196,11 @@ const Index = () => {
     
     if (selectedProgram) {
       return (
-        <>
-          <DataManager />
-          <TableListWrapper 
-            program={selectedProgram} 
-            onSelectTable={handleSelectTable} 
-            selectedTable={selectedTable}
-          />
-        </>
+        <TableListWrapper 
+          program={selectedProgram} 
+          onSelectTable={handleSelectTable} 
+          selectedTable={selectedTable}
+        />
       );
     }
     

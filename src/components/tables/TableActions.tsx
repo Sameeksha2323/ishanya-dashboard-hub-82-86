@@ -1,8 +1,7 @@
-
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Upload, RefreshCw, FileText } from 'lucide-react';
+import { Plus, Upload, RefreshCw, FileText, Mic } from 'lucide-react';
 import StudentFormHandler from '@/components/admin/StudentFormHandler';
 import StudentForm from '@/components/admin/StudentForm';
 import { supabase } from '@/integrations/supabase/client';
@@ -87,6 +86,15 @@ const TableActions = ({
               Refresh
             </Button>
           )}
+          
+          <Button 
+            variant="outline"
+            onClick={() => setShowStudentForm(true)}
+            className="flex items-center"
+          >
+            <Mic className="mr-1 h-4 w-4" />
+            Voice Entry
+          </Button>
         </div>
       </CardContent>
       
