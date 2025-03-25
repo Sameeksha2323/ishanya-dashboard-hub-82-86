@@ -11,9 +11,14 @@ import { motion } from 'framer-motion';
 
 const LandingPage = () => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [isHovering, setIsHovering] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  
+  // For debugging - log current language
+  useEffect(() => {
+    console.log("Current language:", language);
+  }, [language]);
   
   useEffect(() => {
     const handleScroll = () => {
@@ -189,7 +194,7 @@ const LandingPage = () => {
               variants={fadeIn}
             >
               <img 
-                src="https://images.unsplash.com/photo-1524069290683-0457abfe42c3?q=80&w=2940&auto=format&fit=crop"
+                src="https://images.unsplash.com/photo-1607211851821-8be3cd6146f0?q=80&w=2970&auto=format&fit=crop"
                 alt="Inclusive Education Illustration" 
                 className="max-h-96 rounded-2xl shadow-2xl object-cover"
               />
@@ -257,8 +262,8 @@ const LandingPage = () => {
               >
                 <div className="rounded-2xl overflow-hidden shadow-2xl h-full transform transition-transform duration-500 hover:scale-[1.02]">
                   <img 
-                    src="https://images.unsplash.com/photo-1607211851821-8be3cd6146f0?q=80&w=2970&auto=format&fit=crop"
-                    alt="Ishanya Foundation Work" 
+                    src="https://images.unsplash.com/photo-1574362848149-11496d93a7c7?q=80&w=2084&auto=format&fit=crop"
+                    alt="Special needs education" 
                     className="w-full h-full object-cover"
                   />
                 </div>

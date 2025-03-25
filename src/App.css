@@ -57,7 +57,7 @@
   animation: float 4s ease-in-out infinite;
 }
 
-/* Gradient text */
+/* Improved gradient text */
 .gradient-text {
   background: linear-gradient(90deg, #3B8A4E, #DCB81D);
   -webkit-background-clip: text;
@@ -66,12 +66,23 @@
   color: transparent;
 }
 
+/* Enhanced text shadow */
+.text-shadow {
+  text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.text-shadow-strong {
+  text-shadow: 0px 3px 8px rgba(0, 0, 0, 0.3);
+}
+
 /* Ishanya Foundation Colors */
 :root {
   --ishanya-green: #3B8A4E;
   --ishanya-yellow: #DCB81D;
   --ishanya-green-light: rgba(59, 138, 78, 0.1);
   --ishanya-yellow-light: rgba(220, 184, 29, 0.1);
+  --ishanya-green-dark: #2A6437;
+  --ishanya-yellow-dark: #B09017;
 }
 
 /* Custom form styles */
@@ -188,4 +199,74 @@
 
 .dyslexia-mode.dark .text-emphasize {
   color: #fff;
+}
+
+/* Enhanced button styling */
+.btn-primary-gradient {
+  background: linear-gradient(135deg, var(--ishanya-green), var(--ishanya-green-dark));
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.btn-primary-gradient:hover {
+  background: linear-gradient(135deg, var(--ishanya-green-dark), var(--ishanya-green));
+  box-shadow: 0 4px 12px rgba(59, 138, 78, 0.4);
+}
+
+.btn-secondary-gradient {
+  background: linear-gradient(135deg, var(--ishanya-yellow), var(--ishanya-yellow-dark));
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary-gradient:hover {
+  background: linear-gradient(135deg, var(--ishanya-yellow-dark), var(--ishanya-yellow));
+  box-shadow: 0 4px 12px rgba(220, 184, 29, 0.4);
+}
+
+/* Fancy section dividers */
+.wave-divider {
+  position: relative;
+  height: 70px;
+  width: 100%;
+}
+
+.wave-divider svg {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: translateY(1px);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ishanya-green-light);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ishanya-green);
+}
+
+/* Dark mode adjustments */
+.dark ::-webkit-scrollbar-track {
+  background: #2d2d2d;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(59, 138, 78, 0.4);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--ishanya-green);
 }
