@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
@@ -5,10 +6,9 @@ import Layout from '@/components/layout/Layout';
 import CenterList from '@/components/centers/CenterList';
 import { Center, Program, fetchCenters } from '@/lib/api';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import DataManager from '@/components/admin/DataManager';
 import PendingReviews from '@/components/admin/PendingReviews';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PieChart, Users, GraduationCap } from 'lucide-react';
+import { PieChart, Users, GraduationCap, ClipboardList } from 'lucide-react';
 import ProgramList from '@/components/programs/ProgramList';
 import TableListWrapper from '@/components/tables/TableListWrapper';
 import FilteredTableView from '@/components/tables/FilteredTableView';
@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from "@/integrations/supabase/client";
 import StudentFormHandler from '@/components/admin/StudentFormHandler';
 import StudentForm from '@/components/admin/StudentForm';
+import ActivitiesSection from '@/components/admin/ActivitiesSection';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -269,7 +270,7 @@ const Index = () => {
           </div>
         </div>
         
-        <DataManager />
+        <ActivitiesSection />
       </>
     );
   };
