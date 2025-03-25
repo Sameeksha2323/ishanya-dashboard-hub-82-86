@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
@@ -371,9 +370,9 @@ const Index = () => {
       >
         {(handleSubmit) => (
           <EmployeeForm
-            onSubmit={handleSubmit}
             centerId={selectedCenter?.center_id}
             programId={selectedProgram?.program_id}
+            onSave={handleSubmit}
           />
         )}
       </StudentFormHandler>

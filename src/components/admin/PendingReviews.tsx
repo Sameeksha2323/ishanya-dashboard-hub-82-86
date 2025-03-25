@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import DetailedFormView from './DetailedFormView';
 import StudentFormHandler from './StudentFormHandler';
 import StudentForm from './StudentForm';
+import { supabase } from '@/integrations/supabase/client';
 
 type FormEntry = {
   id: string;
@@ -193,7 +193,6 @@ const PendingReviews = () => {
 
   const handleSubmitStudent = async (data: any) => {
     try {
-      // Add student to database
       const { error } = await supabase
         .from('students')
         .insert([data]);
@@ -202,7 +201,6 @@ const PendingReviews = () => {
         throw error;
       }
       
-      // Update the entry list to remove the processed entry
       if (prefillData?.sourceEntry) {
         setCurrentPointer(prev => {
           const newPointer = prefillData.sourceEntry.rowIndex + 1;
@@ -563,7 +561,6 @@ const PendingReviews = () => {
         </Dialog>
       )}
       
-      {/* Student Form Handler */}
       <StudentFormHandler
         isOpen={isStudentFormOpen}
         onClose={() => {

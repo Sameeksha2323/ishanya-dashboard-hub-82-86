@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -267,8 +266,8 @@ const StudentForm = ({ onSubmit, lastStudentId, centerId, programId, initialValu
                 <FormLabel>Center *</FormLabel>
                 <Select 
                   onValueChange={(value) => {
-                    field.onChange(value);
-                    form.setValue('program_id', '');
+                    field.onChange(parseInt(value, 10));
+                    form.setValue('program_id', undefined);
                     form.setValue('educator_employee_id', null);
                   }} 
                   defaultValue={field.value?.toString()}
@@ -390,7 +389,6 @@ const StudentForm = ({ onSubmit, lastStudentId, centerId, programId, initialValu
             )}
           />
           
-          {/* Contact Information */}
           <FormField
             control={form.control}
             name="contact_number"
@@ -448,7 +446,6 @@ const StudentForm = ({ onSubmit, lastStudentId, centerId, programId, initialValu
           />
         </div>
 
-        {/* Photo Upload */}
         <div className="mt-4">
           <FormField
             control={form.control}
@@ -472,7 +469,6 @@ const StudentForm = ({ onSubmit, lastStudentId, centerId, programId, initialValu
           />
         </div>
 
-        {/* Medical Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
           <FormField
             control={form.control}
@@ -545,7 +541,6 @@ const StudentForm = ({ onSubmit, lastStudentId, centerId, programId, initialValu
           />
         </div>
 
-        {/* Family Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
           <FormField
             control={form.control}
@@ -576,7 +571,6 @@ const StudentForm = ({ onSubmit, lastStudentId, centerId, programId, initialValu
           />
         </div>
 
-        {/* Address */}
         <FormField
           control={form.control}
           name="address"
@@ -591,7 +585,6 @@ const StudentForm = ({ onSubmit, lastStudentId, centerId, programId, initialValu
           )}
         />
 
-        {/* Session Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
           <FormField
             control={form.control}
@@ -731,7 +724,6 @@ const StudentForm = ({ onSubmit, lastStudentId, centerId, programId, initialValu
           />
         </div>
 
-        {/* Additional Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
           <FormField
             control={form.control}
@@ -761,7 +753,6 @@ const StudentForm = ({ onSubmit, lastStudentId, centerId, programId, initialValu
           />
         </div>
 
-        {/* Notes and Comments */}
         <div className="grid grid-cols-1 gap-4 mt-6">
           <FormField
             control={form.control}

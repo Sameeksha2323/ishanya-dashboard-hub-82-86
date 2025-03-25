@@ -11,15 +11,17 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
+import { ControllerRenderProps } from "react-hook-form";
 
 interface DatePickerFormFieldProps {
-  value: Date | undefined;
-  onChange: (date: Date | undefined) => void;
+  value?: Date | undefined;
+  onChange?: (date: Date | undefined) => void;
   label: string;
   required?: boolean;
   disabled?: boolean;
   placeholder?: string;
   className?: string;
+  field?: ControllerRenderProps<any, any>; // Add this field prop to support react-hook-form
 }
 
 export function DatePickerFormField({
@@ -29,8 +31,20 @@ export function DatePickerFormField({
   required = false,
   disabled = false,
   placeholder = "Select date",
-  className
+  className,
+  field
 }: DatePickerFormFieldProps) {
+  // Use field values if provided (for react-hook-form integration)
+  const fieldValue = field?.value ? new Date(field.value) : value;
+  const handleChange = (date: Date | undefined) => {
+    if (field) {
+      field.onChange(date ? format(date, 'yyyy-MM-dd') : null);
+    }
+    if (onChange) {
+      onChange(date);
+    }
+  };
+
   return (
     <div className={className}>
       <Label className="mb-2 block">
@@ -43,19 +57,19 @@ export function DatePickerFormField({
             variant={"outline"}
             className={cn(
               "w-full justify-start text-left font-normal",
-              !value && "text-muted-foreground"
+              !fieldValue && "text-muted-foreground"
             )}
             disabled={disabled}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {value ? format(value, "PPP") : <span>{placeholder}</span>}
+            {fieldValue ? format(fieldValue, "PPP") : <span>{placeholder}</span>}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
           <Calendar
             mode="single"
-            selected={value}
-            onSelect={onChange}
+            selected={fieldValue}
+            onSelect={handleChange}
             captionLayout="dropdown-buttons"
             fromYear={1950}
             toYear={new Date().getFullYear()}

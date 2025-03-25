@@ -66,8 +66,8 @@ const AnalyticsDashboard = () => {
   // Colors for the pie chart
   const COLORS = ['#8884d8', '#83a6ed', '#8dd1e1', '#82ca9d', '#a4de6c', '#d0ed57'];
   
-  // Custom tooltip for pie chart
-  const CustomTooltip = ({ active, payload }) => {
+  // Custom tooltip for pie chart - Fixed the type issue
+  const CustomTooltip = ({ active, payload }: { active?: boolean, payload?: any[] }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-2 border shadow-sm rounded">
