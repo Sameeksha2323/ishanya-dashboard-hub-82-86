@@ -62,13 +62,19 @@ export const trackDatabaseChange = async (tableName: string, action: 'insert' | 
     const actionText = action === 'insert' ? 'added to' : action === 'update' ? 'updated in' : 'deleted from';
     const transactionName = `${userName} (${userRole}) ${actionText} ${tableName}`;
     
+    console.log('Logging database change:', transactionName);
+    
     // Log to webdata table
-    await supabase
+    const { error } = await supabase
       .from('webdata')
       .insert({
         transaction_name: transactionName,
         created_at: new Date().toISOString()
       });
+    
+    if (error) {
+      console.error('Error logging to webdata table:', error);
+    }
     
   } catch (error) {
     console.error('Error tracking database change:', error);

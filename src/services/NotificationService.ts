@@ -25,7 +25,7 @@ export const fetchUnreadNotificationsCount = async (): Promise<number> => {
       .eq('is_read', false);
 
     if (error) {
-      console.error('Error fetching notifications:', error);
+      console.error('Error fetching notifications count:', error);
       return 0;
     }
 
@@ -38,6 +38,9 @@ export const fetchUnreadNotificationsCount = async (): Promise<number> => {
 
 export const fetchNotificationsWithAnnouncements = async (): Promise<AnnouncementWithRead[]> => {
   try {
+    console.log('Fetching notifications with announcements');
+    
+    // Join notifications with announcements
     const { data, error } = await supabase
       .from('notifications')
       .select(`
@@ -45,10 +48,9 @@ export const fetchNotificationsWithAnnouncements = async (): Promise<Announcemen
         announcement_id,
         is_read,
         created_at,
-        announcements (
+        announcements:announcement_id (
           title,
           announcement,
-          announcement_id,
           created_at
         )
       `)
@@ -56,15 +58,16 @@ export const fetchNotificationsWithAnnouncements = async (): Promise<Announcemen
 
     if (error) {
       console.error('Error fetching notifications with announcements:', error);
-      return [];
+      throw error;
     }
 
+    // Transform the data to match the expected format
     return data ? data.map(item => ({
       id: item.id,
       announcement_id: item.announcement_id,
-      title: item.announcements.title,
-      announcement: item.announcements.announcement,
-      created_at: item.announcements.created_at,
+      title: item.announcements?.title || 'Unknown Title',
+      announcement: item.announcements?.announcement || 'No content',
+      created_at: item.announcements?.created_at || item.created_at,
       is_read: item.is_read
     })) : [];
   } catch (error) {

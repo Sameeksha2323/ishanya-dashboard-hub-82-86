@@ -20,9 +20,11 @@ const AnnouncementForm = ({ onAnnouncementAdded }: AnnouncementFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const user = getCurrentUser();
 
-  const createNotificationsForAllUsers = async (announcementId: number) => {
+  const createNotificationsForAllEmployees = async (announcementId: number) => {
     try {
-      // First, get all employees instead of querying a non-existent "users" table
+      console.log('Creating notifications for announcement ID:', announcementId);
+      
+      // First, get all employees
       const { data: employees, error: employeesError } = await supabase
         .from('employees')
         .select('id');
@@ -32,18 +34,17 @@ const AnnouncementForm = ({ onAnnouncementAdded }: AnnouncementFormProps) => {
         return;
       }
       
-      // If no employees found, we'll create a notification without a specific user_id
+      // If no employees found, log a message and return
       if (!employees || employees.length === 0) {
-        console.log('No employees found, creating a default notification');
-        // Create a default notification that doesn't require a user_id
-        // This is a workaround since we're handling a system where notifications
-        // are shown to all users regardless of authentication
+        console.log('No employees found to create notifications for');
         return;
       }
       
+      console.log(`Found ${employees.length} employees to create notifications for`);
+      
       // Create a notification for each employee
       const notifications = employees.map(employee => ({
-        user_id: employee.id, // This matches the required field in the schema
+        user_id: employee.id,
         announcement_id: announcementId,
         is_read: false,
         created_at: new Date().toISOString()
@@ -62,7 +63,7 @@ const AnnouncementForm = ({ onAnnouncementAdded }: AnnouncementFormProps) => {
         await trackDatabaseChange('notifications', 'insert');
       }
     } catch (error) {
-      console.error('Error in createNotificationsForAllUsers:', error);
+      console.error('Error in createNotificationsForAllEmployees:', error);
     }
   };
 
@@ -77,6 +78,8 @@ const AnnouncementForm = ({ onAnnouncementAdded }: AnnouncementFormProps) => {
     setIsSubmitting(true);
     
     try {
+      console.log('Creating announcement with:', { title, content });
+      
       // Create the announcement
       const { data, error } = await supabase
         .from('announcements')
@@ -94,9 +97,11 @@ const AnnouncementForm = ({ onAnnouncementAdded }: AnnouncementFormProps) => {
         return;
       }
       
-      // If announcement was created successfully, create notifications for all users
+      console.log('Announcement created successfully:', data);
+      
+      // If announcement was created successfully, create notifications for all employees
       if (data && data.length > 0) {
-        await createNotificationsForAllUsers(data[0].announcement_id);
+        await createNotificationsForAllEmployees(data[0].announcement_id);
         
         // Track the announcement creation
         await trackDatabaseChange('announcements', 'insert');
