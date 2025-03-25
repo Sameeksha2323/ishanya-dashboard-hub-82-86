@@ -179,9 +179,9 @@ const LandingPage = () => {
                 <motion.div variants={fadeIn}>
                   <a 
                     href="#about"
-                    className="inline-flex items-center justify-center px-8 py-6 border border-transparent text-base font-medium rounded-xl text-ishanya-green bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-ishanya-green dark:hover:bg-gray-700 shadow-md hover:shadow-lg transition-all duration-300"
+                    className="inline-flex items-center justify-center px-8 py-6 text-base font-medium rounded-xl bg-white text-ishanya-green hover:bg-gray-50 dark:bg-gray-800 dark:text-ishanya-green dark:hover:bg-gray-700 shadow-lg hover:shadow-xl transition-all duration-300 border border-transparent"
                   >
-                    {t('common.learn_more') || 'Learn more'}
+                    {t('common.learn_more') || 'Learn more'} <ArrowRight className="ml-2 h-5 w-5" />
                   </a>
                 </motion.div>
               </motion.div>
@@ -194,8 +194,8 @@ const LandingPage = () => {
               variants={fadeIn}
             >
               <img 
-                src="https://images.unsplash.com/photo-1607211851821-8be3cd6146f0?q=80&w=2970&auto=format&fit=crop"
-                alt="Inclusive Education Illustration" 
+                src="https://images.unsplash.com/photo-1577896851231-70ef18881754?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2970&q=80"
+                alt="Children with special needs" 
                 className="max-h-96 rounded-2xl shadow-2xl object-cover"
               />
             </motion.div>
@@ -262,8 +262,8 @@ const LandingPage = () => {
               >
                 <div className="rounded-2xl overflow-hidden shadow-2xl h-full transform transition-transform duration-500 hover:scale-[1.02]">
                   <img 
-                    src="https://images.unsplash.com/photo-1574362848149-11496d93a7c7?q=80&w=2084&auto=format&fit=crop"
-                    alt="Special needs education" 
+                    src="https://images.unsplash.com/photo-1611927264107-b5d1bc03d210?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2787&q=80"
+                    alt="Children in special education" 
                     className="w-full h-full object-cover"
                   />
                 </div>

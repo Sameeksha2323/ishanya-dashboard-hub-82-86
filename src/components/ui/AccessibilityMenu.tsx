@@ -19,7 +19,7 @@ export const AccessibilityMenu = () => {
   const { setTheme, theme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   
-  const handleThemeChange = (selectedTheme: string) => {
+  const handleThemeChange = (selectedTheme: 'light' | 'dark') => {
     setTheme(selectedTheme);
     toast.success(
       `${t('accessibility.theme_changed') || 'Theme changed to'} ${selectedTheme}`,
