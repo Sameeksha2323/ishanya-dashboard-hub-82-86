@@ -185,22 +185,22 @@ const TableView = ({ table }: TableViewProps) => {
         return;
       }
       
-      // Create educator record
+      // Create educator record - Fix the field mapping to match database schema
       const { data: educatorData, error: educatorError } = await supabase
         .from('educators')
-        .insert([{
+        .insert({
           employee_id: employeeData.employee_id,
           center_id: employeeData.center_id,
           name: employeeData.name,
           designation: employeeData.designation,
           email: employeeData.email,
           phone: employeeData.phone,
-          dob: employeeData.date_of_birth,
+          date_of_birth: employeeData.date_of_birth, // Correct field name instead of 'dob'
           date_of_joining: employeeData.date_of_joining,
           work_location: employeeData.work_location || null,
           status: employeeData.status || 'Active',
           photo: employeeData.photo || null
-        }])
+        })
         .select();
         
       if (educatorError) {
@@ -281,8 +281,9 @@ const TableView = ({ table }: TableViewProps) => {
       
       const insertData: Record<string, any> = {};
       columns.forEach(col => {
-        if (formData[col] !== undefined) {
-          insertData[col] = formData[col] !== null ? formData[col] : null;
+        // Skip created_at field to let database set it automatically
+        if (col !== 'created_at' && formData[col] !== undefined) {
+          insertData[col] = formData[col] !== null && formData[col] !== '' ? formData[col] : null;
         }
       });
       
@@ -450,23 +451,33 @@ const TableView = ({ table }: TableViewProps) => {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {columns.map((column) => {
-                // Skip system fields
-                if (column === 'created_at' && !formData[column]) return null;
+                // Skip system fields and duplicates
+                if (column === 'created_at') return null;
                 if (column === 'updated_at') return null;
                 
+                // Skip the second occurrence of enrollment_year
+                if (column === 'enrollment_year' && columns.indexOf(column) !== columns.lastIndexOf(column) && 
+                    columns.indexOf(column) > columns.indexOf('enrollment_year')) {
+                  return null;
+                }
+                
                 const isRequired = isFieldRequired(table.name.toLowerCase(), column);
+                
+                // Lock center_id and program_id if they are provided from the table context
+                const isReadOnly = (column === 'center_id' || column === 'program_id') && 
+                                  table[column] !== undefined && table[column] !== null;
                 
                 return (
                   <div key={column} className="space-y-2">
                     <Label htmlFor={column}>
-                      {capitalizeFirstLetter(column)}
+                      {capitalizeFirstLetter(column.replace(/_/g, ' '))}
                       {isEditing && isRequired && <span className="text-red-500 ml-1">*</span>}
                     </Label>
                     <TableFieldFormatter
                       fieldName={column}
                       value={formData[column]}
                       onChange={(value) => handleInputChange(column, value)}
-                      isEditing={true}
+                      isEditing={!isReadOnly}
                       isRequired={isRequired}
                       tableName={table.name.toLowerCase()}
                       entityId={formData[entityIdField]}

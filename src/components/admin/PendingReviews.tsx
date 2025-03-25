@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,11 +26,9 @@ const PendingReviews = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'view' | 'edit'>('view');
   const [currentPointer, setCurrentPointer] = useState<number>(() => {
-    // Get pointer from localStorage or start at 2 (row after header)
     return parseInt(localStorage.getItem('formEntryPointer') || '2', 10);
   });
 
-  // Save pointer to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('formEntryPointer', currentPointer.toString());
   }, [currentPointer]);
@@ -43,11 +40,10 @@ const PendingReviews = () => {
       
       const API_KEY = 'AIzaSyACcbknWrMdZUapY8sQii16PclJ2xlPlqA';
       const SHEET_ID = '144Qh31BIIsDJYye5vWkE9WFhGI433yZU4TtKLq1wN4w';
-      const RANGE = `Form Responses 1!A${currentPointer}:Z`; // Start from the current pointer
+      const RANGE = `Form Responses 1!A${currentPointer}:Z`;
       
       console.log(`Fetching data starting from row ${currentPointer}`);
       
-      // Use the Google Sheets API REST endpoint directly
       const response = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`
       );
@@ -65,7 +61,6 @@ const PendingReviews = () => {
         return;
       }
       
-      // Get headers from the first row using a separate API call
       const headerResponse = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Form Responses 1!A1:Z1?key=${API_KEY}`
       );
@@ -77,21 +72,18 @@ const PendingReviews = () => {
       const headerData = await headerResponse.json();
       const headers = headerData.values?.[0] || [];
       
-      // Map rows to entries with headers as keys
       const formattedEntries = rows.map((row: any[], index: number) => {
-        // Skip empty rows
         if (!row[0] && !row[1]) return null;
         
         const entry: FormEntry = {
           id: index.toString(),
-          name: row[1] || 'N/A', // Assuming name is in column B
-          email: row[14] || 'N/A', // Parent's Email
-          phone: row[12] || 'N/A', // Contact Number
-          submittedAt: row[0] || 'N/A', // Assuming timestamp is in column A
-          rowIndex: currentPointer + index, // Adjusted row index based on pointer
+          name: row[1] || 'N/A',
+          email: row[14] || 'N/A',
+          phone: row[12] || 'N/A',
+          submittedAt: row[0] || 'N/A',
+          rowIndex: currentPointer + index,
         };
         
-        // Add all other columns dynamically
         headers.forEach((header, i) => {
           if (i < row.length && i >= 0) {
             entry[header.toString()] = row[i];
@@ -99,15 +91,13 @@ const PendingReviews = () => {
         });
         
         return entry;
-      }).filter(Boolean); // Remove null entries (empty rows)
+      }).filter(Boolean);
       
       setEntries(formattedEntries);
       
-      // Show notification for new entries
       if (formattedEntries.length > 0) {
         toast.info(`${formattedEntries.length} form submissions pending review`);
       }
-      
     } catch (err) {
       console.error('Error fetching Google Sheet data:', err);
       setError('Failed to fetch form submissions');
@@ -135,18 +125,15 @@ const PendingReviews = () => {
 
   const handleAcceptEntry = async (entry: FormEntry) => {
     try {
-      // Close the detail view dialog if it's open
       setIsDialogOpen(false);
   
-      // Show feedback to user
       toast.loading('Preparing student form with prefilled data...');
   
-      // Map form fields to match student database schema
       const studentFormData = {
         first_name: entry['First Name'] || '',
         last_name: entry['Last Name'] || '',
         gender: entry['Gender'] || '',
-        dob: entry['Date of Birth'] || '',
+        dob: formatDateForDB(entry['Date of Birth']),
         primary_diagnosis: entry['Primary Diagnosis'] || '',
         comorbidity: entry['Comorbidity'] || '',
         udid: entry['UDID'] || '',
@@ -158,19 +145,19 @@ const PendingReviews = () => {
         alt_contact_number: entry['Alternate Contact Number'] || '',
         parents_email: entry["Parent's Email"] || '',
         address: entry['Address'] || '',
-        // Required fields for student table
         enrollment_year: new Date().getFullYear(),
-        status: 'active',
+        status: 'Active',
         student_email: entry["Parent's Email"] || '',
+        center_id: extractNumberFromField(entry['Center']),
+        program_id: extractNumberFromField(entry['Program']),
+        student_id: entry['Student ID'] || `STU${Date.now().toString().slice(-6)}`,
       };
   
-      // Store entry information in session storage for callback after form submission
       sessionStorage.setItem('formSubmitCallback', JSON.stringify({
         sourceEntry: entry,
         hasCallback: true
       }));
       
-      // Dispatch a custom event to open the form with prefilled data
       window.dispatchEvent(new CustomEvent('openAddRecordForm', {
         detail: { 
           tableName: 'students',
@@ -179,29 +166,24 @@ const PendingReviews = () => {
         } 
       }));
   
-      // Show success toast
       toast.dismiss();
       toast.success('Opening student form with prefilled data');
       
-      // Set up a listener for successful form submission
       const handleFormSubmitSuccess = () => {
         const storedCallback = sessionStorage.getItem('formSubmitCallback');
         if (storedCallback) {
           try {
             const { sourceEntry, hasCallback } = JSON.parse(storedCallback);
             if (hasCallback && sourceEntry) {
-              // Move the pointer forward
               setCurrentPointer(prev => {
                 const newPointer = entry.rowIndex + 1;
                 console.log(`Moving pointer from ${prev} to ${newPointer}`);
                 return newPointer;
               });
               
-              // Remove entry from local state
               setEntries(prev => prev.filter(e => e.id !== entry.id));
               toast.success('Form entry successfully processed and removed from review list');
               
-              // Clear the callback
               sessionStorage.removeItem('formSubmitCallback');
             }
           } catch (error) {
@@ -209,11 +191,9 @@ const PendingReviews = () => {
           }
         }
         
-        // Remove the event listener
         window.removeEventListener('formSubmitSuccess', handleFormSubmitSuccess);
       };
 
-      // Add event listener for form submission success
       window.addEventListener('formSubmitSuccess', handleFormSubmitSuccess);
   
     } catch (err) {
@@ -224,20 +204,16 @@ const PendingReviews = () => {
 
   const handleRejectEntry = async (entry: FormEntry) => {
     try {
-      // Close the detail view dialog if it's open
       setIsDialogOpen(false);
 
-      // Show loading toast
       toast.loading('Rejecting form submission...');
 
-      // Move the pointer forward instead of deleting the row
       setCurrentPointer(prev => {
         const newPointer = entry.rowIndex + 1;
         console.log(`Moving pointer from ${prev} to ${newPointer}`);
         return newPointer;
       });
       
-      // Remove entry from local state
       setEntries(prev => prev.filter(e => e.id !== entry.id));
       
       toast.dismiss();
@@ -254,7 +230,6 @@ const PendingReviews = () => {
       const API_KEY = 'AIzaSyACcbknWrMdZUapY8sQii16PclJ2xlPlqA';
       const SHEET_ID = '144Qh31BIIsDJYye5vWkE9WFhGI433yZU4TtKLq1wN4w';
       
-      // Get headers to know which column is which field
       const headerResponse = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Form Responses 1!A1:Z1?key=${API_KEY}`
       );
@@ -268,7 +243,6 @@ const PendingReviews = () => {
       const headerData = await headerResponse.json();
       const headers = headerData.values?.[0] || [];
       
-      // First get the current row data to ensure we don't lose anything
       const currentRowResponse = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Form Responses 1!A${entry.rowIndex}:Z${entry.rowIndex}?key=${API_KEY}`
       );
@@ -282,7 +256,6 @@ const PendingReviews = () => {
       const currentRowData = await currentRowResponse.json();
       const currentValues = currentRowData.values?.[0] || [];
       
-      // Create row data with updated values, preserving existing ones
       const rowData = headers.map((header: string, index: number) => {
         if (updatedData[header] !== undefined) {
           return updatedData[header];
@@ -294,11 +267,10 @@ const PendingReviews = () => {
       
       console.log('Updating row with data:', rowData);
       
-      // Update the Google Sheet
       const response = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Form Responses 1!A${entry.rowIndex}:Z${entry.rowIndex}?valueInputOption=RAW&key=${API_KEY}`,
         {
-          method: 'PUT', // Using PUT to replace the entire row
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -316,7 +288,6 @@ const PendingReviews = () => {
         throw new Error(`Failed to update row: ${response.status} ${response.statusText}`);
       }
       
-      // Update local state
       setEntries(prev => 
         prev.map(e => 
           e.id === entry.id 
@@ -341,7 +312,7 @@ const PendingReviews = () => {
       const updateResult = await updateGoogleSheetEntry(selectedEntry, updatedData);
       if (updateResult) {
         setIsDialogOpen(false);
-        fetchGoogleSheetData(); // Refresh data after update
+        fetchGoogleSheetData();
       }
     } catch (err) {
       console.error('Error saving edits:', err);
@@ -350,8 +321,50 @@ const PendingReviews = () => {
 
   const handleResetPointer = () => {
     if (window.confirm('Are you sure you want to reset the form entry pointer? This will start processing entries from the beginning.')) {
-      setCurrentPointer(2); // Reset to first row after header
+      setCurrentPointer(2);
       toast.success('Form entry pointer has been reset');
+    }
+  };
+
+  const formatDateForDB = (dateString: string | undefined): string | null => {
+    if (!dateString) return null;
+    
+    try {
+      if (dateString.includes('/')) {
+        const parts = dateString.split('/');
+        if (parts.length === 3) {
+          return `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+        }
+      }
+      
+      const date = new Date(dateString);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().split('T')[0];
+      }
+      
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        return dateString;
+      }
+      
+      return null;
+    } catch (e) {
+      console.error('Error formatting date:', e);
+      return null;
+    }
+  };
+
+  const extractNumberFromField = (field: string | undefined): number | null => {
+    if (!field) return null;
+    
+    try {
+      const match = field.match(/ID:\s*(\d+)/i) || field.match(/\((\d+)\)/) || field.match(/(\d+)/);
+      if (match && match[1]) {
+        return parseInt(match[1], 10);
+      }
+      return null;
+    } catch (e) {
+      console.error('Error extracting number from field:', e);
+      return null;
     }
   };
 

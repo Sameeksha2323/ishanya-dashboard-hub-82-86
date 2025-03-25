@@ -56,13 +56,23 @@ const FileUpload = ({ bucketName, onFileUpload, existingUrl, entityType, entityI
     try {
       setUploading(true);
       
-      // Create a unique file name
+      // Create a unique file name based on entity type and ID
       const fileExt = file.name.split('.').pop();
       const fileName = `${entityType}-${entityId || Date.now()}.${fileExt}`;
       
+      // Determine the correct bucket based on entity type
+      let targetBucket = bucketName;
+      if (entityType === 'student') {
+        targetBucket = 'student-photos';
+      } else if (entityType === 'employee') {
+        targetBucket = 'employee-photos';
+      } else if (entityType === 'educator') {
+        targetBucket = 'educator-photos';
+      }
+      
       // Upload file to Supabase Storage
       const { data, error } = await supabase.storage
-        .from(bucketName)
+        .from(targetBucket)
         .upload(fileName, file, {
           cacheControl: '3600',
           upsert: true
@@ -74,7 +84,7 @@ const FileUpload = ({ bucketName, onFileUpload, existingUrl, entityType, entityI
       
       // Get the public URL
       const { data: { publicUrl } } = supabase.storage
-        .from(bucketName)
+        .from(targetBucket)
         .getPublicUrl(data.path);
       
       onFileUpload(publicUrl);
@@ -93,9 +103,18 @@ const FileUpload = ({ bucketName, onFileUpload, existingUrl, entityType, entityI
     setPreviewUrl(existingUrl || null);
   };
 
+  const getEntityTypeName = () => {
+    switch (entityType) {
+      case 'student': return 'Student';
+      case 'employee': return 'Employee';
+      case 'educator': return 'Educator';
+      default: return entityType.charAt(0).toUpperCase() + entityType.slice(1);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      <Label htmlFor="file-upload">Upload {entityType === 'employee' ? 'Employee' : entityType === 'educator' ? 'Educator' : 'Student'} Photo</Label>
+      <Label htmlFor="file-upload">Upload {getEntityTypeName()} Photo</Label>
       
       <div className="flex items-center gap-4">
         <Input
