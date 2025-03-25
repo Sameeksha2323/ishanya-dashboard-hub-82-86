@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -39,7 +38,7 @@ export const isFieldRequired = (tableName: string = '', fieldName: string): bool
     ],
     educators: [
       'center_id', 'employee_id', 'name', 'designation', 'email',
-      'phone', 'dob', 'date_of_joining', 'work_location'
+      'phone', 'date_of_birth', 'date_of_joining', 'work_location'
     ],
     employees: [
       'employee_id', 'name', 'gender', 'designation', 'department',
@@ -205,15 +204,18 @@ export const TableFieldFormatter = ({
     return <div>No photo</div>;
   }
   
-  // Special handling for LOR field
-  if (fieldName === 'lor' && tableName === 'employees') {
+  // Special handling for LOR field in the employees or educators table
+  if (fieldName === 'lor' && (tableName === 'employees' || tableName === 'educators')) {
+    const entityType = tableName === 'employees' ? 'employee' : 'educator';
+    const bucketName = `${entityType}-lor`;
+    
     if (isEditing) {
       return (
         <FileUpload
-          bucketName="employee-lor"
+          bucketName={bucketName}
           onFileUpload={onChange}
           existingUrl={value}
-          entityType="employee"
+          entityType={entityType as 'employee' | 'educator'}
           entityId={entityId}
         />
       );
@@ -729,11 +731,7 @@ export const TableFieldFormatter = ({
     fieldName.includes('weakness') ||
     fieldName === 'allergies'
   ) {
-    return (
-      <div className="max-h-24 overflow-y-auto whitespace-pre-wrap">
-        {safeToString(value)}
-      </div>
-    );
+    return <div className="max-w-xs truncate">{safeToString(value)}</div>;
   }
   
   return <div>{safeToString(value)}</div>;

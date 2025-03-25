@@ -30,20 +30,34 @@ const FileUpload = ({ bucketName, onFileUpload, existingUrl, entityType, entityI
         return;
       }
       
-      // Check file type
-      if (!selectedFile.type.startsWith('image/')) {
-        toast.error("Only image files are allowed.");
+      // Check file type for images
+      if (bucketName.includes('photo') && !selectedFile.type.startsWith('image/')) {
+        toast.error("Only image files are allowed for photos.");
+        return;
+      }
+      
+      // For LOR uploads, allow PDF and document files
+      if (bucketName.includes('lor') && 
+          !selectedFile.type.startsWith('application/pdf') && 
+          !selectedFile.type.startsWith('application/msword') && 
+          !selectedFile.type.includes('document')) {
+        toast.error("Only PDF and document files are allowed for LOR.");
         return;
       }
       
       setFile(selectedFile);
       
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewUrl(reader.result as string);
-      };
-      reader.readAsDataURL(selectedFile);
+      // Create preview (for images only)
+      if (selectedFile.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPreviewUrl(reader.result as string);
+        };
+        reader.readAsDataURL(selectedFile);
+      } else {
+        // For non-image files, just show the filename
+        setPreviewUrl(null);
+      }
     }
   };
 
@@ -60,14 +74,25 @@ const FileUpload = ({ bucketName, onFileUpload, existingUrl, entityType, entityI
       const fileExt = file.name.split('.').pop();
       const fileName = `${entityType}-${entityId || Date.now()}.${fileExt}`;
       
-      // Determine the correct bucket based on entity type
+      // Determine the correct bucket based on entityType and bucket name
       let targetBucket = bucketName;
+      
+      // For photos
       if (entityType === 'student') {
         targetBucket = 'student-photos';
-      } else if (entityType === 'employee') {
+      } else if (entityType === 'employee' && bucketName.includes('photo')) {
         targetBucket = 'employee-photos';
-      } else if (entityType === 'educator') {
+      } else if (entityType === 'educator' && bucketName.includes('photo')) {
         targetBucket = 'educator-photos';
+      }
+      
+      // For LOR documents
+      if (bucketName.includes('lor')) {
+        if (entityType === 'employee') {
+          targetBucket = 'employee-lor';
+        } else if (entityType === 'educator') {
+          targetBucket = 'educator-lor';
+        }
       }
       
       console.log(`Uploading to bucket: ${targetBucket}, filename: ${fileName}`);
@@ -105,25 +130,32 @@ const FileUpload = ({ bucketName, onFileUpload, existingUrl, entityType, entityI
     setPreviewUrl(existingUrl || null);
   };
 
-  // Fixed function to correctly handle the entityType
-  const getEntityTypeName = () => {
-    switch (entityType) {
+  // Fixed function to correctly handle the entityType with proper typing
+  const getEntityTypeName = (type: 'student' | 'employee' | 'educator'): string => {
+    switch (type) {
       case 'student': return 'Student';
       case 'employee': return 'Employee';
       case 'educator': return 'Educator';
-      default: return entityType;
+      default: return type;
     }
   };
 
+  // Determine if this is a document upload (for LOR) rather than an image
+  const isDocumentUpload = bucketName.includes('lor');
+  const fileTypeText = isDocumentUpload ? 'Document' : 'Photo';
+  const acceptTypes = isDocumentUpload ? 
+    ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" : 
+    "image/*";
+
   return (
     <div className="space-y-4">
-      <Label htmlFor="file-upload">Upload {getEntityTypeName()} Photo</Label>
+      <Label htmlFor="file-upload">Upload {getEntityTypeName(entityType)} {fileTypeText}</Label>
       
       <div className="flex items-center gap-4">
         <Input
           id="file-upload"
           type="file"
-          accept="image/*"
+          accept={acceptTypes}
           onChange={handleFileChange}
           className="max-w-sm"
         />
@@ -147,6 +179,12 @@ const FileUpload = ({ bucketName, onFileUpload, existingUrl, entityType, entityI
             alt="Preview" 
             className="w-full h-full object-cover"
           />
+        </div>
+      )}
+      
+      {file && !previewUrl && (
+        <div className="text-sm text-gray-500">
+          Selected file: {file.name}
         </div>
       )}
       

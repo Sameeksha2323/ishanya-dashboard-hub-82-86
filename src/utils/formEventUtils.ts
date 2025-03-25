@@ -15,6 +15,11 @@ export const openAddRecordForm = (
   formData: Record<string, any>,
   sourceEntry?: any
 ) => {
+  // Remove created_at if it exists since the database will handle it
+  if (formData.created_at) {
+    delete formData.created_at;
+  }
+  
   window.dispatchEvent(new CustomEvent('openAddRecordForm', {
     detail: { 
       tableName,
@@ -30,6 +35,11 @@ export const openAddRecordForm = (
  * @param formData The data to set in the form
  */
 export const setFormData = (formData: Record<string, any>) => {
+  // Remove created_at if it exists since the database will handle it
+  if (formData.created_at) {
+    delete formData.created_at;
+  }
+  
   window.dispatchEvent(new CustomEvent('setFormData', {
     detail: { formData }
   }));
@@ -122,6 +132,11 @@ export const formatColumnName = (columnName: string): string => {
   // Special case for DOB
   if (columnName.toLowerCase() === 'dob') {
     return 'DOB';
+  }
+  
+  // Special case for LOR
+  if (columnName.toLowerCase() === 'lor') {
+    return 'LOR';
   }
   
   // Special acronyms that should be all caps

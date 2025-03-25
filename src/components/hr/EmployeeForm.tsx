@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import FileUpload from '@/components/ui/file-upload';
 
 type EmployeeFormProps = {
   employee: any;
@@ -88,6 +89,13 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
     }
   };
 
+  const handleFileUpload = (name: string, url: string) => {
+    setFormData({ ...formData, [name]: url });
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: '' });
+    }
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
@@ -149,6 +157,8 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
     
     { name: 'center_id', label: 'Center', type: 'center' },
     { name: 'program_id', label: 'Program', type: 'program' },
+    { name: 'photo', label: 'Profile Photo', type: 'file', fileType: 'photo' },
+    { name: 'lor', label: 'LOR Document', type: 'file', fileType: 'lor' },
   ];
 
   return (
@@ -162,7 +172,9 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
                field.name !== 'work_location' && 
                field.name !== 'date_of_leaving' && 
                field.name !== 'program_id' && 
-               field.name !== 'status' && (
+               field.name !== 'status' && 
+               field.name !== 'photo' && 
+               field.name !== 'lor' && (
                 <span className="text-red-500 ml-1">*</span>
               )}
             </Label>
@@ -238,6 +250,16 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
                   <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
                 )}
               </>
+            )}
+            
+            {field.type === 'file' && (
+              <FileUpload
+                bucketName={field.fileType === 'lor' ? 'employee-lor' : 'employee-photos'}
+                onFileUpload={(url) => handleFileUpload(field.name, url)}
+                existingUrl={formData[field.name]}
+                entityType="employee"
+                entityId={formData.employee_id}
+              />
             )}
             
             {field.type === 'center' && (
