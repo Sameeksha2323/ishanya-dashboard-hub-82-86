@@ -42,10 +42,10 @@ const App = () => {
             <Sonner position="top-right" className="dark:bg-gray-800 dark:text-white" />
             <BrowserRouter>
               <Routes>
-                {/* Public routes */}
-                <Route path="/" element={
-                  isLoggedIn ? <Navigate to={getDefaultRoute(userRole)} /> : <LandingPage />
-                } />
+                {/* Public routes - Landing page is always accessible */}
+                <Route path="/" element={<LandingPage />} />
+                
+                {/* Login route - redirects to dashboard if already logged in */}
                 <Route path="/login" element={
                   isLoggedIn ? <Navigate to={getDefaultRoute(userRole)} /> : <Login />
                 } />
