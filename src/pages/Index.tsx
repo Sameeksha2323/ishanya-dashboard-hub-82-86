@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import CenterList from '@/components/centers/CenterList';
 import { Center, Program, fetchCenters } from '@/lib/api';
@@ -17,6 +17,7 @@ import AnnouncementBoard from '@/components/announcements/AnnouncementBoard';
 import { Button } from '@/components/ui/button';
 
 const Index = () => {
+  const navigate = useNavigate();
   const [centers, setCenters] = useState<Center[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -109,7 +110,7 @@ const Index = () => {
           <Button
             variant="default"
             className="bg-ishanya-green hover:bg-ishanya-green/80 text-white"
-            onClick={() => window.location.href = "/admin/student-performance"}
+            onClick={() => navigate("/admin/student-performance")}
           >
             View Student Performance
           </Button>
