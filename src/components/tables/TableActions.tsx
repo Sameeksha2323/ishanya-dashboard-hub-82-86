@@ -1,10 +1,11 @@
 
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Plus, Upload } from 'lucide-react';
+import { RefreshCw, Plus, Upload, Mic } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import CsvUpload from './CsvUpload';
-import { toast } from 'sonner';
+import VoiceInputDialog from '@/components/ui/VoiceInputDialog';
+import { openVoiceInputDialog, listenForVoiceInputDialog } from '@/utils/formEventUtils';
 
 export type TableActionsProps = {
   tableName: string;
@@ -23,6 +24,7 @@ const TableActions = ({
   table 
 }: TableActionsProps) => {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isVoiceInputOpen, setIsVoiceInputOpen] = useState(false);
   const [prefilledData, setPrefilledData] = useState<Record<string, any> | null>(null);
 
   // Listen for custom event to open the add record form with prefilled data
@@ -52,17 +54,30 @@ const TableActions = ({
       }
     };
 
-    // Add event listener
+    // Listen for voice input dialog events
+    const handleVoiceInputDialog = (eventTableName: string) => {
+      if (eventTableName === tableName) {
+        setIsVoiceInputOpen(true);
+      }
+    };
+
+    // Add event listeners
     window.addEventListener('openAddRecordForm', handleOpenAddRecordForm as EventListener);
+    const cleanupVoiceListener = listenForVoiceInputDialog(handleVoiceInputDialog);
 
     // Clean up
     return () => {
       window.removeEventListener('openAddRecordForm', handleOpenAddRecordForm as EventListener);
+      cleanupVoiceListener();
     };
   }, [tableName, onInsert]);
 
   const handleCloseUpload = () => {
     setIsUploadOpen(false);
+  };
+
+  const handleCloseVoiceInput = () => {
+    setIsVoiceInputOpen(false);
   };
 
   const handleUploadClick = () => {
@@ -71,6 +86,25 @@ const TableActions = ({
     } else {
       setIsUploadOpen(true);
     }
+  };
+
+  const handleVoiceEntryClick = () => {
+    openVoiceInputDialog(tableName);
+  };
+
+  const handleVoiceDataComplete = (data: Record<string, any>) => {
+    // Remove created_at if it exists
+    if (data.created_at) {
+      delete data.created_at;
+    }
+    
+    // Pre-fill the form with voice data and open it
+    window.dispatchEvent(new CustomEvent('setFormData', {
+      detail: { formData: data }
+    }));
+    
+    onInsert();
+    setIsVoiceInputOpen(false);
   };
 
   return (
@@ -98,6 +132,15 @@ const TableActions = ({
           Import CSV
         </Button>
         <Button
+          variant="outline"
+          size="sm"
+          className="border-ishanya-green text-ishanya-green hover:bg-ishanya-green/10"
+          onClick={handleVoiceEntryClick}
+        >
+          <Mic className="h-4 w-4 mr-2" />
+          Voice Entry
+        </Button>
+        <Button
           variant="default"
           size="sm"
           className="bg-ishanya-green hover:bg-ishanya-green/90"
@@ -121,6 +164,16 @@ const TableActions = ({
           />
         </DialogContent>
       </Dialog>
+
+      {/* Voice Input Dialog */}
+      {isVoiceInputOpen && (
+        <VoiceInputDialog
+          isOpen={isVoiceInputOpen}
+          onClose={handleCloseVoiceInput}
+          table={tableName}
+          onComplete={handleVoiceDataComplete}
+        />
+      )}
     </div>
   );
 };

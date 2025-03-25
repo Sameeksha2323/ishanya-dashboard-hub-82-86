@@ -136,3 +136,35 @@ export const formatColumnName = (columnName: string): string => {
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 };
+
+/**
+ * Opens the voice input dialog for a specific table
+ * 
+ * @param tableName The name of the table to open the voice input for
+ */
+export const openVoiceInputDialog = (tableName: string) => {
+  window.dispatchEvent(new CustomEvent('openVoiceInputDialog', {
+    detail: { tableName }
+  }));
+};
+
+/**
+ * Adds a listener for when the voice input dialog should be opened
+ * 
+ * @param callback The callback to execute when the event is fired
+ * @returns A cleanup function to remove the listener
+ */
+export const listenForVoiceInputDialog = (
+  callback: (tableName: string) => void
+) => {
+  const handleEvent = (event: CustomEvent) => {
+    const { tableName } = event.detail;
+    callback(tableName);
+  };
+
+  window.addEventListener('openVoiceInputDialog', handleEvent as EventListener);
+  
+  return () => {
+    window.removeEventListener('openVoiceInputDialog', handleEvent as EventListener);
+  };
+};

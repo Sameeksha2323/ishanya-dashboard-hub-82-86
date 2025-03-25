@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -20,11 +19,7 @@ type EmployeeFormProps = {
 
 const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
   const [formData, setFormData] = useState(() => {
-    // Set created_at to current date if not provided
     const initialData = { ...employee };
-    if (!initialData.created_at) {
-      initialData.created_at = new Date().toISOString().split('T')[0];
-    }
     return initialData;
   });
   
@@ -37,7 +32,6 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
     const fetchCentersAndPrograms = async () => {
       setLoading(true);
       try {
-        // Fetch centers
         const { data: centersData, error: centersError } = await supabase
           .from('centers')
           .select('center_id, name')
@@ -49,7 +43,6 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
           setCenters(centersData);
         }
         
-        // Fetch programs
         const { data: programsData, error: programsError } = await supabase
           .from('programs')
           .select('program_id, name')
@@ -73,7 +66,6 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-    // Clear error when field is changed
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
@@ -81,7 +73,6 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData({ ...formData, [name]: value });
-    // Clear error when field is changed
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
@@ -91,7 +82,6 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
     if (date) {
       const formattedDate = format(date, 'yyyy-MM-dd');
       setFormData({ ...formData, [name]: formattedDate });
-      // Clear error when field is changed
       if (errors[name]) {
         setErrors({ ...errors, [name]: '' });
       }
@@ -101,7 +91,6 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
-    // Required fields
     const requiredFields = [
       'name', 'gender', 'designation', 'department', 'employment_type',
       'email', 'phone', 'date_of_birth', 'date_of_joining', 'emergency_contact_name',
@@ -114,7 +103,6 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
       }
     });
     
-    // Basic email validation
     if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Invalid email format';
     }
@@ -126,35 +114,31 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Ensure created_at is set
-    if (!formData.created_at) {
-      formData.created_at = new Date().toISOString().split('T')[0];
+    const submissionData = { ...formData };
+    if ('created_at' in submissionData) {
+      delete submissionData.created_at;
     }
     
-    // Validate form
     if (!validateForm()) {
       toast.error('Please fix the errors in the form');
       return;
     }
     
-    console.log("Submitting employee data:", formData);
-    onSave(formData);
+    console.log("Submitting employee data:", submissionData);
+    onSave(submissionData);
   };
 
   const formFields = [
-    // Personal Information
     { name: 'name', label: 'Full Name', type: 'input' },
     { name: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Other'] },
     { name: 'date_of_birth', label: 'Date of Birth', type: 'date' },
     { name: 'blood_group', label: 'Blood Group', type: 'select', options: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] },
     
-    // Contact Information
     { name: 'email', label: 'Email', type: 'input' },
     { name: 'phone', label: 'Phone', type: 'input' },
     { name: 'emergency_contact_name', label: 'Emergency Contact Name', type: 'input' },
     { name: 'emergency_contact', label: 'Emergency Contact', type: 'input' },
     
-    // Employment Information
     { name: 'designation', label: 'Designation', type: 'input' },
     { name: 'department', label: 'Department', type: 'input' },
     { name: 'employment_type', label: 'Employment Type', type: 'select', options: ['Full-time', 'Part-time', 'Contract', 'Temporary'] },
@@ -163,7 +147,6 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
     { name: 'date_of_joining', label: 'Date of Joining', type: 'date' },
     { name: 'date_of_leaving', label: 'Date of Leaving', type: 'date' },
     
-    // Program Information
     { name: 'center_id', label: 'Center', type: 'center' },
     { name: 'program_id', label: 'Program', type: 'program' },
   ];
