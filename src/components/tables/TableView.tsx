@@ -32,6 +32,8 @@ const TableView = ({ table }: TableViewProps) => {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
+  // Track the source of the form data (for form submissions)
+  const [formDataSource, setFormDataSource] = useState<any>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -92,6 +94,23 @@ const TableView = ({ table }: TableViewProps) => {
     };
     
     fetchData();
+
+    // Listen for the openStudentForm event from PendingReviews
+    const handleOpenStudentForm = (event: any) => {
+      if (table.name.toLowerCase() === 'students') {
+        const { formData: prefillData, sourceEntry, onSuccess } = event.detail;
+        setFormData(prefillData);
+        setFormDataSource({ sourceEntry, onSuccess });
+        setIsEditing(false);
+        setShowForm(true);
+      }
+    };
+
+    window.addEventListener('openStudentForm', handleOpenStudentForm);
+
+    return () => {
+      window.removeEventListener('openStudentForm', handleOpenStudentForm);
+    };
   }, [table]);
 
   // Filter data based on search term
@@ -218,6 +237,16 @@ const TableView = ({ table }: TableViewProps) => {
       setFilteredData([...filteredData, newRecord[0]]);
       setShowForm(false);
       
+      // If this was from a form submission, call the onSuccess callback
+      if (formDataSource && formDataSource.onSuccess) {
+        try {
+          await formDataSource.onSuccess();
+          setFormDataSource(null);
+        } catch (cbError) {
+          console.error('Error in form submission callback:', cbError);
+        }
+      }
+      
     } catch (err) {
       console.error('Error in handleAdd:', err);
       setError('An unexpected error occurred');
@@ -286,6 +315,7 @@ const TableView = ({ table }: TableViewProps) => {
           setShowForm(true);
           setIsEditing(false);
           setSelectedRow(null);
+          setFormDataSource(null);
           
           // Reset form with default values
           const defaultFormData: Record<string, any> = {};

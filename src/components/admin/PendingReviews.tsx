@@ -16,6 +16,7 @@ type FormEntry = {
   email: string;
   phone: string;
   submittedAt: string;
+  rowIndex: number;
   [key: string]: any;
 };
 
@@ -26,6 +27,7 @@ const PendingReviews = () => {
   const [selectedEntry, setSelectedEntry] = useState<FormEntry | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'view' | 'edit'>('view');
+  const [isStudentFormOpen, setIsStudentFormOpen] = useState(false);
 
   useEffect(() => {
     fetchGoogleSheetData();
@@ -121,8 +123,16 @@ const PendingReviews = () => {
 
   const handleAcceptEntry = async (entry: FormEntry) => {
     try {
-      // Convert Google Sheet data to student database structure
-      const studentData = {
+      // Close the detail view dialog
+      setIsDialogOpen(false);
+      
+      // Show feedback to user
+      toast.success('Opening student form with prefilled data');
+      
+      // Trigger student form view in TableView component
+      // We'll do this by dispatching a custom event that TableView will listen for
+      const studentFormData = {
+        // Map form fields to student database structure
         first_name: entry['First Name'] || '',
         last_name: entry['Last Name'] || '',
         gender: entry['Gender'] || '',
@@ -138,26 +148,35 @@ const PendingReviews = () => {
         alt_contact_number: entry['Alternate Contact Number'] || '',
         parents_email: entry["Parent's Email"] || '',
         address: entry['Address'] || '',
-        // Add default values for required fields in the students table
-        center_id: 91, // Default center - can be adjusted as needed
-        program_id: 1, // Default program - can be adjusted as needed
+        // Required fields for students table
+        student_id: Math.floor(1000 + Math.random() * 9000), // Generate a random ID
+        enrollment_year: new Date().getFullYear(),
         status: 'Active',
-        created_at: new Date().toISOString()
+        student_email: entry["Parent's Email"] || '',
+        program_id: 1,
+        educator_employee_id: 1,
+        center_id: 91
       };
-
-      // Insert the student into the database
-      const result = await insertRow('students', studentData);
       
-      if (result.success) {
-        toast.success('Student added successfully');
-        // Delete entry from Google Sheet
-        await deleteFromGoogleSheet(entry.rowIndex);
-        // Remove from local state
-        setEntries(prev => prev.filter(e => e.id !== entry.id));
-      } else {
-        toast.error('Failed to add student to database');
-        console.error('Insert errors:', result.errors);
-      }
+      // Dispatch a custom event with the form data
+      window.dispatchEvent(new CustomEvent('openStudentForm', { 
+        detail: { 
+          formData: studentFormData,
+          sourceEntry: entry,
+          onSuccess: async () => {
+            // On successful student creation, remove the entry from Google Sheets
+            try {
+              await deleteFromGoogleSheet(entry.rowIndex);
+              // Remove from local state too
+              setEntries(prev => prev.filter(e => e.id !== entry.id));
+              toast.success('Form entry removed from review list');
+            } catch (err) {
+              console.error('Error removing form entry:', err);
+              toast.error('Student was added but entry could not be removed from review list');
+            }
+          }
+        } 
+      }));
     } catch (err) {
       console.error('Error accepting entry:', err);
       toast.error('Failed to process form submission');
@@ -166,53 +185,62 @@ const PendingReviews = () => {
 
   const handleRejectEntry = async (entry: FormEntry) => {
     try {
-      await deleteFromGoogleSheet(entry.rowIndex);
+      // Use fetch API with the appropriate DELETE method
+      const API_KEY = 'AIzaSyACcbknWrMdZUapY8sQii16PclJ2xlPlqA';
+      const SHEET_ID = '144Qh31BIIsDJYye5vWkE9WFhGI433yZU4TtKLq1wN4w';
+      const RANGE = `Form Responses 1!A${entry.rowIndex}:Z${entry.rowIndex}`;
+      
+      // Instead of deleting the row (which requires OAuth2), we'll clear the values in that row
+      const response = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}:clear?key=${API_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to clear row: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+      
+      // Remove from local state
       setEntries(prev => prev.filter(e => e.id !== entry.id));
       toast.success('Entry rejected and removed');
+      setIsDialogOpen(false);
     } catch (err) {
       console.error('Error rejecting entry:', err);
-      toast.error('Failed to reject form submission');
+      toast.error('Failed to reject form submission. Please try again.');
     }
   };
 
   const deleteFromGoogleSheet = async (rowIndex: number) => {
     try {
+      // Use the clear values endpoint which works with API key
       const API_KEY = 'AIzaSyACcbknWrMdZUapY8sQii16PclJ2xlPlqA';
       const SHEET_ID = '144Qh31BIIsDJYye5vWkE9WFhGI433yZU4TtKLq1wN4w';
+      const RANGE = `Form Responses 1!A${rowIndex}:Z${rowIndex}`;
       
-      // Use the Google Sheets API to clear the row
       const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate?key=${API_KEY}`,
+        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}:clear?key=${API_KEY}`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            requests: [
-              {
-                deleteDimension: {
-                  range: {
-                    sheetId: 0, // assuming first sheet
-                    dimension: 'ROWS',
-                    startIndex: rowIndex - 1, // 0-based index
-                    endIndex: rowIndex // exclusive end index
-                  }
-                }
-              }
-            ]
-          })
+          }
         }
       );
       
       if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(`Failed to delete row: ${response.status} ${response.statusText} - ${errorData}`);
+        const errorText = await response.text();
+        throw new Error(`Failed to clear row: ${response.status} ${response.statusText} - ${errorText}`);
       }
       
       return true;
     } catch (err) {
-      console.error('Error deleting from Google Sheet:', err);
+      console.error('Error clearing row from Google Sheet:', err);
       throw err;
     }
   };

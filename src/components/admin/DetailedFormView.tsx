@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,6 +53,32 @@ const DetailedFormView = ({
       await onSave(formData);
     } catch (error) {
       console.error('Error saving changes:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAccept = async () => {
+    if (!onAccept) return;
+    
+    try {
+      setIsLoading(true);
+      await onAccept(entry);
+    } catch (error) {
+      console.error('Error accepting entry:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!onReject) return;
+    
+    try {
+      setIsLoading(true);
+      await onReject(entry);
+    } catch (error) {
+      console.error('Error rejecting entry:', error);
     } finally {
       setIsLoading(false);
     }
@@ -129,48 +156,70 @@ const DetailedFormView = ({
   };
 
   return (
-    <ScrollArea className="h-[60vh] pr-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-2">
-        {getFormFields().map(field => (
-          <div key={field} className="space-y-2">
-            <Label htmlFor={field} className="font-medium">
-              {formatFieldLabel(field)}
-            </Label>
-            
-            {mode === 'view' ? (
-              <div className="p-2 bg-gray-50 rounded border min-h-[38px]">
-                {formData[field] || '-'}
-              </div>
-            ) : shouldUseTextarea(field, formData[field] || '') ? (
-              <Textarea
-                id={field}
-                value={formData[field] || ''}
-                onChange={(e) => handleInputChange(field, e.target.value)}
-                className="w-full"
-              />
-            ) : (
-              <Input
-                id={field}
-                type="text"
-                value={formData[field] || ''}
-                onChange={(e) => handleInputChange(field, e.target.value)}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-      
-      {mode === 'edit' && (
-        <div className="flex justify-end mt-6 gap-2">
+    <div>
+      {mode === 'view' && onAccept && onReject && (
+        <div className="flex justify-end mb-4 gap-2">
           <Button 
-            onClick={handleSaveChanges} 
+            onClick={handleAccept}
+            variant="default"
+            className="bg-green-600 hover:bg-green-700"
             disabled={isLoading}
           >
-            {isLoading ? 'Saving...' : 'Save Changes'}
+            Accept & Add Student
+          </Button>
+          <Button 
+            onClick={handleReject}
+            variant="destructive"
+            disabled={isLoading}
+          >
+            Reject
           </Button>
         </div>
       )}
-    </ScrollArea>
+    
+      <ScrollArea className="h-[60vh] pr-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-2">
+          {getFormFields().map(field => (
+            <div key={field} className="space-y-2">
+              <Label htmlFor={field} className="font-medium">
+                {formatFieldLabel(field)}
+              </Label>
+              
+              {mode === 'view' ? (
+                <div className="p-2 bg-gray-50 rounded border min-h-[38px]">
+                  {formData[field] || '-'}
+                </div>
+              ) : shouldUseTextarea(field, formData[field] || '') ? (
+                <Textarea
+                  id={field}
+                  value={formData[field] || ''}
+                  onChange={(e) => handleInputChange(field, e.target.value)}
+                  className="w-full"
+                />
+              ) : (
+                <Input
+                  id={field}
+                  type="text"
+                  value={formData[field] || ''}
+                  onChange={(e) => handleInputChange(field, e.target.value)}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+        
+        {mode === 'edit' && (
+          <div className="flex justify-end mt-6 gap-2">
+            <Button 
+              onClick={handleSaveChanges} 
+              disabled={isLoading}
+            >
+              {isLoading ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
+        )}
+      </ScrollArea>
+    </div>
   );
 };
 
