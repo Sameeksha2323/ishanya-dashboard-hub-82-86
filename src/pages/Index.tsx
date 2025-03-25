@@ -29,7 +29,6 @@ const Index = () => {
   });
   const [showStudentForm, setShowStudentForm] = useState(false);
 
-  // Navigation state
   const [selectedCenter, setSelectedCenter] = useState<Center | null>(null);
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
   const [selectedTable, setSelectedTable] = useState<any | null>(null);

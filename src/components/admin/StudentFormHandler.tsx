@@ -4,12 +4,17 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
-// Update the interface to correctly type the children prop as either a function or ReactNode
+// Update the type definition for the children prop
 interface StudentFormHandlerProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: any) => Promise<void>;
-  children: React.ReactNode | ((handleSubmit: (data: any) => Promise<void>) => React.ReactNode);
+  children: React.ReactNode | ((
+    handleSubmit: (data: any) => Promise<void>,
+    lastStudentId?: number | null,
+    centerId?: number,
+    programId?: number
+  ) => React.ReactNode);
   centerId?: number;
   programId?: number;
 }
@@ -101,7 +106,6 @@ const StudentFormHandler = ({
           <SheetTitle>Add Student Record</SheetTitle>
         </SheetHeader>
         <div className="mt-6">
-          {/* Fix the type checking for the children prop and pass lastStudentId */}
           {typeof children === 'function'
             ? (children as (
                 handleSubmit: (data: any) => Promise<void>, 
