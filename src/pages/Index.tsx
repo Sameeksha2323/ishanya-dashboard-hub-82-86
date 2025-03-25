@@ -93,35 +93,31 @@ const Index = () => {
   
   const fetchStats = async () => {
     try {
-      // Get total students
-      const { count: studentsCount, error: studentsError } = await supabase
+      // Simple COUNT queries as requested
+      const { count: studentCount, error: studentError } = await supabase
         .from('students')
         .select('*', { count: 'exact', head: true });
       
-      if (studentsError) throw studentsError;
-      
-      // Get total educators
-      const { count: educatorsCount, error: educatorsError } = await supabase
+      const { count: educatorCount, error: educatorError } = await supabase
         .from('educators')
         .select('*', { count: 'exact', head: true });
       
-      if (educatorsError) throw educatorsError;
-      
-      // Get total employees
-      const { count: employeesCount, error: employeesError } = await supabase
+      const { count: employeeCount, error: employeeError } = await supabase
         .from('employees')
         .select('*', { count: 'exact', head: true });
       
-      if (employeesError) throw employeesError;
+      if (studentError || educatorError || employeeError) {
+        console.error('Error fetching counts:', studentError || educatorError || employeeError);
+        return;
+      }
       
       setStats({
-        totalStudents: studentsCount || 0,
-        totalEducators: educatorsCount || 0,
-        totalEmployees: employeesCount || 0
+        totalStudents: studentCount || 0,
+        totalEducators: educatorCount || 0,
+        totalEmployees: employeeCount || 0
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
-      toast.error('Failed to load statistics');
     }
   };
 
