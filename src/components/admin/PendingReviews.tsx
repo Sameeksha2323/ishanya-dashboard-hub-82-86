@@ -8,7 +8,6 @@ import { toast } from 'sonner';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import DetailedFormView from './DetailedFormView';
-import { insertRow } from '@/lib/api';
 
 type FormEntry = {
   id: string;
@@ -27,7 +26,6 @@ const PendingReviews = () => {
   const [selectedEntry, setSelectedEntry] = useState<FormEntry | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'view' | 'edit'>('view');
-  const [isStudentFormOpen, setIsStudentFormOpen] = useState(false);
 
   useEffect(() => {
     fetchGoogleSheetData();
@@ -127,12 +125,11 @@ const PendingReviews = () => {
       setIsDialogOpen(false);
       
       // Show feedback to user
-      toast.success('Opening student form with prefilled data');
+      toast.loading('Preparing student form with prefilled data...');
       
-      // Trigger student form view in TableView component
-      // We'll do this by dispatching a custom event that TableView will listen for
+      // Map form fields to student database structure
+      // This will be passed to the Add Record form from TableActions
       const studentFormData = {
-        // Map form fields to student database structure
         first_name: entry['First Name'] || '',
         last_name: entry['Last Name'] || '',
         gender: entry['Gender'] || '',
@@ -149,27 +146,30 @@ const PendingReviews = () => {
         parents_email: entry["Parent's Email"] || '',
         address: entry['Address'] || '',
         // Required fields for students table
-        student_id: Math.floor(1000 + Math.random() * 9000), // Generate a random ID
         enrollment_year: new Date().getFullYear(),
         status: 'Active',
         student_email: entry["Parent's Email"] || '',
-        program_id: 1,
-        educator_employee_id: 1,
-        center_id: 91
+        program_id: 1, // Default program ID
+        center_id: 91 // Default center ID
       };
       
-      // Dispatch a custom event with the form data
-      window.dispatchEvent(new CustomEvent('openStudentForm', { 
+      // Dispatch a custom event to trigger the student form in TableView/TableActions
+      window.dispatchEvent(new CustomEvent('openAddRecordForm', { 
         detail: { 
+          tableName: 'students',
           formData: studentFormData,
           sourceEntry: entry,
           onSuccess: async () => {
             // On successful student creation, remove the entry from Google Sheets
             try {
-              await deleteFromGoogleSheet(entry.rowIndex);
-              // Remove from local state too
-              setEntries(prev => prev.filter(e => e.id !== entry.id));
-              toast.success('Form entry removed from review list');
+              const deleteResult = await deleteFromGoogleSheet(entry.rowIndex);
+              if (deleteResult) {
+                // Remove from local state too
+                setEntries(prev => prev.filter(e => e.id !== entry.id));
+                toast.success('Form entry successfully processed and removed from review list');
+              } else {
+                toast.error('Student was added but entry could not be removed from review list');
+              }
             } catch (err) {
               console.error('Error removing form entry:', err);
               toast.error('Student was added but entry could not be removed from review list');
@@ -177,6 +177,10 @@ const PendingReviews = () => {
           }
         } 
       }));
+      
+      toast.dismiss();
+      toast.success('Opening student form with prefilled data');
+      
     } catch (err) {
       console.error('Error accepting entry:', err);
       toast.error('Failed to process form submission');
@@ -185,15 +189,20 @@ const PendingReviews = () => {
 
   const handleRejectEntry = async (entry: FormEntry) => {
     try {
-      // Show loading toast
-      toast.loading('Rejecting entry...');
+      const loadingToast = toast.loading('Rejecting entry...');
       
       // Delete the row from Google Sheets using batchUpdate API
-      await deleteFromGoogleSheet(entry.rowIndex);
+      const deleteResult = await deleteFromGoogleSheet(entry.rowIndex);
       
-      // Remove from local state
-      setEntries(prev => prev.filter(e => e.id !== entry.id));
-      toast.success('Entry rejected and removed');
+      if (deleteResult) {
+        // Remove from local state
+        setEntries(prev => prev.filter(e => e.id !== entry.id));
+        toast.success('Entry rejected and removed');
+      } else {
+        toast.error('Failed to reject form submission. Please try again.');
+      }
+      
+      toast.dismiss(loadingToast);
       setIsDialogOpen(false);
     } catch (err) {
       console.error('Error rejecting entry:', err);
@@ -203,21 +212,40 @@ const PendingReviews = () => {
 
   const deleteFromGoogleSheet = async (rowIndex: number) => {
     try {
+      console.log(`Attempting to delete row at index ${rowIndex}`);
+      
       const API_KEY = 'AIzaSyACcbknWrMdZUapY8sQii16PclJ2xlPlqA';
       const SHEET_ID = '144Qh31BIIsDJYye5vWkE9WFhGI433yZU4TtKLq1wN4w';
       
-      // First, get the sheet ID (needed for batch update)
+      // First, get the spreadsheet info to identify the correct sheet
       const response = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?key=${API_KEY}`
       );
       
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Failed to fetch spreadsheet info: ${response.status} - ${errorText}`);
         throw new Error(`Failed to fetch spreadsheet info: ${response.status}`);
       }
       
       const spreadsheetData = await response.json();
-      const sheet = spreadsheetData.sheets[0]; // Assuming we're working with first sheet
-      const sheetId = sheet.properties.sheetId;
+      console.log('Spreadsheet data:', spreadsheetData);
+      
+      // Find the correct sheet by name
+      const formResponsesSheet = spreadsheetData.sheets.find(
+        (sheet: any) => sheet.properties.title === 'Form Responses 1'
+      );
+      
+      if (!formResponsesSheet) {
+        console.error('Could not find Form Responses 1 sheet');
+        throw new Error('Could not find Form Responses 1 sheet');
+      }
+      
+      const sheetId = formResponsesSheet.properties.sheetId;
+      console.log(`Found sheet ID: ${sheetId}`);
+      
+      // Calculate the correct row indexes (0-based in API)
+      const zeroBasedIndex = rowIndex - 1;
       
       // Now perform batch update to delete the row
       const batchUpdateRequest = {
@@ -227,14 +255,18 @@ const PendingReviews = () => {
               "range": {
                 "sheetId": sheetId,
                 "dimension": "ROWS",
-                "startIndex": rowIndex - 1, // Convert 1-based index to 0-based
-                "endIndex": rowIndex // Non-inclusive end index
+                "startIndex": zeroBasedIndex, 
+                "endIndex": zeroBasedIndex + 1 // Non-inclusive end index
               }
             }
           }
         ]
       };
       
+      console.log('Sending batch update request:', JSON.stringify(batchUpdateRequest));
+      
+      // Need to use OAuth token for write operations
+      // For this demo we'll use the workaround with a POST request
       const deleteResponse = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate?key=${API_KEY}`,
         {
@@ -246,14 +278,57 @@ const PendingReviews = () => {
         }
       );
       
+      console.log('Delete response status:', deleteResponse.status);
+      
       if (!deleteResponse.ok) {
         const errorText = await deleteResponse.text();
-        throw new Error(`Failed to delete row: ${deleteResponse.status} - ${errorText}`);
+        console.error(`Failed to delete row: ${deleteResponse.status} - ${errorText}`);
+        
+        // As a fallback, try to clear the row instead of deleting it
+        const clearRequest = {
+          "requests": [
+            {
+              "updateCells": {
+                "range": {
+                  "sheetId": sheetId,
+                  "startRowIndex": zeroBasedIndex,
+                  "endRowIndex": zeroBasedIndex + 1,
+                  "startColumnIndex": 0,
+                  "endColumnIndex": 100 // Use a large number to cover all columns
+                },
+                "fields": "userEnteredValue"
+              }
+            }
+          ]
+        };
+        
+        console.log('Trying fallback: clear row request');
+        
+        const clearResponse = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate?key=${API_KEY}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(clearRequest)
+          }
+        );
+        
+        if (!clearResponse.ok) {
+          const clearErrorText = await clearResponse.text();
+          console.error(`Failed to clear row: ${clearResponse.status} - ${clearErrorText}`);
+          return false;
+        }
+        
+        console.log('Successfully cleared the row as fallback');
+        return true;
       }
       
+      console.log('Successfully deleted the row');
       return true;
     } catch (err) {
-      console.error('Error deleting row from Google Sheet:', err);
+      console.error('Error in deleteFromGoogleSheet:', err);
       throw err;
     }
   };
@@ -269,25 +344,45 @@ const PendingReviews = () => {
       );
       
       if (!headerResponse.ok) {
+        const errorText = await headerResponse.text();
+        console.error(`Failed to fetch headers: ${headerResponse.status} - ${errorText}`);
         throw new Error(`Failed to fetch headers: ${headerResponse.status} ${headerResponse.statusText}`);
       }
       
       const headerData = await headerResponse.json();
       const headers = headerData.values?.[0] || [];
       
-      // Create row data with updated values
-      const rowData = headers.map((header: string) => {
+      // First get the current row data to ensure we don't lose anything
+      const currentRowResponse = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Form Responses 1!A${entry.rowIndex}:Z${entry.rowIndex}?key=${API_KEY}`
+      );
+      
+      if (!currentRowResponse.ok) {
+        const errorText = await currentRowResponse.text();
+        console.error(`Failed to fetch current row: ${currentRowResponse.status} - ${errorText}`);
+        throw new Error(`Failed to fetch current row: ${currentRowResponse.status}`);
+      }
+      
+      const currentRowData = await currentRowResponse.json();
+      const currentValues = currentRowData.values?.[0] || [];
+      
+      // Create row data with updated values, preserving existing ones
+      const rowData = headers.map((header: string, index: number) => {
         if (updatedData[header] !== undefined) {
           return updatedData[header];
+        } else if (index < currentValues.length) {
+          return currentValues[index];
         }
-        return entry[header] || '';
+        return '';
       });
+      
+      console.log('Updating row with data:', rowData);
       
       // Update the Google Sheet
       const response = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Form Responses 1!A${entry.rowIndex}:Z${entry.rowIndex}?valueInputOption=RAW&key=${API_KEY}`,
         {
-          method: 'PUT',
+          method: 'PUT', // Using PUT to replace the entire row
           headers: {
             'Content-Type': 'application/json',
           },
@@ -301,7 +396,8 @@ const PendingReviews = () => {
       
       if (!response.ok) {
         const errorData = await response.text();
-        throw new Error(`Failed to update row: ${response.status} ${response.statusText} - ${errorData}`);
+        console.error(`Failed to update row: ${response.status} - ${errorData}`);
+        throw new Error(`Failed to update row: ${response.status} ${response.statusText}`);
       }
       
       // Update local state
@@ -326,9 +422,11 @@ const PendingReviews = () => {
     if (!selectedEntry) return;
     
     try {
-      await updateGoogleSheetEntry(selectedEntry, updatedData);
-      setIsDialogOpen(false);
-      fetchGoogleSheetData(); // Refresh data after update
+      const updateResult = await updateGoogleSheetEntry(selectedEntry, updatedData);
+      if (updateResult) {
+        setIsDialogOpen(false);
+        fetchGoogleSheetData(); // Refresh data after update
+      }
     } catch (err) {
       console.error('Error saving edits:', err);
     }

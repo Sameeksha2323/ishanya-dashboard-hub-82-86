@@ -1,7 +1,7 @@
 
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Plus, Upload } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import CsvUpload from './CsvUpload';
 import { toast } from 'sonner';
@@ -12,10 +12,50 @@ export type TableActionsProps = {
   onRefresh: () => void;
   onUpload?: () => void;
   table?: any; // For access to center_id and other table properties
+  prefilledData?: Record<string, any>; // For prefilled form data
 };
 
-const TableActions = ({ tableName, onInsert, onRefresh, onUpload, table }: TableActionsProps) => {
+const TableActions = ({ 
+  tableName, 
+  onInsert, 
+  onRefresh, 
+  onUpload, 
+  table 
+}: TableActionsProps) => {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [prefilledData, setPrefilledData] = useState<Record<string, any> | null>(null);
+
+  // Listen for custom event to open the add record form with prefilled data
+  useEffect(() => {
+    const handleOpenAddRecordForm = (event: CustomEvent) => {
+      const { tableName: eventTableName, formData, onSuccess } = event.detail;
+      
+      // Only proceed if this is the correct table
+      if (eventTableName === tableName) {
+        console.log('Opening add record form with prefilled data:', formData);
+        setPrefilledData(formData);
+        
+        // Store the callback in sessionStorage to retrieve after form submission
+        if (onSuccess) {
+          sessionStorage.setItem('formSubmitCallback', JSON.stringify({
+            sourceEntry: event.detail.sourceEntry,
+            hasCallback: true
+          }));
+        }
+        
+        // Trigger the form to open
+        onInsert();
+      }
+    };
+
+    // Add event listener
+    window.addEventListener('openAddRecordForm', handleOpenAddRecordForm as EventListener);
+
+    // Clean up
+    return () => {
+      window.removeEventListener('openAddRecordForm', handleOpenAddRecordForm as EventListener);
+    };
+  }, [tableName, onInsert]);
 
   const handleCloseUpload = () => {
     setIsUploadOpen(false);
