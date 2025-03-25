@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,6 +16,7 @@ import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { isAuthenticated, getUserRole } from "./lib/auth";
 import EmployeeDetailPage from './pages/EmployeeDetailPage';
+import LandingPage from './pages/LandingPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,13 +40,14 @@ const App = () => {
             <Sonner position="top-right" className="dark:bg-gray-800 dark:text-white" />
             <BrowserRouter>
               <Routes>
-                {/* Public route */}
+                {/* Public routes */}
+                <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={
                   isLoggedIn ? <Navigate to={getDefaultRoute(userRole)} /> : <Login />
                 } />
                 
                 {/* Admin/default dashboard - only for administrators */}
-                <Route path="/" element={
+                <Route path="/admin" element={
                   <ProtectedRoute allowedRoles={['administrator']}>
                     <Index />
                   </ProtectedRoute>
@@ -103,7 +106,7 @@ const App = () => {
 const getDefaultRoute = (role: string | null): string => {
   switch (role) {
     case 'administrator':
-      return '/';
+      return '/admin';
     case 'hr':
       return '/hr';
     case 'teacher':
