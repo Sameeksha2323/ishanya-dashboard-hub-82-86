@@ -105,12 +105,13 @@ const FileUpload = ({ bucketName, onFileUpload, existingUrl, entityType, entityI
     setPreviewUrl(existingUrl || null);
   };
 
+  // Fixed function to resolve the TypeScript error
   const getEntityTypeName = () => {
     switch (entityType) {
       case 'student': return 'Student';
       case 'employee': return 'Employee';
       case 'educator': return 'Educator';
-      default: return entityType.charAt(0).toUpperCase() + entityType.slice(1);
+      default: return entityType;
     }
   };
 
