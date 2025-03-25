@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Facebook, Twitter, Instagram, Linkedin, Youtube, ArrowRight, Heart, Mail, MapPin, Phone } from 'lucide-react';
+import { Facebook, Twitter, Instagram, Linkedin, Youtube, ArrowRight, Heart, Mail, MapPin, Phone, X } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { AccessibilityMenu } from '@/components/ui/AccessibilityMenu';
 import { DyslexiaToggle } from '@/components/ui/DyslexiaToggle';
@@ -14,6 +14,7 @@ const LandingPage = () => {
   const { t, language } = useLanguage();
   const [isHovering, setIsHovering] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // For debugging - log current language
   useEffect(() => {
@@ -27,6 +28,27 @@ const LandingPage = () => {
     
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Add smooth scrolling behavior
+  useEffect(() => {
+    const handleAnchorClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const anchor = target.closest('a');
+      
+      if (anchor && anchor.hash && anchor.hash.startsWith('#')) {
+        e.preventDefault();
+        const targetElement = document.querySelector(anchor.hash);
+        if (targetElement) {
+          targetElement.scrollIntoView({ behavior: 'smooth' });
+          // Close mobile menu if open
+          setIsMobileMenuOpen(false);
+        }
+      }
+    };
+
+    document.addEventListener('click', handleAnchorClick);
+    return () => document.removeEventListener('click', handleAnchorClick);
   }, []);
 
   const goToLogin = () => {
@@ -54,22 +76,31 @@ const LandingPage = () => {
     }
   };
 
+  const pulseAnimation = {
+    initial: { scale: 1 },
+    animate: { 
+      scale: [1, 1.02, 1],
+      transition: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+    }
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 cursor-default">
       {/* Navbar */}
       <nav className={`fixed w-full top-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/90 dark:bg-gray-800/90 backdrop-blur-md shadow-md' : 'bg-transparent'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <div className="flex-shrink-0 flex items-center">
-                <img 
-                  src="https://placehold.co/200x80/3B8A4E/FFFFFF?text=Ishanya" 
-                  alt="Ishanya Foundation" 
-                  className="h-10 w-auto" 
-                />
-                <span className="ml-2 text-xl font-bold text-ishanya-green">Sankalp Portal</span>
+                <a href="#home">
+                  <img 
+                    src="/lovable-uploads/dace9fa7-f264-4482-a965-455c52076512.png" 
+                    alt="Sankalp Logo" 
+                    className="h-14 w-auto" 
+                  />
+                </a>
               </div>
-              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+              <div className="hidden md:ml-6 md:flex md:space-x-8">
                 <a href="#home" className="border-transparent text-gray-600 dark:text-gray-300 hover:text-ishanya-green dark:hover:text-ishanya-green hover:border-ishanya-green inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                   {t('common.home') || 'Home'}
                 </a>
@@ -140,6 +171,61 @@ const LandingPage = () => {
               >
                 {t('login.button') || 'Login'}
               </Button>
+              
+              {/* Mobile menu button */}
+              <button 
+                className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              >
+                <span className="sr-only">Open main menu</span>
+                {isMobileMenuOpen ? (
+                  <X className="block h-6 w-6" />
+                ) : (
+                  <div className="space-y-1.5 block h-6 w-6 p-1">
+                    <span className="block w-full h-0.5 bg-current"></span>
+                    <span className="block w-full h-0.5 bg-current"></span>
+                    <span className="block w-full h-0.5 bg-current"></span>
+                  </div>
+                )}
+              </button>
+            </div>
+          </div>
+          
+          {/* Mobile menu */}
+          <div className={`md:hidden ${isMobileMenuOpen ? 'block' : 'hidden'}`}>
+            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+              <a href="#home" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                {t('common.home') || 'Home'}
+              </a>
+              <a href="#about" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                {t('common.about') || 'About Us'}
+              </a>
+              <a href="#mission" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                {t('common.vision_mission') || 'Vision & Mission'}
+              </a>
+              <a href="#services" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                {t('common.services') || 'Services'}
+              </a>
+              <a href="#contact" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                {t('common.contact') || 'Contact'}
+              </a>
+              <div className="flex space-x-4 px-3 py-2">
+                <a href="https://www.facebook.com/ishanyaindia" target="_blank" rel="noopener noreferrer">
+                  <Facebook size={20} className="text-gray-500 hover:text-blue-600" />
+                </a>
+                <a href="https://x.com/ishanyaindia" target="_blank" rel="noopener noreferrer">
+                  <Twitter size={20} className="text-gray-500 hover:text-blue-500" />
+                </a>
+                <a href="https://www.instagram.com/ishanyaindia/" target="_blank" rel="noopener noreferrer">
+                  <Instagram size={20} className="text-gray-500 hover:text-pink-600" />
+                </a>
+                <a href="https://www.linkedin.com/company/ishanyaindia/" target="_blank" rel="noopener noreferrer">
+                  <Linkedin size={20} className="text-gray-500 hover:text-blue-800" />
+                </a>
+                <a href="https://www.youtube.com/channel/UC1bQFruy88Y8DrgXt4oq3og" target="_blank" rel="noopener noreferrer">
+                  <Youtube size={20} className="text-gray-500 hover:text-red-600" />
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -170,8 +256,8 @@ const LandingPage = () => {
                 <motion.div variants={fadeIn}>
                   <Button 
                     onClick={goToLogin}
-                    className="bg-ishanya-green hover:bg-ishanya-green/90 text-white px-8 py-6 text-base font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-                    size="lg"
+                    className="bg-ishanya-green hover:bg-ishanya-green/90 text-white px-6 py-2 text-base font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                    size="default"
                   >
                     {t('login.button') || 'Login'} <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
@@ -179,7 +265,7 @@ const LandingPage = () => {
                 <motion.div variants={fadeIn}>
                   <a 
                     href="#about"
-                    className="inline-flex items-center justify-center px-8 py-6 text-base font-medium rounded-xl bg-white text-ishanya-green hover:bg-gray-50 dark:bg-gray-800 dark:text-ishanya-green dark:hover:bg-gray-700 shadow-lg hover:shadow-xl transition-all duration-300 border border-transparent"
+                    className="inline-flex items-center justify-center px-6 py-2 text-base font-medium rounded-xl bg-white text-ishanya-green hover:bg-gray-50 dark:bg-gray-800 dark:text-ishanya-green dark:hover:bg-gray-700 shadow-lg hover:shadow-xl transition-all duration-300 border border-transparent"
                   >
                     {t('common.learn_more') || 'Learn more'} <ArrowRight className="ml-2 h-5 w-5" />
                   </a>
@@ -192,9 +278,11 @@ const LandingPage = () => {
               whileInView="visible"
               viewport={{ once: true }}
               variants={fadeIn}
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 300 }}
             >
               <img 
-                src="https://images.unsplash.com/photo-1577896851231-70ef18881754?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2970&q=80"
+                src="/lovable-uploads/1260dc9c-0b71-497d-a3b2-7dd2ec28d34f.png"
                 alt="Children with special needs" 
                 className="max-h-96 rounded-2xl shadow-2xl object-cover"
               />
@@ -224,7 +312,7 @@ const LandingPage = () => {
             </p>
           </motion.div>
           <div className="mt-16">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div className="grid grid-cols-1 gap-12">
               <motion.div 
                 className="flex flex-col justify-center"
                 initial="hidden"
@@ -238,34 +326,27 @@ const LandingPage = () => {
                 <p className="mt-6 text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
                   {t('landing.about_p2') || 'Our approach uses a customized curriculum to cater to different needs and promotes holistic development, employment training, and independent living skills for all our beneficiaries.'}
                 </p>
-                <div className="mt-8 flex space-x-4">
-                  <div className="flex items-center">
+                <div className="mt-8 flex justify-center space-x-8">
+                  <motion.div 
+                    className="flex items-center"
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                  >
                     <div className="bg-ishanya-green/20 p-2 rounded-full">
                       <Heart className="h-5 w-5 text-ishanya-green" />
                     </div>
                     <span className="ml-2 text-gray-700 dark:text-gray-300">{t('landing.inclusive_education') || 'Inclusive Education'}</span>
-                  </div>
-                  <div className="flex items-center">
+                  </motion.div>
+                  <motion.div 
+                    className="flex items-center"
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                  >
                     <div className="bg-ishanya-yellow/20 p-2 rounded-full">
                       <Heart className="h-5 w-5 text-ishanya-yellow" />
                     </div>
                     <span className="ml-2 text-gray-700 dark:text-gray-300">{t('landing.supportive_community') || 'Supportive Community'}</span>
-                  </div>
-                </div>
-              </motion.div>
-              <motion.div 
-                className="order-first md:order-last"
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                variants={fadeIn}
-              >
-                <div className="rounded-2xl overflow-hidden shadow-2xl h-full transform transition-transform duration-500 hover:scale-[1.02]">
-                  <img 
-                    src="https://images.unsplash.com/photo-1611927264107-b5d1bc03d210?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2787&q=80"
-                    alt="Children in special education" 
-                    className="w-full h-full object-cover"
-                  />
+                  </motion.div>
                 </div>
               </motion.div>
             </div>
@@ -288,18 +369,24 @@ const LandingPage = () => {
             </h2>
             <div className="mt-4 w-24 h-1 bg-ishanya-green mx-auto rounded-full"></div>
           </motion.div>
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-12">
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
             <motion.div
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
               variants={fadeInUp}
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 300 }}
             >
               <Card className="shadow-xl border-t-4 border-ishanya-green hover:shadow-2xl transition-all duration-500 rounded-2xl overflow-hidden h-full bg-white dark:bg-gray-800">
                 <CardContent className="pt-8 pb-8 px-8">
                   <div className="flex items-center mb-6">
                     <div className="h-12 w-12 rounded-full bg-ishanya-green/20 flex items-center justify-center">
-                      <span className="text-2xl font-bold text-ishanya-green">V</span>
+                      <svg className="h-6 w-6 text-ishanya-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M2 12h5l2 3h6l2-3h5"></path>
+                        <circle cx="12" cy="8" r="2"></circle>
+                        <path d="M12 10v4"></path>
+                      </svg>
                     </div>
                     <h3 className="text-2xl font-bold text-ishanya-green ml-4">{t('landing.vision') || 'Vision'}</h3>
                   </div>
@@ -321,12 +408,20 @@ const LandingPage = () => {
               whileInView="visible"
               viewport={{ once: true }}
               variants={fadeInUp}
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 300 }}
             >
               <Card className="shadow-xl border-t-4 border-ishanya-yellow hover:shadow-2xl transition-all duration-500 rounded-2xl overflow-hidden h-full bg-white dark:bg-gray-800">
                 <CardContent className="pt-8 pb-8 px-8">
                   <div className="flex items-center mb-6">
                     <div className="h-12 w-12 rounded-full bg-ishanya-yellow/20 flex items-center justify-center">
-                      <span className="text-2xl font-bold text-ishanya-yellow">M</span>
+                      <svg className="h-6 w-6 text-ishanya-yellow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 22v-5"></path>
+                        <path d="M9 8V2"></path>
+                        <path d="M15 8V2"></path>
+                        <path d="M12 8a4 4 0 0 0-4 4v2h8v-2a4 4 0 0 0-4-4Z"></path>
+                        <path d="M4 17h16"></path>
+                      </svg>
                     </div>
                     <h3 className="text-2xl font-bold text-ishanya-yellow ml-4">{t('landing.mission') || 'Mission'}</h3>
                   </div>
@@ -413,7 +508,7 @@ const LandingPage = () => {
               {
                 title: "Research & Awareness",
                 description: "Ongoing studies and campaigns to promote understanding and acceptance.",
-                icon: "https://img.icons8.com/fluency/96/000000/research.png"
+                icon: "https://img.icons8.com/fluency/96/000000/microscope.png"
               }
             ].map((service, index) => (
               <motion.div 
@@ -472,40 +567,40 @@ const LandingPage = () => {
             variants={fadeInUp}
           >
             <div className="grid grid-cols-1 md:grid-cols-2">
-              <div className="p-8 md:p-12">
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">{t('landing.reach_out') || 'Reach Out to Us'}</h3>
-                <div className="space-y-6">
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0 bg-ishanya-green/10 p-3 rounded-full">
+              <div className="p-8 md:p-12 flex flex-col items-center">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-8 text-center">{t('landing.reach_out') || 'Reach Out to Us'}</h3>
+                <div className="space-y-6 w-full max-w-md">
+                  <div className="flex flex-col items-center">
+                    <div className="flex-shrink-0 bg-ishanya-green/10 p-3 rounded-full mb-3">
                       <MapPin className="h-6 w-6 text-ishanya-green" />
                     </div>
-                    <div className="ml-4">
+                    <div className="text-center">
                       <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t('landing.address') || 'Address'}</h4>
                       <p className="mt-1 text-gray-600 dark:text-gray-300">769, 7th Main Rd, KSRTC Layout, 2nd Phase, JP Nagar, Bengaluru, Karnataka 560078</p>
                     </div>
                   </div>
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0 bg-ishanya-green/10 p-3 rounded-full">
+                  <div className="flex flex-col items-center">
+                    <div className="flex-shrink-0 bg-ishanya-green/10 p-3 rounded-full mb-3">
                       <Mail className="h-6 w-6 text-ishanya-green" />
                     </div>
-                    <div className="ml-4">
+                    <div className="text-center">
                       <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t('landing.email') || 'Email'}</h4>
                       <p className="mt-1 text-gray-600 dark:text-gray-300">info@ishanyafoundation.org</p>
                     </div>
                   </div>
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0 bg-ishanya-green/10 p-3 rounded-full">
+                  <div className="flex flex-col items-center">
+                    <div className="flex-shrink-0 bg-ishanya-green/10 p-3 rounded-full mb-3">
                       <Phone className="h-6 w-6 text-ishanya-green" />
                     </div>
-                    <div className="ml-4">
+                    <div className="text-center">
                       <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t('landing.phone') || 'Phone'}</h4>
                       <p className="mt-1 text-gray-600 dark:text-gray-300">+91 73496 76668</p>
                     </div>
                   </div>
                 </div>
-                <div className="mt-10">
+                <div className="mt-10 text-center">
                   <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">{t('landing.follow_us') || 'Follow Us'}</h4>
-                  <div className="flex space-x-6">
+                  <div className="flex justify-center space-x-6">
                     <a 
                       href="https://www.facebook.com/ishanyaindia" 
                       target="_blank" 
@@ -592,7 +687,7 @@ const LandingPage = () => {
             >
               <Button 
                 onClick={goToLogin}
-                className="bg-white text-ishanya-green hover:bg-gray-100 px-8 py-6 text-lg font-medium rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300"
+                className="bg-white text-ishanya-green hover:bg-gray-100 px-6 py-2 text-lg font-medium rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300"
                 size="lg"
               >
                 Login to Portal
@@ -605,23 +700,22 @@ const LandingPage = () => {
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div className="flex flex-col items-center md:items-start">
               <div className="flex items-center">
                 <img 
-                  src="https://placehold.co/200x80/3B8A4E/FFFFFF?text=Ishanya" 
-                  alt="Ishanya Foundation" 
-                  className="h-10 w-auto"
+                  src="/lovable-uploads/dace9fa7-f264-4482-a965-455c52076512.png" 
+                  alt="Sankalp Logo" 
+                  className="h-16 w-auto"
                 />
-                <span className="ml-2 text-xl font-bold">{t('landing.foundation_name') || 'Ishanya Foundation'}</span>
               </div>
-              <p className="mt-4 text-gray-300">
+              <p className="mt-4 text-gray-300 text-center md:text-left">
                 {t('landing.foundation_tagline') || 'Creating a more inclusive society for individuals with special needs.'}
               </p>
             </div>
             <div>
-              <h3 className="text-lg font-bold mb-6 border-b border-gray-700 pb-2">{t('landing.quick_links') || 'Quick Links'}</h3>
-              <ul className="space-y-3">
+              <h3 className="text-lg font-bold mb-6 border-b border-gray-700 pb-2 text-center md:text-left">{t('landing.quick_links') || 'Quick Links'}</h3>
+              <ul className="space-y-3 flex flex-col items-center md:items-start">
                 {[
                   { label: t('common.home') || 'Home', href: "#home" },
                   { label: t('common.about') || 'About Us', href: "#about" },
@@ -641,70 +735,9 @@ const LandingPage = () => {
                 ))}
               </ul>
             </div>
-            <div>
-              <h3 className="text-lg font-bold mb-6 border-b border-gray-700 pb-2">{t('landing.newsletter') || 'Newsletter'}</h3>
-              <p className="text-gray-300 mb-4">
-                {t('landing.newsletter_description') || 'Subscribe to our newsletter for the latest updates and news.'}
-              </p>
-              <div className="flex">
-                <input
-                  type="email"
-                  placeholder={t('landing.email_placeholder') || 'Your email address'}
-                  className="px-4 py-2 bg-gray-800 text-white border border-gray-700 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-ishanya-green w-full"
-                />
-                <button className="bg-ishanya-green hover:bg-ishanya-green/90 px-4 py-2 rounded-r-lg transition-colors duration-300">
-                  {t('landing.subscribe') || 'Subscribe'}
-                </button>
-              </div>
-              <div className="mt-6">
-                <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">{t('landing.follow_us') || 'Follow Us'}</h4>
-                <div className="flex space-x-4">
-                  <a 
-                    href="https://www.facebook.com/ishanyaindia" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-white transition-colors duration-300"
-                  >
-                    <Facebook size={20} />
-                  </a>
-                  <a 
-                    href="https://x.com/ishanyaindia" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-white transition-colors duration-300"
-                  >
-                    <Twitter size={20} />
-                  </a>
-                  <a 
-                    href="https://www.instagram.com/ishanyaindia/" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-white transition-colors duration-300"
-                  >
-                    <Instagram size={20} />
-                  </a>
-                  <a 
-                    href="https://www.linkedin.com/company/ishanyaindia/" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-white transition-colors duration-300"
-                  >
-                    <Linkedin size={20} />
-                  </a>
-                  <a 
-                    href="https://www.youtube.com/channel/UC1bQFruy88Y8DrgXt4oq3og" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-white transition-colors duration-300"
-                  >
-                    <Youtube size={20} />
-                  </a>
-                </div>
-              </div>
-            </div>
           </div>
           <div className="mt-12 pt-8 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center">
-            <p className="text-gray-400">&copy; 2023 Ishanya India Foundation. All rights reserved.</p>
+            <p className="text-gray-400">&copy; 2023-{new Date().getFullYear()} Sankalp Portal. All rights reserved.</p>
             <div className="mt-4 sm:mt-0 flex space-x-6">
               <a href="#" className="text-gray-400 hover:text-white transition-colors duration-300">{t('landing.privacy_policy') || 'Privacy Policy'}</a>
               <a href="#" className="text-gray-400 hover:text-white transition-colors duration-300">{t('landing.terms') || 'Terms of Service'}</a>

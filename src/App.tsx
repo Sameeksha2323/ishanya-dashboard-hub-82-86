@@ -39,7 +39,12 @@ const App = () => {
         <ThemeProvider defaultTheme="light">
           <TooltipProvider>
             <Toaster />
-            <Sonner position="top-right" className="dark:bg-gray-800 dark:text-white" />
+            <Sonner 
+              position="bottom-right" 
+              className="dark:bg-gray-800 dark:text-white"
+              closeButton
+              theme="light"
+            />
             <BrowserRouter>
               <Routes>
                 {/* Public routes - Landing page is always accessible */}
