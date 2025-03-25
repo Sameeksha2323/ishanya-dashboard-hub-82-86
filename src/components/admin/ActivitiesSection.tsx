@@ -53,10 +53,10 @@ const ActivitiesSection = () => {
       
       // Map the data to match the Activity interface
       const mappedActivities: Activity[] = (data || []).map(item => ({
-        id: item.id || String(item.transaction_id) || String(Math.random()),
-        user_name: item.user_name || 'Admin User',
-        action: item.transaction_name || item.action || 'Updated record',
-        table_name: item.table_name || 'system',
+        id: String(item.transaction_id || Math.random()),
+        user_name: item.user_id || 'Admin User',
+        action: item.transaction_name || 'Updated record',
+        table_name: item.table || 'system',
         created_at: item.created_at
       }));
       
