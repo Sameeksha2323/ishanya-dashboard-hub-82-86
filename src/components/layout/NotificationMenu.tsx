@@ -18,19 +18,18 @@ import { Badge } from '@/components/ui/badge';
 import { getCurrentUser } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
-
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  created_at: string;
-  is_read: boolean;
-  type: 'announcement' | 'alert' | 'message';
-}
+import { 
+  fetchNotificationsWithAnnouncements, 
+  markNotificationAsRead, 
+  markAllNotificationsAsRead,
+  AnnouncementWithRead
+} from '@/services/NotificationService';
+import { toast } from 'sonner';
 
 const NotificationMenu = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<AnnouncementWithRead[]>([]);
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const user = getCurrentUser();
   
   useEffect(() => {
@@ -57,28 +56,6 @@ const NotificationMenu = () => {
           schema: 'public',
           table: 'announcements'
         }, async (payload) => {
-          // Auto-create a notification for new announcements
-          const announcement = payload.new;
-          
-          // Check if we already have a notification for this announcement
-          const { data: existingNotification } = await supabase
-            .from('notifications')
-            .select('*')
-            .eq('announcement_id', announcement.announcement_id)
-            .eq('user_id', user.id)
-            .single();
-            
-          if (!existingNotification) {
-            // Create a new notification for the announcement
-            await supabase
-              .from('notifications')
-              .insert({
-                user_id: user.id,
-                announcement_id: announcement.announcement_id,
-                is_read: false
-              });
-          }
-          
           fetchNotifications();
         })
         .subscribe();
@@ -94,73 +71,45 @@ const NotificationMenu = () => {
     if (!user) return;
     
     try {
-      // Join notifications with announcements to get the complete data
-      const { data: notificationsData, error } = await supabase
-        .from('notifications')
-        .select(`
-          id,
-          announcement_id,
-          is_read,
-          created_at,
-          user_id,
-          announcements (
-            title,
-            announcement,
-            created_at
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
-        
-      if (error) throw error;
-      
-      // Transform data to match our Notification interface
-      const transformedNotifications: Notification[] = (notificationsData || []).map(item => ({
-        id: item.id,
-        title: item.announcements?.title || 'Notification',
-        message: item.announcements?.announcement || '',
-        created_at: item.created_at,
-        is_read: item.is_read,
-        type: 'announcement'
-      }));
-      
-      setNotifications(transformedNotifications);
+      setLoading(true);
+      const notificationsData = await fetchNotificationsWithAnnouncements();
+      setNotifications(notificationsData);
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      toast.error('Failed to load notifications');
+    } finally {
+      setLoading(false);
     }
   };
   
-  const markAsRead = async (id: string) => {
+  const handleMarkAsRead = async (id: string) => {
     try {
-      await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', id);
-        
-      setNotifications(prev => 
-        prev.map(notif => 
-          notif.id === id ? { ...notif, is_read: true } : notif
-        )
-      );
+      const success = await markNotificationAsRead(id);
+      if (success) {
+        setNotifications(prev => 
+          prev.map(notif => 
+            notif.id === id ? { ...notif, is_read: true } : notif
+          )
+        );
+      }
     } catch (error) {
       console.error('Error marking notification as read:', error);
+      toast.error('Failed to mark notification as read');
     }
   };
   
-  const markAllAsRead = async () => {
+  const handleMarkAllAsRead = async () => {
     try {
-      await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('user_id', user?.id)
-        .eq('is_read', false);
-        
-      setNotifications(prev => 
-        prev.map(notif => ({ ...notif, is_read: true }))
-      );
+      const success = await markAllNotificationsAsRead();
+      if (success) {
+        setNotifications(prev => 
+          prev.map(notif => ({ ...notif, is_read: true }))
+        );
+        toast.success('All notifications marked as read');
+      }
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
+      toast.error('Failed to mark all notifications as read');
     }
   };
   
@@ -201,7 +150,7 @@ const NotificationMenu = () => {
               variant="ghost" 
               size="sm" 
               className="text-xs h-8"
-              onClick={markAllAsRead}
+              onClick={handleMarkAllAsRead}
             >
               <Check className="h-3.5 w-3.5 mr-1" />
               Mark all as read
@@ -209,7 +158,11 @@ const NotificationMenu = () => {
           )}
         </div>
         <ScrollArea className="h-80">
-          {notifications.length === 0 ? (
+          {loading ? (
+            <div className="flex justify-center items-center py-8">
+              <span className="text-sm text-muted-foreground">Loading notifications...</span>
+            </div>
+          ) : notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-6 text-muted-foreground">
               <Bell className="h-8 w-8 mb-2 text-muted-foreground/50" />
               <p>No notifications yet</p>
@@ -224,11 +177,11 @@ const NotificationMenu = () => {
                   <div className="flex justify-between items-start">
                     <div className="flex items-start space-x-3">
                       <div className="mt-0.5">
-                        {getNotificationIcon(notification.type)}
+                        {getNotificationIcon('announcement')}
                       </div>
                       <div>
                         <h4 className="text-sm font-medium">{notification.title}</h4>
-                        <p className="text-xs text-muted-foreground mt-1">{notification.message}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{notification.announcement}</p>
                         <p className="text-xs text-muted-foreground mt-1">
                           {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                         </p>
@@ -239,7 +192,7 @@ const NotificationMenu = () => {
                         size="icon" 
                         variant="ghost" 
                         className="h-6 w-6"
-                        onClick={() => markAsRead(notification.id)}
+                        onClick={() => handleMarkAsRead(notification.id)}
                       >
                         <Check className="h-3.5 w-3.5" />
                       </Button>

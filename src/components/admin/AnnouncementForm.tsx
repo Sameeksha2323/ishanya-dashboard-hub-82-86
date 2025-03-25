@@ -5,8 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Megaphone } from 'lucide-react';
-import supabase from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { getCurrentUser } from '@/lib/auth';
 
 type AnnouncementFormProps = {
   onAnnouncementAdded?: () => void;
@@ -16,6 +17,7 @@ const AnnouncementForm = ({ onAnnouncementAdded }: AnnouncementFormProps) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const user = getCurrentUser();
 
   const createNotificationsForAllUsers = async (announcementId: number) => {
     try {
@@ -29,22 +31,37 @@ const AnnouncementForm = ({ onAnnouncementAdded }: AnnouncementFormProps) => {
         return;
       }
       
-      // Create a notification for each user
-      if (users && users.length > 0) {
-        const notifications = users.map(user => ({
-          user_id: user.id,
-          announcement_id: announcementId,
-          is_read: false,
-          created_at: new Date().toISOString()
-        }));
-        
+      // If no users found, we'll create a notification without a specific user_id
+      // This will ensure the announcement is visible to all roles even if not logged in
+      if (!users || users.length === 0) {
         const { error: notificationError } = await supabase
           .from('notifications')
-          .insert(notifications);
+          .insert({
+            announcement_id: announcementId,
+            is_read: false,
+            created_at: new Date().toISOString()
+          });
         
         if (notificationError) {
-          console.error('Error creating notifications:', notificationError);
+          console.error('Error creating notification:', notificationError);
         }
+        return;
+      }
+      
+      // Create a notification for each user
+      const notifications = users.map(user => ({
+        user_id: user.id,
+        announcement_id: announcementId,
+        is_read: false,
+        created_at: new Date().toISOString()
+      }));
+      
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert(notifications);
+      
+      if (notificationError) {
+        console.error('Error creating notifications:', notificationError);
       }
     } catch (error) {
       console.error('Error in createNotificationsForAllUsers:', error);
@@ -68,6 +85,7 @@ const AnnouncementForm = ({ onAnnouncementAdded }: AnnouncementFormProps) => {
         .insert({
           title,
           announcement: content,
+          admin_id: user?.id,
           created_at: new Date().toISOString()
         })
         .select();
