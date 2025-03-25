@@ -15,6 +15,7 @@ import TableListWrapper from '@/components/tables/TableListWrapper';
 import FilteredTableView from '@/components/tables/FilteredTableView';
 import AnnouncementBoard from '@/components/announcements/AnnouncementBoard';
 import { Button } from '@/components/ui/button';
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -37,17 +38,7 @@ const Index = () => {
         const centersData = await fetchCenters();
         if (centersData) {
           setCenters(centersData);
-          
-          // Calculate total stats
-          const totalStudents = centersData.reduce((sum, center) => sum + (center.num_of_student || 0), 0);
-          const totalEducators = centersData.reduce((sum, center) => sum + (center.num_of_educator || 0), 0);
-          const totalEmployees = centersData.reduce((sum, center) => sum + (center.num_of_employees || 0), 0);
-          
-          setStats({
-            totalStudents,
-            totalEducators,
-            totalEmployees
-          });
+          calculateStatsFromCenters(centersData);
         }
       } catch (error) {
         console.error('Error fetching centers:', error);
@@ -58,7 +49,71 @@ const Index = () => {
     };
 
     loadCenters();
+    
+    // Set up real-time listeners for each table
+    const studentsChannel = supabase
+      .channel('students-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'students'
+      }, () => {
+        refreshStats();
+      })
+      .subscribe();
+      
+    const educatorsChannel = supabase
+      .channel('educators-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'educators'
+      }, () => {
+        refreshStats();
+      })
+      .subscribe();
+      
+    const employeesChannel = supabase
+      .channel('employees-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'employees'
+      }, () => {
+        refreshStats();
+      })
+      .subscribe();
+    
+    return () => {
+      // Clean up subscriptions
+      supabase.removeChannel(studentsChannel);
+      supabase.removeChannel(educatorsChannel);
+      supabase.removeChannel(employeesChannel);
+    };
   }, []);
+  
+  const refreshStats = async () => {
+    try {
+      const centersData = await fetchCenters();
+      if (centersData) {
+        calculateStatsFromCenters(centersData);
+      }
+    } catch (error) {
+      console.error('Error refreshing stats:', error);
+    }
+  };
+  
+  const calculateStatsFromCenters = (centersData: Center[]) => {
+    const totalStudents = centersData.reduce((sum, center) => sum + (center.num_of_student || 0), 0);
+    const totalEducators = centersData.reduce((sum, center) => sum + (center.num_of_educator || 0), 0);
+    const totalEmployees = centersData.reduce((sum, center) => sum + (center.num_of_employees || 0), 0);
+    
+    setStats({
+      totalStudents,
+      totalEducators,
+      totalEmployees
+    });
+  };
 
   const handleSelectCenter = (center: Center) => {
     setSelectedCenter(center);

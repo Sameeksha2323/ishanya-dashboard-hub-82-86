@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Clock, Eye, Check, X, Edit } from 'lucide-react';
+import { Clock, Eye, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -25,19 +26,26 @@ const PendingReviews = () => {
   const [selectedEntry, setSelectedEntry] = useState<FormEntry | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'view' | 'edit'>('view');
+  const [currentPointer, setCurrentPointer] = useState<number>(() => {
+    // Get pointer from localStorage or start at 2 (row after header)
+    return parseInt(localStorage.getItem('formEntryPointer') || '2', 10);
+  });
 
+  // Save pointer to localStorage whenever it changes
   useEffect(() => {
-    fetchGoogleSheetData();
-  }, []);
+    localStorage.setItem('formEntryPointer', currentPointer.toString());
+  }, [currentPointer]);
 
-  const fetchGoogleSheetData = async () => {
+  const fetchGoogleSheetData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
       const API_KEY = 'AIzaSyACcbknWrMdZUapY8sQii16PclJ2xlPlqA';
       const SHEET_ID = '144Qh31BIIsDJYye5vWkE9WFhGI433yZU4TtKLq1wN4w';
-      const RANGE = 'Form Responses 1!A2:Z'; // Assuming headers are in the first row
+      const RANGE = `Form Responses 1!A${currentPointer}:Z`; // Start from the current pointer
+      
+      console.log(`Fetching data starting from row ${currentPointer}`);
       
       // Use the Google Sheets API REST endpoint directly
       const response = await fetch(
@@ -71,13 +79,16 @@ const PendingReviews = () => {
       
       // Map rows to entries with headers as keys
       const formattedEntries = rows.map((row: any[], index: number) => {
+        // Skip empty rows
+        if (!row[0] && !row[1]) return null;
+        
         const entry: FormEntry = {
           id: index.toString(),
           name: row[1] || 'N/A', // Assuming name is in column B
           email: row[14] || 'N/A', // Parent's Email
           phone: row[12] || 'N/A', // Contact Number
           submittedAt: row[0] || 'N/A', // Assuming timestamp is in column A
-          rowIndex: index + 2, // Google Sheets row index (1-based, + 1 for header, + 1 for 0-based index)
+          rowIndex: currentPointer + index, // Adjusted row index based on pointer
         };
         
         // Add all other columns dynamically
@@ -88,7 +99,7 @@ const PendingReviews = () => {
         });
         
         return entry;
-      });
+      }).filter(Boolean); // Remove null entries (empty rows)
       
       setEntries(formattedEntries);
       
@@ -104,7 +115,11 @@ const PendingReviews = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPointer]);
+
+  useEffect(() => {
+    fetchGoogleSheetData();
+  }, [fetchGoogleSheetData]);
 
   const handleViewEntry = (entry: FormEntry) => {
     setSelectedEntry(entry);
@@ -147,10 +162,14 @@ const PendingReviews = () => {
         enrollment_year: new Date().getFullYear(),
         status: 'active',
         student_email: entry["Parent's Email"] || '',
-        program_id: 1, // Default program ID
-        center_id: 91 // Default center ID
       };
   
+      // Store entry information in session storage for callback after form submission
+      sessionStorage.setItem('formSubmitCallback', JSON.stringify({
+        sourceEntry: entry,
+        hasCallback: true
+      }));
+      
       // Dispatch a custom event to open the form with prefilled data
       window.dispatchEvent(new CustomEvent('openAddRecordForm', {
         detail: { 
@@ -171,32 +190,27 @@ const PendingReviews = () => {
           try {
             const { sourceEntry, hasCallback } = JSON.parse(storedCallback);
             if (hasCallback && sourceEntry) {
-              // Delete the entry from Google Sheets
-              deleteFromGoogleSheet(entry.rowIndex)
-                .then(success => {
-                  if (success) {
-                    // Remove entry from local state
-                    setEntries(prev => prev.filter(e => e.id !== entry.id));
-                    toast.success('Form entry successfully processed and removed from review list');
-                  } else {
-                    toast.error('Student was added but entry could not be removed from review list');
-                  }
-                })
-                .catch(error => {
-                  console.error('Error removing form entry:', error);
-                  toast.error('Student was added but entry could not be removed from review list');
-                })
-                .finally(() => {
-                  // Clear the callback
-                  sessionStorage.removeItem('formSubmitCallback');
-                  // Remove the event listener
-                  window.removeEventListener('formSubmitSuccess', handleFormSubmitSuccess);
-                });
+              // Move the pointer forward
+              setCurrentPointer(prev => {
+                const newPointer = entry.rowIndex + 1;
+                console.log(`Moving pointer from ${prev} to ${newPointer}`);
+                return newPointer;
+              });
+              
+              // Remove entry from local state
+              setEntries(prev => prev.filter(e => e.id !== entry.id));
+              toast.success('Form entry successfully processed and removed from review list');
+              
+              // Clear the callback
+              sessionStorage.removeItem('formSubmitCallback');
             }
           } catch (error) {
             console.error('Error parsing stored callback:', error);
           }
         }
+        
+        // Remove the event listener
+        window.removeEventListener('formSubmitSuccess', handleFormSubmitSuccess);
       };
 
       // Add event listener for form submission success
@@ -216,144 +230,22 @@ const PendingReviews = () => {
       // Show loading toast
       toast.loading('Rejecting form submission...');
 
-      // Delete the entry from Google Sheets
-      const success = await deleteFromGoogleSheet(entry.rowIndex);
-
-      if (success) {
-        // Remove entry from local state
-        setEntries(prev => prev.filter(e => e.id !== entry.id));
-        toast.dismiss();
-        toast.success('Form submission has been rejected');
-      } else {
-        toast.dismiss();
-        toast.error('Failed to reject form submission');
-      }
+      // Move the pointer forward instead of deleting the row
+      setCurrentPointer(prev => {
+        const newPointer = entry.rowIndex + 1;
+        console.log(`Moving pointer from ${prev} to ${newPointer}`);
+        return newPointer;
+      });
+      
+      // Remove entry from local state
+      setEntries(prev => prev.filter(e => e.id !== entry.id));
+      
+      toast.dismiss();
+      toast.success('Form submission has been rejected');
     } catch (err) {
       console.error('Error rejecting entry:', err);
       toast.dismiss();
       toast.error('Failed to reject form submission');
-    }
-  };
-
-  const deleteFromGoogleSheet = async (rowIndex: number) => {
-    try {
-      console.log(`Attempting to delete row at index ${rowIndex}`);
-      
-      const API_KEY = 'AIzaSyACcbknWrMdZUapY8sQii16PclJ2xlPlqA';
-      const SHEET_ID = '144Qh31BIIsDJYye5vWkE9WFhGI433yZU4TtKLq1wN4w';
-      
-      // First, get the spreadsheet info to identify the correct sheet
-      const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?key=${API_KEY}`
-      );
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Failed to fetch spreadsheet info: ${response.status} - ${errorText}`);
-        throw new Error(`Failed to fetch spreadsheet info: ${response.status}`);
-      }
-      
-      const spreadsheetData = await response.json();
-      console.log('Spreadsheet data:', spreadsheetData);
-      
-      // Find the correct sheet by name
-      const formResponsesSheet = spreadsheetData.sheets.find(
-        (sheet: any) => sheet.properties.title === 'Form Responses 1'
-      );
-      
-      if (!formResponsesSheet) {
-        console.error('Could not find Form Responses 1 sheet');
-        throw new Error('Could not find Form Responses 1 sheet');
-      }
-      
-      const sheetId = formResponsesSheet.properties.sheetId;
-      console.log(`Found sheet ID: ${sheetId}`);
-      
-      // Calculate the correct row indexes (0-based in API)
-      const zeroBasedIndex = rowIndex - 1;
-      
-      // Now perform batch update to delete the row
-      const batchUpdateRequest = {
-        "requests": [
-          {
-            "deleteDimension": {
-              "range": {
-                "sheetId": sheetId,
-                "dimension": "ROWS",
-                "startIndex": zeroBasedIndex, 
-                "endIndex": zeroBasedIndex + 1 // Non-inclusive end index
-              }
-            }
-          }
-        ]
-      };
-      
-      console.log('Sending batch update request:', JSON.stringify(batchUpdateRequest));
-      
-      // Use the batch update API to delete the row
-      const deleteResponse = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate?key=${API_KEY}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(batchUpdateRequest)
-        }
-      );
-      
-      console.log('Delete response status:', deleteResponse.status);
-      
-      if (!deleteResponse.ok) {
-        const errorText = await deleteResponse.text();
-        console.error(`Failed to delete row: ${deleteResponse.status} - ${errorText}`);
-        
-        // As a fallback, try to clear the row instead of deleting it
-        const clearRequest = {
-          "requests": [
-            {
-              "updateCells": {
-                "range": {
-                  "sheetId": sheetId,
-                  "startRowIndex": zeroBasedIndex,
-                  "endRowIndex": zeroBasedIndex + 1,
-                  "startColumnIndex": 0,
-                  "endColumnIndex": 100 // Use a large number to cover all columns
-                },
-                "fields": "userEnteredValue"
-              }
-            }
-          ]
-        };
-        
-        console.log('Trying fallback: clear row request');
-        
-        const clearResponse = await fetch(
-          `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate?key=${API_KEY}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(clearRequest)
-          }
-        );
-        
-        if (!clearResponse.ok) {
-          const clearErrorText = await clearResponse.text();
-          console.error(`Failed to clear row: ${clearResponse.status} - ${clearErrorText}`);
-          return false;
-        }
-        
-        console.log('Successfully cleared the row as fallback');
-        return true;
-      }
-      
-      console.log('Successfully deleted the row');
-      return true;
-    } catch (err) {
-      console.error('Error in deleteFromGoogleSheet:', err);
-      throw err;
     }
   };
 
@@ -456,6 +348,13 @@ const PendingReviews = () => {
     }
   };
 
+  const handleResetPointer = () => {
+    if (window.confirm('Are you sure you want to reset the form entry pointer? This will start processing entries from the beginning.')) {
+      setCurrentPointer(2); // Reset to first row after header
+      toast.success('Form entry pointer has been reset');
+    }
+  };
+
   if (loading) {
     return (
       <Card className="mb-6">
@@ -502,18 +401,31 @@ const PendingReviews = () => {
     <>
       <Card className="mb-6">
         <CardHeader className="pb-2">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center flex-wrap gap-2">
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5 text-ishanya-yellow" />
               Pending Form Reviews
             </CardTitle>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={fetchGoogleSheetData}
-            >
-              Refresh
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={fetchGoogleSheetData}
+              >
+                Refresh
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResetPointer}
+                className="text-amber-600 hover:text-amber-700"
+              >
+                Reset Pointer
+              </Button>
+            </div>
+          </div>
+          <div className="text-xs text-gray-500 mt-1">
+            Currently reading from row {currentPointer}
           </div>
         </CardHeader>
         <CardContent>
@@ -548,17 +460,9 @@ const PendingReviews = () => {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleViewEntry(entry)}
-                            title="View details"
+                            title="View/Edit details"
                           >
                             <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEditEntry(entry)}
-                            title="Edit"
-                          >
-                            <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"

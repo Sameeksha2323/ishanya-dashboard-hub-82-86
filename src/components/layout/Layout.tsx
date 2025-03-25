@@ -7,6 +7,7 @@ import { useLanguage } from '@/components/ui/LanguageProvider';
 import { AccessibilityMenu } from '@/components/ui/AccessibilityMenu';
 import ChatBot from '@/components/chatbot/ChatBot';
 import { getCurrentUser } from '@/lib/auth';
+import DyslexiaToggle from '@/components/ui/DyslexiaToggle';
 
 type LayoutProps = {
   title: string;
@@ -46,7 +47,8 @@ const Layout = ({ title, subtitle, children, showBackButton = false, onBack }: L
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="hidden sm:block">
+            <div className="hidden sm:flex items-center gap-2">
+              <DyslexiaToggle />
               <AccessibilityMenu />
             </div>
             {shouldShowChatbot && (
