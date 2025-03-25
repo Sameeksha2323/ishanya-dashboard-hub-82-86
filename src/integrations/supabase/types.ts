@@ -46,7 +46,6 @@ export type Database = {
           center_id: number
           created_at: string | null
           id: string
-          location: string | null
           name: string
           num_of_educator: number | null
           num_of_employees: number | null
@@ -56,7 +55,6 @@ export type Database = {
           center_id?: number
           created_at?: string | null
           id?: string
-          location?: string | null
           name: string
           num_of_educator?: number | null
           num_of_employees?: number | null
@@ -66,7 +64,6 @@ export type Database = {
           center_id?: number
           created_at?: string | null
           id?: string
-          location?: string | null
           name?: string
           num_of_educator?: number | null
           num_of_employees?: number | null
@@ -225,15 +222,16 @@ export type Database = {
           designation: string
           email: string
           emergency_contact: string
-          emergency_contact_name: string
+          emergency_contact_name: string | null
           employee_id: number
           employment_type: string
           gender: string
           id: string
-          LOR: string | null
+          lor: string | null
           name: string
           password: string
           phone: string
+          photo: string | null
           program_id: number | null
           status: string
           work_location: string | null
@@ -249,15 +247,16 @@ export type Database = {
           designation: string
           email: string
           emergency_contact: string
-          emergency_contact_name: string
+          emergency_contact_name?: string | null
           employee_id?: number
           employment_type: string
           gender: string
           id?: string
-          LOR?: string | null
+          lor?: string | null
           name: string
           password?: string
           phone: string
+          photo?: string | null
           program_id?: number | null
           status: string
           work_location?: string | null
@@ -273,15 +272,16 @@ export type Database = {
           designation?: string
           email?: string
           emergency_contact?: string
-          emergency_contact_name?: string
+          emergency_contact_name?: string | null
           employee_id?: number
           employment_type?: string
           gender?: string
           id?: string
-          LOR?: string | null
+          lor?: string | null
           name?: string
           password?: string
           phone?: string
+          photo?: string | null
           program_id?: number | null
           status?: string
           work_location?: string | null
@@ -308,6 +308,8 @@ export type Database = {
           any_behavioral_issues: string | null
           assistance_required: string | null
           educator_employee_id: number
+          id: string | null
+          is_sent: boolean
           parental_support: string | null
           preparedness: string | null
           program_id: number
@@ -319,6 +321,8 @@ export type Database = {
           any_behavioral_issues?: string | null
           assistance_required?: string | null
           educator_employee_id: number
+          id?: string | null
+          is_sent?: boolean
           parental_support?: string | null
           preparedness?: string | null
           program_id: number
@@ -330,6 +334,8 @@ export type Database = {
           any_behavioral_issues?: string | null
           assistance_required?: string | null
           educator_employee_id?: number
+          id?: string | null
+          is_sent?: boolean
           parental_support?: string | null
           preparedness?: string | null
           program_id?: number
@@ -504,6 +510,7 @@ export type Database = {
           description: string | null
           educator_employee_id: number
           id: string
+          is_sent: boolean
           program_id: number
           quarter: string
           skill_area: string | null
@@ -546,6 +553,7 @@ export type Database = {
           description?: string | null
           educator_employee_id: number
           id?: string
+          is_sent?: boolean
           program_id: number
           quarter: string
           skill_area?: string | null
@@ -588,6 +596,7 @@ export type Database = {
           description?: string | null
           educator_employee_id?: number
           id?: string
+          is_sent?: boolean
           program_id?: number
           quarter?: string
           skill_area?: string | null
@@ -650,6 +659,7 @@ export type Database = {
       reports: {
         Row: {
           educator_employee_id: number
+          id: string
           program_id: number
           quarter: string
           student_id: number
@@ -657,6 +667,7 @@ export type Database = {
         }
         Insert: {
           educator_employee_id: number
+          id?: string
           program_id: number
           quarter: string
           student_id: number
@@ -664,6 +675,7 @@ export type Database = {
         }
         Update: {
           educator_employee_id?: number
+          id?: string
           program_id?: number
           quarter?: string
           student_id?: number
@@ -903,6 +915,14 @@ export type Database = {
         Returns: {
           result: Json
         }[]
+      }
+      truncate_all_tables: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      truncate_remaining_tables: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {
