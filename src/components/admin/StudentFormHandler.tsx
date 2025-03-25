@@ -2,11 +2,12 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { toast } from 'sonner';
 
+// Update the interface to correctly type the children prop as either a function or ReactNode
 interface StudentFormHandlerProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: any) => Promise<void>;
-  children: React.ReactNode;
+  children: React.ReactNode | ((handleSubmit: (data: any) => Promise<void>) => React.ReactNode);
 }
 
 const StudentFormHandler = ({ 
@@ -49,9 +50,9 @@ const StudentFormHandler = ({
           <SheetTitle>Add Student Record</SheetTitle>
         </SheetHeader>
         <div className="mt-6">
-          {/* The error is here - fix how we handle children */}
-          {typeof children === 'function' 
-            ? children(handleSubmit)
+          {/* Fix the type checking for the children prop */}
+          {typeof children === 'function'
+            ? (children as (handleSubmit: (data: any) => Promise<void>) => React.ReactNode)(handleSubmit)
             : children}
         </div>
       </SheetContent>
