@@ -13,14 +13,32 @@ import { toast } from 'sonner';
 import FileUpload from '@/components/ui/file-upload';
 
 type EmployeeFormProps = {
-  employee: any;
+  employee?: any;
   onSave: (updatedEmployee: any) => void;
-  onCancel: () => void;
+  onCancel?: () => void;
+  centerId?: number;
+  programId?: number;
 };
 
-const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
+const EmployeeForm = ({ 
+  employee, 
+  onSave, 
+  onCancel, 
+  centerId,
+  programId 
+}: EmployeeFormProps) => {
   const [formData, setFormData] = useState(() => {
     const initialData = { ...employee };
+    
+    // Set centerId and programId from props if available
+    if (centerId && !initialData.center_id) {
+      initialData.center_id = centerId;
+    }
+    
+    if (programId && !initialData.program_id) {
+      initialData.program_id = programId;
+    }
+    
     return initialData;
   });
   
@@ -45,13 +63,15 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
           setCenters(centersData);
           
           // If center_id exists, get the center name
-          if (formData.center_id) {
-            const center = centersData.find(c => c.center_id === parseInt(formData.center_id));
+          const center_id_to_check = formData.center_id || centerId;
+          if (center_id_to_check) {
+            const center = centersData.find(c => c.center_id === parseInt(center_id_to_check.toString()));
             if (center) {
               setCenterName(center.name);
               setFormData(prev => ({
                 ...prev,
-                work_location: center.name
+                work_location: center.name,
+                center_id: center_id_to_check
               }));
             }
           }
@@ -75,7 +95,7 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
     };
     
     fetchCentersAndPrograms();
-  }, [formData.center_id]);
+  }, [formData.center_id, centerId]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -171,6 +191,15 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
     e.preventDefault();
     
     const submissionData = { ...formData };
+    
+    // Make sure centerId and programId are set in the submission data
+    if (centerId && !submissionData.center_id) {
+      submissionData.center_id = centerId;
+    }
+    
+    if (programId && !submissionData.program_id) {
+      submissionData.program_id = programId;
+    }
     
     if (!validateForm()) {
       toast.error('Please fix the errors in the form');
@@ -408,9 +437,11 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
       </div>
       
       <div className="flex justify-end space-x-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
+        {onCancel && (
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
         <Button type="submit">
           Save Changes
         </Button>
