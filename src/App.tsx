@@ -19,6 +19,7 @@ import EmployeeDetailPage from './pages/EmployeeDetailPage';
 import LandingPage from './pages/LandingPage';
 import StudentPerformance from './pages/StudentPerformance';
 import StudentDetails from './pages/StudentDetails';
+import { X } from 'lucide-react';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,8 +43,13 @@ const App = () => {
             <Sonner 
               position="bottom-right" 
               className="dark:bg-gray-800 dark:text-white"
-              closeButton
+              closeButton={true}
+              toastOptions={{
+                closeButton: true,
+                duration: 4000,
+              }}
               theme="light"
+              closeIcon={<X className="h-4 w-4" />}
             />
             <BrowserRouter>
               <Routes>

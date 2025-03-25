@@ -297,6 +297,9 @@
 
 .sonner-toast-close-button {
   @apply bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Animation keyframes */
@@ -321,3 +324,4 @@
 .hover-pulse:hover {
   animation: pulse 2s ease-in-out infinite;
 }
+

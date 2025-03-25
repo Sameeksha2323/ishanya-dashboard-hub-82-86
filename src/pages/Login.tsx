@@ -15,6 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Lock, Mail, Users } from 'lucide-react';
 import { AccessibilityMenu } from '@/components/ui/AccessibilityMenu';
 import { useLanguage } from '@/components/ui/LanguageProvider';
+import DyslexiaToggle from '@/components/ui/DyslexiaToggle';
+import { Link } from 'react-router-dom';
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -92,10 +94,17 @@ const Login = () => {
       <div className="w-full max-w-md">
         <div className="flex justify-between items-center mb-6">
           <div className="text-center flex-1">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Ishanya Foundation</h2>
+            <Link to="/">
+              <img 
+                src="/lovable-uploads/dace9fa7-f264-4482-a965-455c52076512.png" 
+                alt="Sankalp Logo"
+                className="h-16 mx-auto"
+              />
+            </Link>
             <p className="text-gray-500 dark:text-gray-400 mt-1">Journey to Inclusion</p>
           </div>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <DyslexiaToggle />
             <AccessibilityMenu />
           </div>
         </div>
