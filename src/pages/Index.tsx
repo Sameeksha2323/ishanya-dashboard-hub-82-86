@@ -6,6 +6,7 @@ import CenterList from '@/components/centers/CenterList';
 import { Center, Program, fetchCenters } from '@/lib/api';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import DataManager from '@/components/admin/DataManager';
+import PendingReviews from '@/components/admin/PendingReviews';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Users, GraduationCap } from 'lucide-react';
 import ProgramList from '@/components/programs/ProgramList';
@@ -139,6 +140,9 @@ const Index = () => {
             </CardContent>
           </Card>
         </div>
+        
+        {/* Add PendingReviews component */}
+        <PendingReviews />
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <div className="lg:col-span-2">
