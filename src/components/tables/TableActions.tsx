@@ -98,12 +98,12 @@ const TableActions = ({
           centerId={table?.center_id}
           programId={table?.program_id}
         >
-          {(handleSubmit, lastStudentId, centerId, programId) => (
+          {(handleSubmit) => (
             <StudentForm
               onSubmit={handleSubmit}
-              lastStudentId={lastStudentId}
-              centerId={centerId}
-              programId={programId}
+              lastStudentId={null}
+              centerId={table?.center_id}
+              programId={table?.program_id}
             />
           )}
         </StudentFormHandler>

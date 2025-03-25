@@ -10,10 +10,7 @@ interface StudentFormHandlerProps {
   onClose: () => void;
   onSubmit: (data: any) => Promise<void>;
   children: React.ReactNode | ((
-    handleSubmit: (data: any) => Promise<void>,
-    lastStudentId?: number | null,
-    centerId?: number,
-    programId?: number
+    handleSubmit: (data: any) => Promise<void>
   ) => React.ReactNode);
   centerId?: number;
   programId?: number;
@@ -107,12 +104,7 @@ const StudentFormHandler = ({
         </SheetHeader>
         <div className="mt-6">
           {typeof children === 'function'
-            ? (children as (
-                handleSubmit: (data: any) => Promise<void>, 
-                lastStudentId?: number | null,
-                centerId?: number,
-                programId?: number
-              ) => React.ReactNode)(handleSubmit, lastStudentId, centerId, programId)
+            ? (children as (handleSubmit: (data: any) => Promise<void>) => React.ReactNode)(handleSubmit)
             : children}
         </div>
       </SheetContent>

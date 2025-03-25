@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import StudentFormHandler from '@/components/admin/StudentFormHandler';
 import StudentForm from '@/components/admin/StudentForm';
 import ActivitiesSection from '@/components/admin/ActivitiesSection';
+import DataManager from '@/components/admin/DataManager';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -180,12 +181,12 @@ const Index = () => {
               centerId={selectedCenter?.center_id}
               programId={selectedProgram?.program_id}
             >
-              {(handleSubmit, lastStudentId, centerId, programId) => (
+              {(handleSubmit) => (
                 <StudentForm
                   onSubmit={handleSubmit}
-                  lastStudentId={lastStudentId}
-                  centerId={centerId}
-                  programId={programId}
+                  lastStudentId={null}
+                  centerId={selectedCenter?.center_id}
+                  programId={selectedProgram?.program_id}
                 />
               )}
             </StudentFormHandler>
@@ -196,11 +197,14 @@ const Index = () => {
     
     if (selectedProgram) {
       return (
-        <TableListWrapper 
-          program={selectedProgram} 
-          onSelectTable={handleSelectTable} 
-          selectedTable={selectedTable}
-        />
+        <>
+          <DataManager />
+          <TableListWrapper 
+            program={selectedProgram} 
+            onSelectTable={handleSelectTable} 
+            selectedTable={selectedTable}
+          />
+        </>
       );
     }
     
@@ -258,7 +262,10 @@ const Index = () => {
           </Card>
         </div>
         
-        <PendingReviews />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <PendingReviews />
+          <ActivitiesSection />
+        </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <div className="lg:col-span-2">
@@ -269,8 +276,6 @@ const Index = () => {
             <AnnouncementBoard />
           </div>
         </div>
-        
-        <ActivitiesSection />
       </>
     );
   };
