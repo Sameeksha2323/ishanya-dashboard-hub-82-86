@@ -24,7 +24,7 @@ interface Notification {
   title: string;
   message: string;
   created_at: string;
-  read: boolean;
+  is_read: boolean;
   type: 'announcement' | 'alert' | 'message';
 }
 
@@ -64,8 +64,8 @@ const NotificationMenu = () => {
           const { data: existingNotification } = await supabase
             .from('notifications')
             .select('*')
-            .eq('related_id', announcement.id)
-            .eq('type', 'announcement')
+            .eq('announcement_id', announcement.announcement_id)
+            .eq('user_id', user.id)
             .single();
             
           if (!existingNotification) {
@@ -73,12 +73,9 @@ const NotificationMenu = () => {
             await supabase
               .from('notifications')
               .insert({
-                title: 'New Announcement',
-                message: announcement.title,
                 user_id: user.id,
-                type: 'announcement',
-                related_id: announcement.id,
-                read: false
+                announcement_id: announcement.announcement_id,
+                is_read: false
               });
           }
           
@@ -97,16 +94,38 @@ const NotificationMenu = () => {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
+      // Join notifications with announcements to get the complete data
+      const { data: notificationsData, error } = await supabase
         .from('notifications')
-        .select('*')
+        .select(`
+          id,
+          announcement_id,
+          is_read,
+          created_at,
+          user_id,
+          announcements (
+            title,
+            announcement,
+            created_at
+          )
+        `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(10);
         
       if (error) throw error;
       
-      setNotifications(data || []);
+      // Transform data to match our Notification interface
+      const transformedNotifications: Notification[] = (notificationsData || []).map(item => ({
+        id: item.id,
+        title: item.announcements?.title || 'Notification',
+        message: item.announcements?.announcement || '',
+        created_at: item.created_at,
+        is_read: item.is_read,
+        type: 'announcement'
+      }));
+      
+      setNotifications(transformedNotifications);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     }
@@ -116,12 +135,12 @@ const NotificationMenu = () => {
     try {
       await supabase
         .from('notifications')
-        .update({ read: true })
+        .update({ is_read: true })
         .eq('id', id);
         
       setNotifications(prev => 
         prev.map(notif => 
-          notif.id === id ? { ...notif, read: true } : notif
+          notif.id === id ? { ...notif, is_read: true } : notif
         )
       );
     } catch (error) {
@@ -133,12 +152,12 @@ const NotificationMenu = () => {
     try {
       await supabase
         .from('notifications')
-        .update({ read: true })
+        .update({ is_read: true })
         .eq('user_id', user?.id)
-        .eq('read', false);
+        .eq('is_read', false);
         
       setNotifications(prev => 
-        prev.map(notif => ({ ...notif, read: true }))
+        prev.map(notif => ({ ...notif, is_read: true }))
       );
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
@@ -157,7 +176,7 @@ const NotificationMenu = () => {
     }
   };
   
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -200,7 +219,7 @@ const NotificationMenu = () => {
               {notifications.map(notification => (
                 <div 
                   key={notification.id}
-                  className={`p-3 ${notification.read ? 'bg-white' : 'bg-blue-50'}`}
+                  className={`p-3 ${notification.is_read ? 'bg-white' : 'bg-blue-50'}`}
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex items-start space-x-3">
@@ -215,7 +234,7 @@ const NotificationMenu = () => {
                         </p>
                       </div>
                     </div>
-                    {!notification.read && (
+                    {!notification.is_read && (
                       <Button 
                         size="icon" 
                         variant="ghost" 

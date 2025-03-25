@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { PieChart, Pie, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, Cell, ResponsiveContainer } from 'recharts';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A569BD', '#5DADE2', '#F4D03F', '#58D68D', '#EC7063', '#AF7AC5'];
 
@@ -46,61 +45,62 @@ const AnalyticsDashboard = () => {
       const programMap = new Map(programs?.map(p => [p.program_id, p.name]) || []);
       const centerMap = new Map(centers?.map(c => [c.center_id, c.name]) || []);
       
-      // Students by program
-      const { data: studentsByProgram, error: spError } = await supabase
-        .from('students')
-        .select('program_id, count')
-        .select('program_id, count(*)')
-        .group('program_id');
+      // Run SQL directly to get the counts
+      const { data: studentsByProgramRaw } = await supabase.rpc('run_sql', {
+        query: 'SELECT program_id, COUNT(*) FROM students GROUP BY program_id'
+      });
       
-      if (spError) throw spError;
+      const { data: studentsByCenterRaw } = await supabase.rpc('run_sql', {
+        query: 'SELECT center_id, COUNT(*) FROM students GROUP BY center_id'
+      });
       
-      // Students by center
-      const { data: studentsByCenter, error: scError } = await supabase
-        .from('students')
-        .select('center_id, count(*)')
-        .group('center_id');
+      const { data: educatorsByCenterRaw } = await supabase.rpc('run_sql', {
+        query: 'SELECT center_id, COUNT(*) FROM educators GROUP BY center_id'
+      });
       
-      if (scError) throw scError;
+      const { data: studentsByDiagnosisRaw } = await supabase.rpc('run_sql', {
+        query: 'SELECT primary_diagnosis, COUNT(*) FROM students WHERE primary_diagnosis IS NOT NULL GROUP BY primary_diagnosis'
+      });
       
-      // Educators by center
-      const { data: educatorsByCenter, error: ecError } = await supabase
-        .from('educators')
-        .select('center_id, count(*)')
-        .group('center_id');
+      // Process raw SQL results
+      const studentsByProgram = studentsByProgramRaw ? studentsByProgramRaw.map((item: any) => {
+        const result = item.result;
+        return {
+          name: programMap.get(Number(result.program_id)) || `Program ${result.program_id}`,
+          value: parseInt(result.count, 10)
+        };
+      }) : [];
       
-      if (ecError) throw ecError;
+      const studentsByCenter = studentsByCenterRaw ? studentsByCenterRaw.map((item: any) => {
+        const result = item.result;
+        return {
+          name: centerMap.get(Number(result.center_id)) || `Center ${result.center_id}`,
+          value: parseInt(result.count, 10)
+        };
+      }) : [];
       
-      // Students by primary diagnosis
-      const { data: studentsByDiagnosis, error: sdError } = await supabase
-        .from('students')
-        .select('primary_diagnosis, count(*)')
-        .not('primary_diagnosis', 'is', null)
-        .group('primary_diagnosis');
+      const educatorsByCenter = educatorsByCenterRaw ? educatorsByCenterRaw.map((item: any) => {
+        const result = item.result;
+        return {
+          name: centerMap.get(Number(result.center_id)) || `Center ${result.center_id}`,
+          value: parseInt(result.count, 10)
+        };
+      }) : [];
       
-      if (sdError) throw sdError;
-
-      // Format data for charts
-      const formattedData = {
-        studentsByProgram: studentsByProgram.map(item => ({
-          name: programMap.get(item.program_id) || `Program ${item.program_id}`,
-          value: parseInt(item.count, 10)
-        })),
-        studentsByCenter: studentsByCenter.map(item => ({
-          name: centerMap.get(item.center_id) || `Center ${item.center_id}`,
-          value: parseInt(item.count, 10)
-        })),
-        educatorsByCenter: educatorsByCenter.map(item => ({
-          name: centerMap.get(item.center_id) || `Center ${item.center_id}`,
-          value: parseInt(item.count, 10)
-        })),
-        studentsByDiagnosis: studentsByDiagnosis.map(item => ({
-          name: item.primary_diagnosis || 'Unknown',
-          value: parseInt(item.count, 10)
-        }))
-      };
+      const studentsByDiagnosis = studentsByDiagnosisRaw ? studentsByDiagnosisRaw.map((item: any) => {
+        const result = item.result;
+        return {
+          name: result.primary_diagnosis || 'Unknown',
+          value: parseInt(result.count, 10)
+        };
+      }) : [];
       
-      setData(formattedData);
+      setData({
+        studentsByProgram,
+        studentsByCenter,
+        educatorsByCenter,
+        studentsByDiagnosis
+      });
     } catch (error) {
       console.error('Error fetching analytics data:', error);
     } finally {

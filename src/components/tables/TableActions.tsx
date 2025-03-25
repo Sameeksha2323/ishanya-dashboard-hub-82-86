@@ -62,9 +62,17 @@ const TableActions = ({
   
   const handleVoiceInputComplete = async (data: any) => {
     try {
+      // Get the proper table name (lowercase)
+      const tableNameLower = tableName.toLowerCase();
+      
+      // Check if the table exists in our schema
+      if (!['students', 'educators', 'employees', 'centers', 'programs'].includes(tableNameLower)) {
+        throw new Error(`Table ${tableNameLower} is not supported for voice input`);
+      }
+      
       // Handle the data from voice input
       const { error } = await supabase
-        .from(tableName.toLowerCase())
+        .from(tableNameLower as any)
         .insert([data]);
         
       if (error) {
