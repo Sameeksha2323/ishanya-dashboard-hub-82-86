@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import CenterList from '@/components/centers/CenterList';
 import { Center, Program, fetchCenters } from '@/lib/api';
@@ -13,7 +14,6 @@ import ProgramList from '@/components/programs/ProgramList';
 import TableListWrapper from '@/components/tables/TableListWrapper';
 import FilteredTableView from '@/components/tables/FilteredTableView';
 import AnnouncementBoard from '@/components/announcements/AnnouncementBoard';
-import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
 const Index = () => {
@@ -107,9 +107,9 @@ const Index = () => {
       <>
         <div className="flex justify-end mb-4">
           <Button
-            as={Link}
-            to="/admin/student-performance"
+            variant="default"
             className="bg-ishanya-green hover:bg-ishanya-green/80 text-white"
+            onClick={() => window.location.href = "/admin/student-performance"}
           >
             View Student Performance
           </Button>

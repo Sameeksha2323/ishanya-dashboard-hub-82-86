@@ -85,11 +85,14 @@ const StudentDetails = () => {
       
       setLoading(true);
       try {
+        // Convert studentId to number for database queries
+        const studentIdNum = parseInt(studentId, 10);
+        
         // Fetch student info
         const { data: studentData, error: studentError } = await supabase
           .from('students')
           .select('student_id, first_name, last_name, gender, program_id, educator_employee_id, center_id')
-          .eq('student_id', studentId)
+          .eq('student_id', studentIdNum)
           .single();
 
         if (studentError) throw studentError;
@@ -99,7 +102,7 @@ const StudentDetails = () => {
         const { data: perfData, error: perfError } = await supabase
           .from('performance_records')
           .select('*')
-          .eq('student_id', studentId);
+          .eq('student_id', studentIdNum);
 
         if (perfError) throw perfError;
         setPerformanceRecords(perfData || []);
@@ -108,7 +111,7 @@ const StudentDetails = () => {
         const { data: reportData, error: reportError } = await supabase
           .from('general_reporting')
           .select('*')
-          .eq('student_id', studentId);
+          .eq('student_id', studentIdNum);
 
         if (reportError) throw reportError;
         setGeneralReports(reportData || []);
@@ -117,7 +120,7 @@ const StudentDetails = () => {
         const { data: taskData, error: taskError } = await supabase
           .from('goals_tasks')
           .select('*')
-          .eq('student_id', studentId);
+          .eq('student_id', studentIdNum);
 
         if (taskError) throw taskError;
         setTasks(taskData || []);
@@ -126,7 +129,7 @@ const StudentDetails = () => {
         const { data: attendanceData, error: attendanceError } = await supabase
           .from('student_attendance')
           .select('attendance')
-          .eq('student_id', studentId);
+          .eq('student_id', studentIdNum);
 
         if (attendanceError) throw attendanceError;
         
