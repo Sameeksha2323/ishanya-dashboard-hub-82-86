@@ -49,7 +49,6 @@ const App = () => {
                 duration: 4000,
               }}
               theme="light"
-              closeIcon={<X className="h-4 w-4" />}
             />
             <BrowserRouter>
               <Routes>

@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { authenticateUser } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,11 +12,10 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Lock, Mail, Users } from 'lucide-react';
+import { Lock, Mail, Users, ArrowLeft } from 'lucide-react';
 import { AccessibilityMenu } from '@/components/ui/AccessibilityMenu';
 import { useLanguage } from '@/components/ui/LanguageProvider';
 import DyslexiaToggle from '@/components/ui/DyslexiaToggle';
-import { Link } from 'react-router-dom';
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -92,8 +91,19 @@ const Login = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 p-4">
       <div className="w-full max-w-md">
-        <div className="flex justify-between items-center mb-6">
-          <div className="text-center flex-1">
+        <div className="flex justify-center items-center mb-6 relative">
+          <div className="absolute left-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/')}
+              className="flex items-center gap-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </div>
+          <div className="text-center">
             <Link to="/">
               <img 
                 src="/lovable-uploads/dace9fa7-f264-4482-a965-455c52076512.png" 
@@ -103,15 +113,15 @@ const Login = () => {
             </Link>
             <p className="text-gray-500 dark:text-gray-400 mt-1">Journey to Inclusion</p>
           </div>
-          <div className="ml-auto flex items-center gap-2">
-            <DyslexiaToggle />
-            <AccessibilityMenu />
-          </div>
         </div>
         
         <Card className="w-full shadow-lg border-t-4 border-ishanya-green dark:border-ishanya-green/70 dark:bg-gray-800">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-xl text-center font-bold text-gray-800 dark:text-gray-100">{t('login.title')}</CardTitle>
+            <div className="flex justify-end space-x-2 absolute right-4 top-4">
+              <DyslexiaToggle />
+              <AccessibilityMenu />
+            </div>
+            <CardTitle className="text-xl text-center font-bold text-gray-800 dark:text-gray-100 mt-8">{t('login.title')}</CardTitle>
             <CardDescription className="text-center dark:text-gray-300">
               {t('login.description')}
             </CardDescription>
