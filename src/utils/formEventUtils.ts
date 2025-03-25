@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for form-related events across the application
  */
@@ -113,39 +112,16 @@ export const listenForFormSubmitSuccess = (callback: () => void) => {
 };
 
 /**
- * Formats a column name for display by capitalizing each word and handling special cases
- * 
- * @param columnName The column name to format
- * @returns The formatted column name
+ * Format column names for better display
+ * Converts snake_case to Title Case and handles special cases
  */
 export const formatColumnName = (columnName: string): string => {
-  // Special case for ID fields
-  if (columnName.toLowerCase() === 'id' || columnName.endsWith('_id')) {
-    // Handle common ID patterns
-    const baseName = columnName.replace(/_id$/, '');
-    if (baseName === columnName) {
-      return 'ID';
-    }
-    return formatColumnName(baseName) + ' ID';
-  }
+  // Handle special cases
+  if (columnName.toLowerCase() === 'dob') return 'DOB';
+  if (columnName.toLowerCase() === 'udid') return 'UDID';
+  if (columnName.toLowerCase() === 'lor') return 'LOR';
   
-  // Special case for DOB
-  if (columnName.toLowerCase() === 'dob') {
-    return 'DOB';
-  }
-  
-  // Special case for LOR
-  if (columnName.toLowerCase() === 'lor') {
-    return 'LOR';
-  }
-  
-  // Special acronyms that should be all caps
-  const acronyms = ['lor', 'url', 'udid'];
-  if (acronyms.includes(columnName.toLowerCase())) {
-    return columnName.toUpperCase();
-  }
-  
-  // Handle general case: split by underscore and capitalize each word
+  // Replace underscores with spaces and capitalize first letter of each word
   return columnName
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -248,7 +249,7 @@ export const TableFieldFormatter = ({
   }
 
   // Handle date fields
-  if (fieldName.includes('date') || fieldName === 'dob' || fieldName === 'created_at') {
+  if (fieldName.includes('date') || fieldName === 'dob') {
     if (isEditing) {
       return (
         <Popover>
@@ -598,11 +599,8 @@ export const TableFieldFormatter = ({
             <SelectItem value="Full-time">Full-time</SelectItem>
             <SelectItem value="Part-time">Part-time</SelectItem>
             <SelectItem value="Contract">Contract</SelectItem>
-            <SelectItem value="Temporary">Temporary</SelectItem>
+            <SelectItem value="Freelance">Freelance</SelectItem>
             <SelectItem value="Intern">Intern</SelectItem>
-            {!isRequired && (
-              <SelectItem value="unspecified">Not specified</SelectItem>
-            )}
           </SelectContent>
         </Select>
       );
@@ -611,8 +609,8 @@ export const TableFieldFormatter = ({
     return <div>{value || '-'}</div>;
   }
 
-  // Handle department field
-  if (fieldName === 'department') {
+  // Handle department field for employees
+  if (fieldName === 'department' && tableName === 'employees') {
     if (isEditing) {
       return (
         <Select
@@ -624,15 +622,13 @@ export const TableFieldFormatter = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="Administration">Administration</SelectItem>
-            <SelectItem value="Education">Education</SelectItem>
-            <SelectItem value="Finance">Finance</SelectItem>
-            <SelectItem value="Human Resources">Human Resources</SelectItem>
-            <SelectItem value="IT">IT</SelectItem>
-            <SelectItem value="Operations">Operations</SelectItem>
+            <SelectItem value="Teaching">Teaching</SelectItem>
+            <SelectItem value="Counseling">Counseling</SelectItem>
             <SelectItem value="Support Staff">Support Staff</SelectItem>
-            {!isRequired && (
-              <SelectItem value="unspecified">Not specified</SelectItem>
-            )}
+            <SelectItem value="IT">IT</SelectItem>
+            <SelectItem value="HR">HR</SelectItem>
+            <SelectItem value="Finance">Finance</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
           </SelectContent>
         </Select>
       );
@@ -641,54 +637,38 @@ export const TableFieldFormatter = ({
     return <div>{value || '-'}</div>;
   }
 
-  // Handle array fields (like days_of_week)
-  if (fieldName === 'days_of_week' || Array.isArray(value)) {
+  // Handle designation field for employees/educators
+  if (fieldName === 'designation' && (tableName === 'employees' || tableName === 'educators')) {
     if (isEditing) {
-      // Provide a text input for comma-separated values
       return (
-        <Input
-          value={Array.isArray(value) ? value.join(', ') : safeToString(value)}
-          onChange={(e) => {
-            const inputValue = e.target.value;
-            // Handle empty input
-            if (!inputValue.trim()) {
-              onChange(null);
-              return;
-            }
-            
-            // Parse comma-separated string to array
-            const arrayValue = inputValue.split(',').map(item => item.trim());
-            onChange(arrayValue);
-          }}
-          placeholder="Enter comma-separated values (e.g., Monday, Wednesday, Friday)"
-          className={shouldShowRequired ? "border-red-500" : ""}
-        />
+        <Select
+          value={safeToString(value)}
+          onValueChange={onChange}
+        >
+          <SelectTrigger className={shouldShowRequired ? "border-red-500" : ""}>
+            <SelectValue placeholder="Select designation" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Teacher">Teacher</SelectItem>
+            <SelectItem value="Senior Teacher">Senior Teacher</SelectItem>
+            <SelectItem value="Coordinator">Coordinator</SelectItem>
+            <SelectItem value="Counselor">Counselor</SelectItem>
+            <SelectItem value="Therapist">Therapist</SelectItem>
+            <SelectItem value="Administrator">Administrator</SelectItem>
+            <SelectItem value="Principal">Principal</SelectItem>
+            <SelectItem value="Director">Director</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
+          </SelectContent>
+        </Select>
       );
     }
     
-    if (!value) return <div>-</div>;
-    
-    // Safely display array values
-    if (Array.isArray(value)) {
-      return <div>{value.map(v => safeToString(v)).join(', ')}</div>;
-    }
-    
-    // Handle string representation of array
-    return <div>{safeToString(value)}</div>;
+    return <div>{value || '-'}</div>;
   }
 
-  // Default field handling
-  if (isEditing) {
-    // Use textarea for potentially longer text fields
-    if (
-      fieldName.includes('description') ||
-      fieldName.includes('comment') ||
-      fieldName.includes('notes') ||
-      fieldName.includes('address') ||
-      fieldName.includes('strengths') ||
-      fieldName.includes('weakness') ||
-      fieldName === 'allergies'
-    ) {
+  // For long text inputs like addresses, allergies, comments, etc.
+  if (['address', 'allergies', 'comments', 'strengths', 'weakness', 'primary_diagnosis', 'comorbidity'].includes(fieldName)) {
+    if (isEditing) {
       return (
         <Textarea
           value={safeToString(value)}
@@ -699,40 +679,30 @@ export const TableFieldFormatter = ({
       );
     }
     
-    // Use regular input for other fields
+    // For display, truncate if too long
+    if (!value) return <div>-</div>;
+    const displayText = safeToString(value);
+    return displayText.length > 50 ? 
+      <div title={displayText}>{displayText.substring(0, 50)}...</div> : 
+      <div>{displayText}</div>;
+  }
+
+  // Default text input for other fields
+  if (isEditing) {
     return (
       <Input
+        type={['phone', 'contact_number', 'alt_contact_number', 'emergency_contact'].includes(fieldName) ? 'tel' : 
+              ['email', 'student_email', 'parents_email'].includes(fieldName) ? 'email' : 'text'}
         value={safeToString(value)}
         onChange={(e) => onChange(e.target.value)}
         className={shouldShowRequired ? "border-red-500" : ""}
-        type={
-          fieldName.includes('phone') || fieldName.includes('number') || 
-          fieldName.includes('contact') || 
-          fieldName.includes('_id') || fieldName.includes('year')
-            ? 'tel'
-            : fieldName.includes('email')
-              ? 'email'
-              : 'text'
-        }
       />
     );
   }
   
-  // For read-only display
+  // Display format for non-editing mode
   if (value === null || value === undefined) return <div>-</div>;
   
-  // Handle potentially long text for display
-  if (
-    fieldName.includes('description') ||
-    fieldName.includes('comment') ||
-    fieldName.includes('notes') ||
-    fieldName.includes('address') ||
-    fieldName.includes('strengths') ||
-    fieldName.includes('weakness') ||
-    fieldName === 'allergies'
-  ) {
-    return <div className="max-w-xs truncate">{safeToString(value)}</div>;
-  }
-  
+  // Simple display format for regular fields
   return <div>{safeToString(value)}</div>;
 };
