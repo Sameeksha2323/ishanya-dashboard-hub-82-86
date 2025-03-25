@@ -303,6 +303,42 @@ export type Database = {
           },
         ]
       }
+      general_reporting: {
+        Row: {
+          any_behavioral_issues: string | null
+          assistance_required: string | null
+          employee_id: number
+          parental_support: string | null
+          preparedness: string | null
+          program_id: number
+          punctuality: string | null
+          quarter: string
+          student_id: number
+        }
+        Insert: {
+          any_behavioral_issues?: string | null
+          assistance_required?: string | null
+          employee_id: number
+          parental_support?: string | null
+          preparedness?: string | null
+          program_id: number
+          punctuality?: string | null
+          quarter: string
+          student_id: number
+        }
+        Update: {
+          any_behavioral_issues?: string | null
+          assistance_required?: string | null
+          employee_id?: number
+          parental_support?: string | null
+          preparedness?: string | null
+          program_id?: number
+          punctuality?: string | null
+          quarter?: string
+          student_id?: number
+        }
+        Relationships: []
+      }
       goals_tasks: {
         Row: {
           assigned_by: number
@@ -432,55 +468,132 @@ export type Database = {
       }
       performance_records: {
         Row: {
-          assessment_date: string
-          assessment_id: string
-          center_id: number
-          cognition: number
-          communication: number
-          created_at: string | null
-          logic: number
-          notes: string | null
+          "1_description": string | null
+          "1_score": number | null
+          "10_description": string | null
+          "10_score": number | null
+          "11_description": string | null
+          "11_score": number | null
+          "12_description": string | null
+          "12_score": number | null
+          "13_description": string | null
+          "13_score": number | null
+          "14_description": string | null
+          "14_score": number | null
+          "15_description": string | null
+          "15_score": number | null
+          "16_description": string | null
+          "16_score": number | null
+          "2_description": string | null
+          "2_score": number | null
+          "3_description": string | null
+          "3_score": number | null
+          "4_description": string | null
+          "4_score": number | null
+          "5_description": string | null
+          "5_score": number | null
+          "6_description": string | null
+          "6_score": number | null
+          "7_description": string | null
+          "7_score": number | null
+          "8_description": string | null
+          "8_score": number | null
+          "9_description": string | null
+          "9_score": number | null
+          area_of_development: string
+          description: string | null
+          employee_id: number
+          id: string
           program_id: number
-          reasoning: number
-          score: number
+          quarter: string
+          skill_area: string | null
           student_id: number
         }
         Insert: {
-          assessment_date: string
-          assessment_id: string
-          center_id: number
-          cognition: number
-          communication: number
-          created_at?: string | null
-          logic: number
-          notes?: string | null
+          "1_description"?: string | null
+          "1_score"?: number | null
+          "10_description"?: string | null
+          "10_score"?: number | null
+          "11_description"?: string | null
+          "11_score"?: number | null
+          "12_description"?: string | null
+          "12_score"?: number | null
+          "13_description"?: string | null
+          "13_score"?: number | null
+          "14_description"?: string | null
+          "14_score"?: number | null
+          "15_description"?: string | null
+          "15_score"?: number | null
+          "16_description"?: string | null
+          "16_score"?: number | null
+          "2_description"?: string | null
+          "2_score"?: number | null
+          "3_description"?: string | null
+          "3_score"?: number | null
+          "4_description"?: string | null
+          "4_score"?: number | null
+          "5_description"?: string | null
+          "5_score"?: number | null
+          "6_description"?: string | null
+          "6_score"?: number | null
+          "7_description"?: string | null
+          "7_score"?: number | null
+          "8_description"?: string | null
+          "8_score"?: number | null
+          "9_description"?: string | null
+          "9_score"?: number | null
+          area_of_development: string
+          description?: string | null
+          employee_id: number
+          id?: string
           program_id: number
-          reasoning: number
-          score: number
+          quarter: string
+          skill_area?: string | null
           student_id: number
         }
         Update: {
-          assessment_date?: string
-          assessment_id?: string
-          center_id?: number
-          cognition?: number
-          communication?: number
-          created_at?: string | null
-          logic?: number
-          notes?: string | null
+          "1_description"?: string | null
+          "1_score"?: number | null
+          "10_description"?: string | null
+          "10_score"?: number | null
+          "11_description"?: string | null
+          "11_score"?: number | null
+          "12_description"?: string | null
+          "12_score"?: number | null
+          "13_description"?: string | null
+          "13_score"?: number | null
+          "14_description"?: string | null
+          "14_score"?: number | null
+          "15_description"?: string | null
+          "15_score"?: number | null
+          "16_description"?: string | null
+          "16_score"?: number | null
+          "2_description"?: string | null
+          "2_score"?: number | null
+          "3_description"?: string | null
+          "3_score"?: number | null
+          "4_description"?: string | null
+          "4_score"?: number | null
+          "5_description"?: string | null
+          "5_score"?: number | null
+          "6_description"?: string | null
+          "6_score"?: number | null
+          "7_description"?: string | null
+          "7_score"?: number | null
+          "8_description"?: string | null
+          "8_score"?: number | null
+          "9_description"?: string | null
+          "9_score"?: number | null
+          area_of_development?: string
+          description?: string | null
+          employee_id?: number
+          id?: string
           program_id?: number
-          reasoning?: number
-          score?: number
+          quarter?: string
+          skill_area?: string | null
           student_id?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "fk_performance_center"
-            columns: ["center_id"]
-            isOneToOne: false
-            referencedRelation: "centers"
-            referencedColumns: ["center_id"]
-          },
           {
             foreignKeyName: "fk_performance_student"
             columns: ["student_id"]
@@ -536,45 +649,27 @@ export type Database = {
       }
       reports: {
         Row: {
-          content: Json
-          created_at: string | null
-          generated_by: number
-          id: string
-          report_type: string
+          employee_id: number
+          program_id: number
+          quarter: string
           student_id: number
+          url: string | null
         }
         Insert: {
-          content: Json
-          created_at?: string | null
-          generated_by: number
-          id?: string
-          report_type: string
+          employee_id: number
+          program_id: number
+          quarter: string
           student_id: number
+          url?: string | null
         }
         Update: {
-          content?: Json
-          created_at?: string | null
-          generated_by?: number
-          id?: string
-          report_type?: string
+          employee_id?: number
+          program_id?: number
+          quarter?: string
           student_id?: number
+          url?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_reports_educator"
-            columns: ["generated_by"]
-            isOneToOne: false
-            referencedRelation: "educators"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "fk_reports_student"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["student_id"]
-          },
-        ]
+        Relationships: []
       }
       student_attendance: {
         Row: {
