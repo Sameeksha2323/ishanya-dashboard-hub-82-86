@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -9,7 +8,7 @@ import ErrorDisplay from '@/components/ui/ErrorDisplay';
 import { useToast } from '@/hooks/use-toast';
 import { getCurrentUser } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
-import { FileUpload, Upload, FileText, Clock } from 'lucide-react';
+import { Upload, FileText, Clock } from 'lucide-react';
 import ReportUploader from '@/components/parent/ReportUploader';
 
 const ParentDashboard = () => {
@@ -23,11 +22,10 @@ const ParentDashboard = () => {
   const initialized = useRef(false);
   
   useEffect(() => {
-    // Use a ref to ensure this effect only runs once
     if (initialized.current) return;
     initialized.current = true;
     
-    let isMounted = true; // Flag to prevent state updates after unmount
+    let isMounted = true;
     
     const checkParentStatus = async () => {
       if (!user) {
@@ -39,7 +37,6 @@ const ParentDashboard = () => {
       }
       
       try {
-        // Check if parent exists and has a student_id
         const { data: parentData, error: parentError } = await supabase
           .from('parents')
           .select('*')
@@ -63,7 +60,6 @@ const ParentDashboard = () => {
           return;
         }
 
-        // If we have a parent record, fetch their reports
         if (parentData.student_id) {
           const { data: reportData, error: reportError } = await supabase
             .storage
@@ -75,9 +71,7 @@ const ParentDashboard = () => {
           }
         }
 
-        // If we have a parent record, we're good to go for the dashboard
         if (isMounted) {
-          // Only show toast if loading was true (first load)
           if (loading) {
             toast({
               title: "Welcome to your dashboard",
@@ -98,7 +92,6 @@ const ParentDashboard = () => {
     
     checkParentStatus();
     
-    // Cleanup function
     return () => {
       isMounted = false;
     };
@@ -108,7 +101,6 @@ const ParentDashboard = () => {
     if (!user) return;
     
     try {
-      // Get parent's student_id
       const { data: parentData, error: parentError } = await supabase
         .from('parents')
         .select('student_id')
@@ -145,7 +137,6 @@ const ParentDashboard = () => {
     });
   };
   
-  // Navigation handlers for different sections
   const handleViewStudentInfo = () => {
     navigate('/parent/details', { state: { activeTab: 'student-info' } });
   };
@@ -162,7 +153,6 @@ const ParentDashboard = () => {
     if (!user) return;
     
     try {
-      // Get parent's student_id
       const { data: parentData, error: parentError } = await supabase
         .from('parents')
         .select('student_id')
@@ -192,7 +182,6 @@ const ParentDashboard = () => {
         return;
       }
       
-      // Open the report in a new tab
       window.open(data.signedUrl, '_blank');
     } catch (error) {
       console.error('Error viewing report:', error);
@@ -253,7 +242,6 @@ const ParentDashboard = () => {
               </div>
             </div>
             
-            {/* New Report Upload & View Section */}
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-center">
@@ -280,7 +268,7 @@ const ParentDashboard = () => {
                   <div>
                     {reports.length === 0 ? (
                       <div className="text-center py-8 text-gray-500">
-                        <FileUpload className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                        <Upload className="h-12 w-12 mx-auto text-gray-300 mb-3" />
                         <p>No reports have been uploaded yet</p>
                         <Button 
                           variant="outline" 
