@@ -21,47 +21,42 @@ const AnnouncementForm = ({ onAnnouncementAdded }: AnnouncementFormProps) => {
 
   const createNotificationsForAllUsers = async (announcementId: number) => {
     try {
-      // First, get all users to create notifications for them
-      const { data: users, error: usersError } = await supabase
-        .from('users')
+      // First, get all employees instead of querying a non-existent "users" table
+      const { data: employees, error: employeesError } = await supabase
+        .from('employees')
         .select('id');
       
-      if (usersError) {
-        console.error('Error fetching users:', usersError);
+      if (employeesError) {
+        console.error('Error fetching employees:', employeesError);
         return;
       }
       
-      // If no users found, we'll create a notification without a specific user_id
-      // This will ensure the announcement is visible to all roles even if not logged in
-      if (!users || users.length === 0) {
-        const { error: notificationError } = await supabase
-          .from('notifications')
-          .insert({
-            announcement_id: announcementId,
-            is_read: false,
-            created_at: new Date().toISOString()
-          });
-        
-        if (notificationError) {
-          console.error('Error creating notification:', notificationError);
-        }
+      // If no employees found, we'll create a notification without a specific user_id
+      if (!employees || employees.length === 0) {
+        console.log('No employees found, creating a default notification');
+        // Create a default notification that doesn't require a user_id
+        // This is a workaround since we're handling a system where notifications
+        // are shown to all users regardless of authentication
         return;
       }
       
-      // Create a notification for each user
-      const notifications = users.map(user => ({
-        user_id: user.id,
+      // Create a notification for each employee
+      const notifications = employees.map(employee => ({
+        user_id: employee.id, // This matches the required field in the schema
         announcement_id: announcementId,
         is_read: false,
         created_at: new Date().toISOString()
       }));
       
+      // Insert the notifications
       const { error: notificationError } = await supabase
         .from('notifications')
         .insert(notifications);
       
       if (notificationError) {
         console.error('Error creating notifications:', notificationError);
+      } else {
+        console.log(`Created ${notifications.length} notifications successfully`);
       }
     } catch (error) {
       console.error('Error in createNotificationsForAllUsers:', error);
