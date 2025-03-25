@@ -54,38 +54,141 @@ const AnalyticsDashboard = () => {
       const programMap = new Map(programs?.map(p => [p.program_id, p.name]) || []);
       const centerMap = new Map(centers?.map(c => [c.center_id, c.name]) || []);
       
-      // Fetch analytics data using direct SQL queries via the run_sql function
-      const [
-        studentsByProgramData,
-        studentsByCenterData,
-        educatorsByCenterData,
-        studentsByDiagnosisData,
-        studentsByStatusData,
-        studentsByGenderData,
-        enrollmentTrendsData
-      ] = await Promise.all([
-        fetchSQL('SELECT program_id, COUNT(*) FROM students GROUP BY program_id'),
-        fetchSQL('SELECT center_id, COUNT(*) FROM students GROUP BY center_id'),
-        fetchSQL('SELECT center_id, COUNT(*) FROM educators GROUP BY center_id'),
-        fetchSQL('SELECT COALESCE(primary_diagnosis, \'Unknown\') as diagnosis, COUNT(*) FROM students GROUP BY diagnosis'),
-        fetchSQL('SELECT COALESCE(status, \'Unknown\') as status, COUNT(*) FROM students GROUP BY status'),
-        fetchSQL('SELECT COALESCE(gender, \'Unknown\') as gender, COUNT(*) FROM students GROUP BY gender'),
-        fetchSQL('SELECT COALESCE(enrollment_year::text, \'Unknown\') as year, COUNT(*) FROM students GROUP BY year ORDER BY year')
-      ]);
+      // We'll fetch data directly using the Supabase client instead of using the run_sql function
       
-      // Process raw data with lookups
-      const studentsByProgram = processRawData(studentsByProgramData, 'program_id', programMap, 'Program');
-      const studentsByCenter = processRawData(studentsByCenterData, 'center_id', centerMap, 'Center');
-      const educatorsByCenter = processRawData(educatorsByCenterData, 'center_id', centerMap, 'Center');
+      // Students by Program
+      const { data: studentsByProgramData, error: programError } = await supabase
+        .from('students')
+        .select('program_id, count')
+        .select('program_id')
+        .throwOnError();
       
-      // Process special case data
-      const studentsByDiagnosis = processSpecialCaseData(studentsByDiagnosisData, 'diagnosis');
-      const studentsByStatus = processSpecialCaseData(studentsByStatusData, 'status');
-      const studentsByGender = processSpecialCaseData(studentsByGenderData, 'gender');
-      const enrollmentTrends = processSpecialCaseData(enrollmentTrendsData, 'year');
+      // Process and group the students by program
+      const studentsByProgramCount = studentsByProgramData?.reduce((acc, student) => {
+        const programId = student.program_id;
+        acc[programId] = (acc[programId] || 0) + 1;
+        return acc;
+      }, {} as Record<number, number>) || {};
       
-      // Calculate teacher to student ratio
-      const teacherToStudentRatio = calculateRatio(studentsByCenter, educatorsByCenter, centerMap);
+      const studentsByProgram = Object.entries(studentsByProgramCount).map(([programId, count]) => ({
+        name: programMap.get(Number(programId)) || `Program ${programId}`,
+        value: count
+      }));
+
+      // Students by Center
+      const { data: studentsByCenterData } = await supabase
+        .from('students')
+        .select('center_id');
+      
+      // Process and group the students by center
+      const studentsByCenterCount = studentsByCenterData?.reduce((acc, student) => {
+        const centerId = student.center_id;
+        acc[centerId] = (acc[centerId] || 0) + 1;
+        return acc;
+      }, {} as Record<number, number>) || {};
+      
+      const studentsByCenter = Object.entries(studentsByCenterCount).map(([centerId, count]) => ({
+        name: centerMap.get(Number(centerId)) || `Center ${centerId}`,
+        value: count
+      }));
+
+      // Educators by Center
+      const { data: educatorsByCenterData } = await supabase
+        .from('educators')
+        .select('center_id');
+      
+      // Process and group the educators by center
+      const educatorsByCenterCount = educatorsByCenterData?.reduce((acc, educator) => {
+        const centerId = educator.center_id;
+        acc[centerId] = (acc[centerId] || 0) + 1;
+        return acc;
+      }, {} as Record<number, number>) || {};
+      
+      const educatorsByCenter = Object.entries(educatorsByCenterCount).map(([centerId, count]) => ({
+        name: centerMap.get(Number(centerId)) || `Center ${centerId}`,
+        value: count
+      }));
+
+      // Students by Diagnosis
+      const { data: studentsByDiagnosisData } = await supabase
+        .from('students')
+        .select('primary_diagnosis');
+      
+      // Process and group the students by diagnosis
+      const studentsByDiagnosisCount = studentsByDiagnosisData?.reduce((acc, student) => {
+        const diagnosis = student.primary_diagnosis || 'Unknown';
+        acc[diagnosis] = (acc[diagnosis] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) || {};
+      
+      const studentsByDiagnosis = Object.entries(studentsByDiagnosisCount).map(([diagnosis, count]) => ({
+        name: diagnosis,
+        value: count
+      }));
+
+      // Students by Status
+      const { data: studentsByStatusData } = await supabase
+        .from('students')
+        .select('status');
+      
+      // Process and group the students by status
+      const studentsByStatusCount = studentsByStatusData?.reduce((acc, student) => {
+        const status = student.status || 'Unknown';
+        acc[status] = (acc[status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) || {};
+      
+      const studentsByStatus = Object.entries(studentsByStatusCount).map(([status, count]) => ({
+        name: status,
+        value: count
+      }));
+
+      // Students by Gender
+      const { data: studentsByGenderData } = await supabase
+        .from('students')
+        .select('gender');
+      
+      // Process and group the students by gender
+      const studentsByGenderCount = studentsByGenderData?.reduce((acc, student) => {
+        const gender = student.gender || 'Unknown';
+        acc[gender] = (acc[gender] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) || {};
+      
+      const studentsByGender = Object.entries(studentsByGenderCount).map(([gender, count]) => ({
+        name: gender,
+        value: count
+      }));
+
+      // Enrollment Trends by Year
+      const { data: enrollmentTrendsData } = await supabase
+        .from('students')
+        .select('enrollment_year');
+      
+      // Process and group the students by enrollment year
+      const enrollmentTrendsCount = enrollmentTrendsData?.reduce((acc, student) => {
+        const year = student.enrollment_year?.toString() || 'Unknown';
+        acc[year] = (acc[year] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) || {};
+      
+      const enrollmentTrends = Object.entries(enrollmentTrendsCount)
+        .map(([year, count]) => ({
+          name: year,
+          value: count
+        }))
+        .sort((a, b) => (a.name === 'Unknown' ? 1 : b.name === 'Unknown' ? -1 : a.name.localeCompare(b.name)));
+
+      // Calculate Teacher to Student Ratio
+      const teacherToStudentRatio = Array.from(centerMap.entries()).map(([centerId, centerName]) => {
+        const studentsCount = studentsByCenterCount[centerId] || 0;
+        const educatorsCount = educatorsByCenterCount[centerId] || 0;
+        
+        return {
+          name: centerName,
+          ratio: educatorsCount > 0 ? Number((studentsCount / educatorsCount).toFixed(2)) : 0
+        };
+      });
       
       setData({
         studentsByProgram,
@@ -103,63 +206,6 @@ const AnalyticsDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
-  
-  // Helper function to fetch SQL query results
-  const fetchSQL = async (query: string) => {
-    const { data, error } = await supabase.rpc('run_sql', { query });
-    if (error) {
-      console.error(`Error running SQL query: ${query}`, error);
-      return [];
-    }
-    return data || [];
-  };
-
-  // Helper function to process raw data with lookups
-  const processRawData = (rawData: any[], idField: string, nameMap: Map<number, string>, defaultPrefix: string) => {
-    if (!rawData || !rawData.length) return [];
-    
-    return rawData
-      .filter(item => item.result)
-      .map(item => {
-        const result = item.result;
-        const id = Number(result[idField]);
-        const name = nameMap.get(id) || `${defaultPrefix} ${id}`;
-        const value = parseInt(result.count, 10) || 0;
-        return { name, value };
-      });
-  };
-  
-  // Helper function to process special case data without lookups
-  const processSpecialCaseData = (rawData: any[], nameField: string) => {
-    if (!rawData || !rawData.length) return [];
-    
-    return rawData
-      .filter(item => item.result)
-      .map(item => {
-        const result = item.result;
-        const name = result[nameField] || 'Unknown';
-        const value = parseInt(result.count, 10) || 0;
-        return { name, value };
-      });
-  };
-  
-  // Helper function to calculate teacher to student ratio
-  const calculateRatio = (
-    studentsByCenter: {name: string; value: number}[], 
-    educatorsByCenter: {name: string; value: number}[],
-    centerMap: Map<number, string>
-  ) => {
-    // Create a result for each center in the map
-    return Array.from(centerMap.entries()).map(([centerId, centerName]) => {
-      const studentsCount = studentsByCenter.find(item => item.name === centerName)?.value || 0;
-      const educatorsCount = educatorsByCenter.find(item => item.name === centerName)?.value || 0;
-      
-      return {
-        name: centerName,
-        ratio: educatorsCount > 0 ? Number((studentsCount / educatorsCount).toFixed(2)) : 0
-      };
-    });
   };
 
   if (loading) {

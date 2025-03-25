@@ -40,7 +40,7 @@ export const fetchNotificationsWithAnnouncements = async (): Promise<Announcemen
   try {
     console.log('Fetching notifications with announcements');
     
-    // Join notifications with announcements
+    // Join notifications with announcements directly without using run_sql
     const { data, error } = await supabase
       .from('notifications')
       .select(`
