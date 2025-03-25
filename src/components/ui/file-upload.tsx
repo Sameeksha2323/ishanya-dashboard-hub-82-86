@@ -15,6 +15,10 @@ interface FileUploadProps {
   accept?: string; // file types to accept
   maxSize?: number; // in MB
   fileType?: 'image' | 'document' | 'any';
+  entityType?: 'student' | 'employee' | 'educator';
+  entityId?: string | number;
+  existingUrl?: string;
+  bucketName?: string;
 }
 
 const FileUpload = ({
@@ -25,13 +29,22 @@ const FileUpload = ({
   folder = '',
   accept = '*',
   maxSize = 5, // 5MB default
-  fileType = 'any'
+  fileType = 'any',
+  entityType,
+  entityId,
+  existingUrl,
+  bucketName
 }: FileUploadProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [uploadedUrl, setUploadedUrl] = useState<string>(value || '');
-  const [displayFileName, setDisplayFileName] = useState<string>(value ? value.split('/').pop() || '' : '');
+  const [uploadedUrl, setUploadedUrl] = useState<string>(existingUrl || value || '');
+  const [displayFileName, setDisplayFileName] = useState<string>(
+    (existingUrl || value) ? (existingUrl || value || '').split('/').pop() || '' : ''
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Use the bucketName prop if provided, otherwise use the bucket prop
+  const effectiveBucket = bucketName || bucket;
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) {
@@ -74,14 +87,23 @@ const FileUpload = ({
       setUploading(true);
       const timestamp = new Date().getTime();
       const fileExtension = file.name.split('.').pop();
-      const filePath = folder 
-        ? `${folder}/${timestamp}-${file.name}`
-        : `${timestamp}-${file.name}`;
+      
+      // Create a more descriptive file path based on entity type and ID if available
+      let filePath = '';
+      if (entityType && entityId) {
+        // Convert entityId to string to ensure compatibility
+        const entityIdStr = String(entityId);
+        filePath = `${entityType}-${entityIdStr}/${timestamp}-${file.name}`;
+      } else if (folder) {
+        filePath = `${folder}/${timestamp}-${file.name}`;
+      } else {
+        filePath = `${timestamp}-${file.name}`;
+      }
       
       // Check if bucket exists, if not try to create it
       const { data: buckets } = await supabase.storage.listBuckets();
-      if (!buckets?.find(b => b.name === bucket)) {
-        const { error: bucketError } = await supabase.storage.createBucket(bucket, {
+      if (!buckets?.find(b => b.name === effectiveBucket)) {
+        const { error: bucketError } = await supabase.storage.createBucket(effectiveBucket, {
           public: true
         });
         
@@ -95,7 +117,7 @@ const FileUpload = ({
       
       // Upload the file
       const { data, error } = await supabase.storage
-        .from(bucket)
+        .from(effectiveBucket)
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true
@@ -110,7 +132,7 @@ const FileUpload = ({
       
       // Get the public URL
       const { data: publicUrlData } = supabase.storage
-        .from(bucket)
+        .from(effectiveBucket)
         .getPublicUrl(filePath);
       
       const publicUrl = publicUrlData.publicUrl;

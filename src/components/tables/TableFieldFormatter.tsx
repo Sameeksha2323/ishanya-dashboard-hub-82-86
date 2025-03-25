@@ -171,25 +171,26 @@ export const TableFieldFormatter = ({
 
   // Handle file upload fields
   if (fieldName === 'photo' || fieldName === 'profile_picture') {
-    let bucketName = 'student-photos';
+    let bucket = 'student-photos';
     let entityType: 'student' | 'employee' | 'educator' = 'student';
     
     if (tableName === 'employees') {
-      bucketName = 'employee-photos';
+      bucket = 'employee-photos';
       entityType = 'employee';
     } else if (tableName === 'educators') {
-      bucketName = 'educator-photos';
+      bucket = 'educator-photos';
       entityType = 'educator';
     }
     
     if (isEditing) {
       return (
         <FileUpload
-          bucketName={bucketName}
+          bucket={bucket}
           onFileUpload={onChange}
-          existingUrl={value}
+          value={value}
           entityType={entityType}
           entityId={entityId}
+          fileType="image"
         />
       );
     }
@@ -208,14 +209,14 @@ export const TableFieldFormatter = ({
   // Special handling for LOR field in the employees or educators table
   if (fieldName === 'lor' && (tableName === 'employees' || tableName === 'educators')) {
     const entityType = tableName === 'employees' ? 'employee' : 'educator';
-    const bucketName = `${entityType}-lor`;
+    const bucket = `${entityType}-lor`;
     
     if (isEditing) {
       return (
         <FileUpload
-          bucketName={bucketName}
+          bucket={bucket}
           onFileUpload={onChange}
-          existingUrl={value}
+          value={value}
           entityType={entityType as 'employee' | 'educator'}
           entityId={entityId}
         />
