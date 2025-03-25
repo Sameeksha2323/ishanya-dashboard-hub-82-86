@@ -6,7 +6,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Clock, Eye, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { google } from 'googleapis';
 
 type FormEntry = {
   id: string;
@@ -35,14 +34,17 @@ const PendingReviews = () => {
       const SHEET_ID = '144Qh31BIIsDJYye5vWkE9WFhGI433yZU4TtKLq1wN4w';
       const RANGE = 'Form Responses 1!A2:Z'; // Assuming headers are in the first row
       
-      const sheets = google.sheets({ version: 'v4', auth: API_KEY });
+      // Use the Google Sheets API REST endpoint directly
+      const response = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`
+      );
       
-      const response = await sheets.spreadsheets.values.get({
-        spreadsheetId: SHEET_ID,
-        range: RANGE,
-      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
+      }
       
-      const rows = response.data.values;
+      const data = await response.json();
+      const rows = data.values || [];
       
       if (!rows || rows.length === 0) {
         setEntries([]);
@@ -50,16 +52,20 @@ const PendingReviews = () => {
         return;
       }
       
-      // Get headers from the first row
-      const headerResponse = await sheets.spreadsheets.values.get({
-        spreadsheetId: SHEET_ID,
-        range: 'Form Responses 1!A1:Z1',
-      });
+      // Get headers from the first row using a separate API call
+      const headerResponse = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Form Responses 1!A1:Z1?key=${API_KEY}`
+      );
       
-      const headers = headerResponse.data.values?.[0] || [];
+      if (!headerResponse.ok) {
+        throw new Error(`Failed to fetch headers: ${headerResponse.status} ${headerResponse.statusText}`);
+      }
+      
+      const headerData = await headerResponse.json();
+      const headers = headerData.values?.[0] || [];
       
       // Map rows to entries with headers as keys
-      const formattedEntries = rows.map((row, index) => {
+      const formattedEntries = rows.map((row: any[], index: number) => {
         const entry: FormEntry = {
           id: index.toString(),
           name: row[1] || 'N/A', // Assuming name is in column B
