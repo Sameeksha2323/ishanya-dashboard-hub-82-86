@@ -2,13 +2,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Facebook, Instagram, Linkedin, Youtube, ArrowRight, Heart, Mail, MapPin, Phone } from 'lucide-react';
+import { Facebook, Twitter, Instagram, Linkedin, Youtube, ArrowRight, Heart, Mail, MapPin, Phone } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { AccessibilityMenu } from '@/components/ui/AccessibilityMenu';
+import { DyslexiaToggle } from '@/components/ui/DyslexiaToggle';
+import { useLanguage } from '@/components/ui/LanguageProvider';
 import { motion } from 'framer-motion';
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [isHovering, setIsHovering] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   
@@ -54,7 +57,6 @@ const LandingPage = () => {
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <div className="flex-shrink-0 flex items-center">
-                {/* Use a reliable placeholder image */}
                 <img 
                   src="https://placehold.co/200x80/3B8A4E/FFFFFF?text=Ishanya" 
                   alt="Ishanya Foundation" 
@@ -64,26 +66,26 @@ const LandingPage = () => {
               </div>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 <a href="#home" className="border-transparent text-gray-600 dark:text-gray-300 hover:text-ishanya-green dark:hover:text-ishanya-green hover:border-ishanya-green inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                  Home
+                  {t('common.home') || 'Home'}
                 </a>
                 <a href="#about" className="border-transparent text-gray-600 dark:text-gray-300 hover:text-ishanya-green dark:hover:text-ishanya-green hover:border-ishanya-green inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                  About Us
+                  {t('common.about') || 'About Us'}
                 </a>
                 <a href="#mission" className="border-transparent text-gray-600 dark:text-gray-300 hover:text-ishanya-green dark:hover:text-ishanya-green hover:border-ishanya-green inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                  Vision & Mission
+                  {t('common.vision_mission') || 'Vision & Mission'}
                 </a>
                 <a href="#services" className="border-transparent text-gray-600 dark:text-gray-300 hover:text-ishanya-green dark:hover:text-ishanya-green hover:border-ishanya-green inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                  Services
+                  {t('common.services') || 'Services'}
                 </a>
                 <a href="#contact" className="border-transparent text-gray-600 dark:text-gray-300 hover:text-ishanya-green dark:hover:text-ishanya-green hover:border-ishanya-green inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                  Contact
+                  {t('common.contact') || 'Contact'}
                 </a>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <div className="hidden md:flex items-center space-x-3">
                 <a 
-                  href="https://facebook.com" 
+                  href="https://www.facebook.com/ishanyaindia" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors duration-300"
@@ -91,7 +93,15 @@ const LandingPage = () => {
                   <Facebook size={18} />
                 </a>
                 <a 
-                  href="https://instagram.com" 
+                  href="https://x.com/ishanyaindia" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400 transition-colors duration-300"
+                >
+                  <Twitter size={18} />
+                </a>
+                <a 
+                  href="https://www.instagram.com/ishanyaindia/" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-gray-500 hover:text-pink-600 dark:text-gray-400 dark:hover:text-pink-400 transition-colors duration-300"
@@ -99,7 +109,7 @@ const LandingPage = () => {
                   <Instagram size={18} />
                 </a>
                 <a 
-                  href="https://linkedin.com" 
+                  href="https://www.linkedin.com/company/ishanyaindia/" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-gray-500 hover:text-blue-800 dark:text-gray-400 dark:hover:text-blue-500 transition-colors duration-300"
@@ -107,7 +117,7 @@ const LandingPage = () => {
                   <Linkedin size={18} />
                 </a>
                 <a 
-                  href="https://youtube.com" 
+                  href="https://www.youtube.com/channel/UC1bQFruy88Y8DrgXt4oq3og" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-500 transition-colors duration-300"
@@ -115,12 +125,15 @@ const LandingPage = () => {
                   <Youtube size={18} />
                 </a>
               </div>
-              <AccessibilityMenu />
+              <div className="flex items-center space-x-2">
+                <AccessibilityMenu />
+                <DyslexiaToggle />
+              </div>
               <Button 
                 onClick={goToLogin}
                 className="bg-ishanya-green hover:bg-ishanya-green/90 text-white"
               >
-                Login
+                {t('login.button') || 'Login'}
               </Button>
             </div>
           </div>
@@ -139,11 +152,11 @@ const LandingPage = () => {
               variants={fadeInUp}
             >
               <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white sm:text-5xl lg:text-6xl">
-                <span className="block text-ishanya-green">Sankalp Portal</span>
-                <span className="block text-ishanya-yellow mt-1">Journey to Inclusion</span>
+                <span className="block text-ishanya-green">{t('landing.hero_title') || 'Sankalp Portal'}</span>
+                <span className="block text-ishanya-yellow mt-1">{t('landing.hero_subtitle') || 'Journey to Inclusion'}</span>
               </h1>
               <p className="mt-6 text-xl text-gray-600 dark:text-gray-300">
-                The Ishanya Foundation's comprehensive database management system for supporting individuals with special needs.
+                {t('landing.hero_description') || 'The Ishanya Foundation\'s comprehensive database management system for supporting individuals with special needs.'}
               </p>
               <motion.div 
                 className="mt-8 flex flex-wrap gap-4"
@@ -155,7 +168,7 @@ const LandingPage = () => {
                     className="bg-ishanya-green hover:bg-ishanya-green/90 text-white px-8 py-6 text-base font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
                     size="lg"
                   >
-                    Get Started <ArrowRight className="ml-2 h-5 w-5" />
+                    {t('login.button') || 'Login'} <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </motion.div>
                 <motion.div variants={fadeIn}>
@@ -163,7 +176,7 @@ const LandingPage = () => {
                     href="#about"
                     className="inline-flex items-center justify-center px-8 py-6 border border-transparent text-base font-medium rounded-xl text-ishanya-green bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-ishanya-green dark:hover:bg-gray-700 shadow-md hover:shadow-lg transition-all duration-300"
                   >
-                    Learn more
+                    {t('common.learn_more') || 'Learn more'}
                   </a>
                 </motion.div>
               </motion.div>
@@ -199,10 +212,10 @@ const LandingPage = () => {
             variants={fadeInUp}
           >
             <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white sm:text-4xl">
-              About <span className="text-ishanya-green">Ishanya Foundation</span>
+              {t('common.about') || 'About'} <span className="text-ishanya-green">{t('landing.foundation_name') || 'Ishanya Foundation'}</span>
             </h2>
             <p className="mt-4 text-xl text-gray-600 dark:text-gray-300">
-              "ISHANYA" - Meaning "North-East," symbolizing Education, Knowledge, and Prosperity.
+              {t('landing.meaning') || '"ISHANYA" - Meaning "North-East," symbolizing Education, Knowledge, and Prosperity.'}
             </p>
           </motion.div>
           <div className="mt-16">
@@ -215,23 +228,23 @@ const LandingPage = () => {
                 variants={fadeInUp}
               >
                 <p className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
-                  Founded in 2015, <strong className="text-ishanya-green">Ishanya India Foundation (IIF)</strong> supports individuals with special needs and aims to create a more inclusive society. We work with individuals with Autism Spectrum Disorder, Asperger's Syndrome, Learning Disabilities, Down Syndrome, ADHD, and other developmental conditions.
+                  {t('landing.about_p1') || 'Founded in 2015, '}<strong className="text-ishanya-green">{t('landing.foundation_full_name') || 'Ishanya India Foundation (IIF)'}</strong>{t('landing.about_p1_cont') || ' supports individuals with special needs and aims to create a more inclusive society. We work with individuals with Autism Spectrum Disorder, Asperger\'s Syndrome, Learning Disabilities, Down Syndrome, ADHD, and other developmental conditions.'}
                 </p>
                 <p className="mt-6 text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
-                  Our approach uses a customized curriculum to cater to different needs and promotes holistic development, employment training, and independent living skills for all our beneficiaries.
+                  {t('landing.about_p2') || 'Our approach uses a customized curriculum to cater to different needs and promotes holistic development, employment training, and independent living skills for all our beneficiaries.'}
                 </p>
                 <div className="mt-8 flex space-x-4">
                   <div className="flex items-center">
                     <div className="bg-ishanya-green/20 p-2 rounded-full">
                       <Heart className="h-5 w-5 text-ishanya-green" />
                     </div>
-                    <span className="ml-2 text-gray-700 dark:text-gray-300">Inclusive Education</span>
+                    <span className="ml-2 text-gray-700 dark:text-gray-300">{t('landing.inclusive_education') || 'Inclusive Education'}</span>
                   </div>
                   <div className="flex items-center">
                     <div className="bg-ishanya-yellow/20 p-2 rounded-full">
                       <Heart className="h-5 w-5 text-ishanya-yellow" />
                     </div>
-                    <span className="ml-2 text-gray-700 dark:text-gray-300">Supportive Community</span>
+                    <span className="ml-2 text-gray-700 dark:text-gray-300">{t('landing.supportive_community') || 'Supportive Community'}</span>
                   </div>
                 </div>
               </motion.div>
@@ -266,7 +279,7 @@ const LandingPage = () => {
             variants={fadeInUp}
           >
             <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white sm:text-4xl">
-              Our Vision & Mission
+              {t('landing.vision_mission_title') || 'Our Vision & Mission'}
             </h2>
             <div className="mt-4 w-24 h-1 bg-ishanya-green mx-auto rounded-full"></div>
           </motion.div>
@@ -283,10 +296,10 @@ const LandingPage = () => {
                     <div className="h-12 w-12 rounded-full bg-ishanya-green/20 flex items-center justify-center">
                       <span className="text-2xl font-bold text-ishanya-green">V</span>
                     </div>
-                    <h3 className="text-2xl font-bold text-ishanya-green ml-4">Vision</h3>
+                    <h3 className="text-2xl font-bold text-ishanya-green ml-4">{t('landing.vision') || 'Vision'}</h3>
                   </div>
                   <p className="text-lg text-gray-600 dark:text-gray-300 italic border-l-4 border-ishanya-green pl-4 py-2">
-                    "A society built on Diversity, Equity & Inclusion for Persons with Disabilities."
+                    {t('landing.vision_text') || '"A society built on Diversity, Equity & Inclusion for Persons with Disabilities."'}
                   </p>
                   <div className="mt-8 flex justify-center">
                     <img 
@@ -310,16 +323,16 @@ const LandingPage = () => {
                     <div className="h-12 w-12 rounded-full bg-ishanya-yellow/20 flex items-center justify-center">
                       <span className="text-2xl font-bold text-ishanya-yellow">M</span>
                     </div>
-                    <h3 className="text-2xl font-bold text-ishanya-yellow ml-4">Mission</h3>
+                    <h3 className="text-2xl font-bold text-ishanya-yellow ml-4">{t('landing.mission') || 'Mission'}</h3>
                   </div>
                   <ul className="space-y-4 text-gray-600 dark:text-gray-300">
                     {[
-                      "Capacity building of stakeholders",
-                      "Creating inclusive learning & development spaces",
-                      "Person-centric approach for tailored solutions",
-                      "Transitioning from beneficiaries to contributors",
-                      "Promoting social, economic, and political inclusion",
-                      "Encouraging independence and raising awareness"
+                      t('landing.mission_1') || "Capacity building of stakeholders",
+                      t('landing.mission_2') || "Creating inclusive learning & development spaces",
+                      t('landing.mission_3') || "Person-centric approach for tailored solutions",
+                      t('landing.mission_4') || "Transitioning from beneficiaries to contributors",
+                      t('landing.mission_5') || "Promoting social, economic, and political inclusion",
+                      t('landing.mission_6') || "Encouraging independence and raising awareness"
                     ].map((item, index) => (
                       <motion.li 
                         key={index}
@@ -439,10 +452,10 @@ const LandingPage = () => {
             variants={fadeInUp}
           >
             <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white sm:text-4xl">
-              Contact Us
+              {t('common.contact') || 'Contact Us'}
             </h2>
             <p className="mt-4 text-xl text-gray-600 dark:text-gray-300">
-              Get in touch with our team
+              {t('landing.contact_subtitle') || 'Get in touch with our team'}
             </p>
             <div className="mt-4 w-24 h-1 bg-ishanya-green mx-auto rounded-full"></div>
           </motion.div>
@@ -455,15 +468,15 @@ const LandingPage = () => {
           >
             <div className="grid grid-cols-1 md:grid-cols-2">
               <div className="p-8 md:p-12">
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">Reach Out to Us</h3>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">{t('landing.reach_out') || 'Reach Out to Us'}</h3>
                 <div className="space-y-6">
                   <div className="flex items-start">
                     <div className="flex-shrink-0 bg-ishanya-green/10 p-3 rounded-full">
                       <MapPin className="h-6 w-6 text-ishanya-green" />
                     </div>
                     <div className="ml-4">
-                      <h4 className="text-lg font-medium text-gray-900 dark:text-white">Address</h4>
-                      <p className="mt-1 text-gray-600 dark:text-gray-300">123 Education Street, Pune, Maharashtra, India</p>
+                      <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t('landing.address') || 'Address'}</h4>
+                      <p className="mt-1 text-gray-600 dark:text-gray-300">769, 7th Main Rd, KSRTC Layout, 2nd Phase, JP Nagar, Bengaluru, Karnataka 560078</p>
                     </div>
                   </div>
                   <div className="flex items-start">
@@ -471,7 +484,7 @@ const LandingPage = () => {
                       <Mail className="h-6 w-6 text-ishanya-green" />
                     </div>
                     <div className="ml-4">
-                      <h4 className="text-lg font-medium text-gray-900 dark:text-white">Email</h4>
+                      <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t('landing.email') || 'Email'}</h4>
                       <p className="mt-1 text-gray-600 dark:text-gray-300">info@ishanyafoundation.org</p>
                     </div>
                   </div>
@@ -480,16 +493,16 @@ const LandingPage = () => {
                       <Phone className="h-6 w-6 text-ishanya-green" />
                     </div>
                     <div className="ml-4">
-                      <h4 className="text-lg font-medium text-gray-900 dark:text-white">Phone</h4>
-                      <p className="mt-1 text-gray-600 dark:text-gray-300">+91 98765 43210</p>
+                      <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t('landing.phone') || 'Phone'}</h4>
+                      <p className="mt-1 text-gray-600 dark:text-gray-300">+91 73496 76668</p>
                     </div>
                   </div>
                 </div>
                 <div className="mt-10">
-                  <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Follow Us</h4>
+                  <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">{t('landing.follow_us') || 'Follow Us'}</h4>
                   <div className="flex space-x-6">
                     <a 
-                      href="https://facebook.com" 
+                      href="https://www.facebook.com/ishanyaindia" 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-full text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors duration-300"
@@ -497,7 +510,15 @@ const LandingPage = () => {
                       <Facebook size={24} />
                     </a>
                     <a 
-                      href="https://instagram.com" 
+                      href="https://x.com/ishanyaindia" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="bg-gray-100 dark:bg-gray-800/30 p-3 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800/50 transition-colors duration-300"
+                    >
+                      <Twitter size={24} />
+                    </a>
+                    <a 
+                      href="https://www.instagram.com/ishanyaindia/" 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="bg-pink-100 dark:bg-pink-900/30 p-3 rounded-full text-pink-600 dark:text-pink-400 hover:bg-pink-200 dark:hover:bg-pink-900/50 transition-colors duration-300"
@@ -505,7 +526,7 @@ const LandingPage = () => {
                       <Instagram size={24} />
                     </a>
                     <a 
-                      href="https://linkedin.com" 
+                      href="https://www.linkedin.com/company/ishanyaindia/" 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-full text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors duration-300"
@@ -513,7 +534,7 @@ const LandingPage = () => {
                       <Linkedin size={24} />
                     </a>
                     <a 
-                      href="https://youtube.com" 
+                      href="https://www.youtube.com/channel/UC1bQFruy88Y8DrgXt4oq3og" 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="bg-red-100 dark:bg-red-900/30 p-3 rounded-full text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors duration-300"
@@ -526,7 +547,7 @@ const LandingPage = () => {
               <div className="h-96 md:h-auto">
                 <iframe
                   title="Ishanya Foundation Location"
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d242118.17004758748!2d73.7228790241053!3d18.524564857301166!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2bf2e67461101%3A0x828d43bf9d9ee343!2sPune%2C%20Maharashtra!5e0!3m2!1sen!2sin!4v1648231125444!5m2!1sen!2sin"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3888.8291880953213!2d77.57743631482177!3d12.920053790887454!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae15081cb9f08d%3A0xe5a7a16a9cb93b9a!2s769%2C%207th%20Main%20Rd%2C%20KSRTC%20Layout%2C%20J.%20P.%20Nagar%20Phase%2C%20J.%20P.%20Nagar%2C%20Bengaluru%2C%20Karnataka%20560078!5e0!3m2!1sen!2sin!4v1651234567890!5m2!1sen!2sin"
                   className="w-full h-full border-0"
                   allowFullScreen={true}
                   loading="lazy"
@@ -587,21 +608,21 @@ const LandingPage = () => {
                   alt="Ishanya Foundation" 
                   className="h-10 w-auto"
                 />
-                <span className="ml-2 text-xl font-bold">Ishanya Foundation</span>
+                <span className="ml-2 text-xl font-bold">{t('landing.foundation_name') || 'Ishanya Foundation'}</span>
               </div>
               <p className="mt-4 text-gray-300">
-                Creating a more inclusive society for individuals with special needs.
+                {t('landing.foundation_tagline') || 'Creating a more inclusive society for individuals with special needs.'}
               </p>
             </div>
             <div>
-              <h3 className="text-lg font-bold mb-6 border-b border-gray-700 pb-2">Quick Links</h3>
+              <h3 className="text-lg font-bold mb-6 border-b border-gray-700 pb-2">{t('landing.quick_links') || 'Quick Links'}</h3>
               <ul className="space-y-3">
                 {[
-                  { label: "Home", href: "#home" },
-                  { label: "About Us", href: "#about" },
-                  { label: "Vision & Mission", href: "#mission" },
-                  { label: "Services", href: "#services" },
-                  { label: "Contact", href: "#contact" }
+                  { label: t('common.home') || 'Home', href: "#home" },
+                  { label: t('common.about') || 'About Us', href: "#about" },
+                  { label: t('common.vision_mission') || 'Vision & Mission', href: "#mission" },
+                  { label: t('common.services') || 'Services', href: "#services" },
+                  { label: t('common.contact') || 'Contact', href: "#contact" }
                 ].map((link, index) => (
                   <li key={index}>
                     <a 
@@ -616,25 +637,25 @@ const LandingPage = () => {
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-bold mb-6 border-b border-gray-700 pb-2">Newsletter</h3>
+              <h3 className="text-lg font-bold mb-6 border-b border-gray-700 pb-2">{t('landing.newsletter') || 'Newsletter'}</h3>
               <p className="text-gray-300 mb-4">
-                Subscribe to our newsletter for the latest updates and news.
+                {t('landing.newsletter_description') || 'Subscribe to our newsletter for the latest updates and news.'}
               </p>
               <div className="flex">
                 <input
                   type="email"
-                  placeholder="Your email address"
+                  placeholder={t('landing.email_placeholder') || 'Your email address'}
                   className="px-4 py-2 bg-gray-800 text-white border border-gray-700 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-ishanya-green w-full"
                 />
                 <button className="bg-ishanya-green hover:bg-ishanya-green/90 px-4 py-2 rounded-r-lg transition-colors duration-300">
-                  Subscribe
+                  {t('landing.subscribe') || 'Subscribe'}
                 </button>
               </div>
               <div className="mt-6">
-                <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Follow Us</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">{t('landing.follow_us') || 'Follow Us'}</h4>
                 <div className="flex space-x-4">
                   <a 
-                    href="https://facebook.com" 
+                    href="https://www.facebook.com/ishanyaindia" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="text-gray-400 hover:text-white transition-colors duration-300"
@@ -642,7 +663,15 @@ const LandingPage = () => {
                     <Facebook size={20} />
                   </a>
                   <a 
-                    href="https://instagram.com" 
+                    href="https://x.com/ishanyaindia" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-gray-400 hover:text-white transition-colors duration-300"
+                  >
+                    <Twitter size={20} />
+                  </a>
+                  <a 
+                    href="https://www.instagram.com/ishanyaindia/" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="text-gray-400 hover:text-white transition-colors duration-300"
@@ -650,7 +679,7 @@ const LandingPage = () => {
                     <Instagram size={20} />
                   </a>
                   <a 
-                    href="https://linkedin.com" 
+                    href="https://www.linkedin.com/company/ishanyaindia/" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="text-gray-400 hover:text-white transition-colors duration-300"
@@ -658,7 +687,7 @@ const LandingPage = () => {
                     <Linkedin size={20} />
                   </a>
                   <a 
-                    href="https://youtube.com" 
+                    href="https://www.youtube.com/channel/UC1bQFruy88Y8DrgXt4oq3og" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="text-gray-400 hover:text-white transition-colors duration-300"
@@ -670,10 +699,10 @@ const LandingPage = () => {
             </div>
           </div>
           <div className="mt-12 pt-8 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center">
-            <p className="text-gray-400">&copy; 2025 Ishanya India Foundation. All rights reserved.</p>
+            <p className="text-gray-400">&copy; 2023 Ishanya India Foundation. All rights reserved.</p>
             <div className="mt-4 sm:mt-0 flex space-x-6">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors duration-300">Privacy Policy</a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors duration-300">Terms of Service</a>
+              <a href="#" className="text-gray-400 hover:text-white transition-colors duration-300">{t('landing.privacy_policy') || 'Privacy Policy'}</a>
+              <a href="#" className="text-gray-400 hover:text-white transition-colors duration-300">{t('landing.terms') || 'Terms of Service'}</a>
             </div>
           </div>
         </div>

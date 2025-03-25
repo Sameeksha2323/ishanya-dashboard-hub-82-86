@@ -65,3 +65,127 @@
   background-clip: text;
   color: transparent;
 }
+
+/* Ishanya Foundation Colors */
+:root {
+  --ishanya-green: #3B8A4E;
+  --ishanya-yellow: #DCB81D;
+  --ishanya-green-light: rgba(59, 138, 78, 0.1);
+  --ishanya-yellow-light: rgba(220, 184, 29, 0.1);
+}
+
+/* Custom form styles */
+.ishanya-form input,
+.ishanya-form textarea {
+  border: 1px solid var(--ishanya-green);
+  transition: all 0.3s ease;
+}
+
+.ishanya-form input:focus,
+.ishanya-form textarea:focus {
+  border-color: var(--ishanya-yellow);
+  box-shadow: 0 0 0 2px rgba(220, 184, 29, 0.2);
+}
+
+/* Button hover animations */
+.btn-hover-effect {
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.btn-hover-effect::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.5s ease;
+  z-index: -1;
+}
+
+.btn-hover-effect:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* Enhanced Card Styling */
+.enhanced-card {
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.enhanced-card:hover {
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(-5px);
+}
+
+/* Image hover effects */
+.img-hover-zoom {
+  overflow: hidden;
+}
+
+.img-hover-zoom img {
+  transition: transform 0.5s ease;
+}
+
+.img-hover-zoom:hover img {
+  transform: scale(1.05);
+}
+
+/* Social Media Icons */
+.social-icon {
+  transition: all 0.3s ease;
+}
+
+.social-icon:hover {
+  transform: translateY(-3px);
+}
+
+/* Footer special styling */
+.footer-special-link {
+  position: relative;
+  display: inline-block;
+}
+
+.footer-special-link::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  bottom: -4px;
+  left: 0;
+  background-color: var(--ishanya-green);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.3s ease;
+}
+
+.footer-special-link:hover::after {
+  transform: scaleX(1);
+}
+
+/* Add glass morphism effect */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* For dyslexia mode - improved contrast and readability */
+.dyslexia-mode .text-emphasize {
+  font-weight: 600;
+  color: #000;
+}
+
+.dyslexia-mode.dark .text-emphasize {
+  color: #fff;
+}

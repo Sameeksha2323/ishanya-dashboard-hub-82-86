@@ -17,11 +17,52 @@ export const DyslexiaToggle = () => {
   // Apply dyslexia class to body when component mounts and when mode changes
   useEffect(() => {
     const applyDyslexiaMode = () => {
+      const root = document.documentElement;
+      
       if (isDyslexiaMode) {
+        // Add dyslexia-friendly styles
         document.body.classList.add('dyslexia-mode');
+        root.classList.add('dyslexia-mode');
+        
+        // Add to stylesheet for smooth transitions and better visual experience
+        const style = document.createElement('style');
+        style.id = 'dyslexia-styles';
+        style.innerHTML = `
+          body.dyslexia-mode {
+            font-family: 'OpenDyslexic', 'Comic Sans MS', Arial, sans-serif;
+            line-height: 1.6;
+            letter-spacing: 0.05em;
+            word-spacing: 0.15em;
+          }
+          .dyslexia-mode p, .dyslexia-mode h1, .dyslexia-mode h2, .dyslexia-mode h3, 
+          .dyslexia-mode h4, .dyslexia-mode label, .dyslexia-mode span,
+          .dyslexia-mode button, .dyslexia-mode a, .dyslexia-mode input, 
+          .dyslexia-mode select, .dyslexia-mode textarea {
+            font-family: 'OpenDyslexic', 'Comic Sans MS', Arial, sans-serif !important;
+            line-height: 1.6 !important;
+            letter-spacing: 0.05em !important;
+            word-spacing: 0.15em !important;
+            transition: all 0.3s ease-in-out;
+          }
+          .dyslexia-mode p, .dyslexia-mode label, .dyslexia-mode span {
+            max-width: 70ch;
+            line-height: 1.8 !important;
+          }
+        `;
+        document.head.appendChild(style);
+        
+        // Set scroll behavior to smooth for better experience
         document.documentElement.style.scrollBehavior = 'smooth';
       } else {
+        // Remove dyslexia-friendly styles
         document.body.classList.remove('dyslexia-mode');
+        root.classList.remove('dyslexia-mode');
+        const dyslexiaStyles = document.getElementById('dyslexia-styles');
+        if (dyslexiaStyles) {
+          dyslexiaStyles.remove();
+        }
+        
+        // Reset scroll behavior
         document.documentElement.style.scrollBehavior = 'auto';
       }
     };
