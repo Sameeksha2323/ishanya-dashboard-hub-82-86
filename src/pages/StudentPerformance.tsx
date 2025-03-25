@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { Search, Filter } from 'lucide-react';
+import { toast } from 'sonner';
 
 type Student = {
   id: string;
@@ -45,26 +46,43 @@ const StudentPerformance = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
+        console.log("Fetching student performance data...");
+        
         // Fetch students
         const { data: studentsData, error: studentsError } = await supabase
           .from('students')
           .select('id, student_id, first_name, last_name, gender, center_id, program_id');
 
-        if (studentsError) throw studentsError;
+        if (studentsError) {
+          console.error("Error fetching students:", studentsError);
+          throw studentsError;
+        }
+        
+        console.log("Students fetched:", studentsData);
 
         // Fetch centers
         const { data: centersData, error: centersError } = await supabase
           .from('centers')
           .select('center_id, name');
 
-        if (centersError) throw centersError;
+        if (centersError) {
+          console.error("Error fetching centers:", centersError);
+          throw centersError;
+        }
+        
+        console.log("Centers fetched:", centersData);
 
         // Fetch programs
         const { data: programsData, error: programsError } = await supabase
           .from('programs')
           .select('program_id, name');
 
-        if (programsError) throw programsError;
+        if (programsError) {
+          console.error("Error fetching programs:", programsError);
+          throw programsError;
+        }
+        
+        console.log("Programs fetched:", programsData);
 
         // Map center names and program names to students
         const studentsWithDetails = studentsData.map((student: Student) => {
@@ -80,10 +98,11 @@ const StudentPerformance = () => {
 
         setStudents(studentsWithDetails);
         setFilteredStudents(studentsWithDetails);
-        setCenters(centersData);
-        setPrograms(programsData);
+        setCenters(centersData || []);
+        setPrograms(programsData || []);
       } catch (error) {
         console.error('Error fetching data:', error);
+        toast.error('Failed to load student data');
       } finally {
         setLoading(false);
       }
