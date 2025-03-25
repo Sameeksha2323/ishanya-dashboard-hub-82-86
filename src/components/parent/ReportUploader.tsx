@@ -5,16 +5,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Upload, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { Upload, CheckCircle2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { getCurrentUser } from '@/lib/auth';
 
 interface ReportUploaderProps {
   onSuccess: () => void;
   onCancel: () => void;
+  studentId?: number; // Allow for specific student ID to be passed
 }
 
-const ReportUploader = ({ onSuccess, onCancel }: ReportUploaderProps) => {
+const ReportUploader = ({ onSuccess, onCancel, studentId }: ReportUploaderProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -44,15 +45,22 @@ const ReportUploader = ({ onSuccess, onCancel }: ReportUploaderProps) => {
       setUploading(true);
       setUploadProgress(10);
       
-      // Get parent's student_id
-      const { data: parentData, error: parentError } = await supabase
-        .from('parents')
-        .select('student_id')
-        .eq('email', user.email)
-        .single();
+      // If studentId is provided, use it directly; otherwise, get parent's student_id
+      let targetStudentId = studentId;
+      
+      if (!targetStudentId) {
+        // Get parent's student_id
+        const { data: parentData, error: parentError } = await supabase
+          .from('parents')
+          .select('student_id')
+          .eq('email', user.email)
+          .single();
+          
+        if (parentError || !parentData || !parentData.student_id) {
+          throw new Error("Could not determine student ID");
+        }
         
-      if (parentError || !parentData || !parentData.student_id) {
-        throw new Error("Could not determine student ID");
+        targetStudentId = parentData.student_id;
       }
       
       setUploadProgress(30);
@@ -61,7 +69,7 @@ const ReportUploader = ({ onSuccess, onCancel }: ReportUploaderProps) => {
       const timestamp = new Date().getTime();
       const fileExtension = selectedFile.name.split('.').pop();
       const fileName = `${timestamp}-${selectedFile.name}`;
-      const filePath = `student-reports/${parentData.student_id}/${fileName}`;
+      const filePath = `student-reports/${targetStudentId}/${fileName}`;
       
       setUploadProgress(50);
       

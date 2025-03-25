@@ -28,17 +28,17 @@ const TableActions = ({
   // Listen for custom event to open the add record form with prefilled data
   useEffect(() => {
     const handleOpenAddRecordForm = (event: CustomEvent) => {
-      const { tableName: eventTableName, formData, onSuccess } = event.detail;
+      const { tableName: eventTableName, formData, sourceEntry } = event.detail;
       
       // Only proceed if this is the correct table
       if (eventTableName === tableName) {
         console.log('Opening add record form with prefilled data:', formData);
         setPrefilledData(formData);
         
-        // Store the callback in sessionStorage to retrieve after form submission
-        if (onSuccess) {
+        // Store the source entry information in sessionStorage for retrieval after form submission
+        if (sourceEntry) {
           sessionStorage.setItem('formSubmitCallback', JSON.stringify({
-            sourceEntry: event.detail.sourceEntry,
+            sourceEntry,
             hasCallback: true
           }));
         }

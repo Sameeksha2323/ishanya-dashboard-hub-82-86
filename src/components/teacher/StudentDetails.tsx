@@ -3,17 +3,25 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, ArrowLeft } from 'lucide-react';
+import { AlertCircle, ArrowLeft, FileText, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { format } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 type StudentDetailsProps = {
   studentId: number;
   onBack?: () => void;
+};
+
+type StudentReport = {
+  name: string;
+  created_at: string;
+  size: number;
+  id: string;
 };
 
 const StudentDetails = ({ studentId, onBack }: StudentDetailsProps) => {
@@ -21,6 +29,8 @@ const StudentDetails = ({ studentId, onBack }: StudentDetailsProps) => {
   const [parent, setParent] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reports, setReports] = useState<StudentReport[]>([]);
+  const [loadingReports, setLoadingReports] = useState(false);
 
   useEffect(() => {
     const fetchStudentDetails = async () => {
@@ -59,6 +69,9 @@ const StudentDetails = ({ studentId, onBack }: StudentDetailsProps) => {
         }
         
         setParent(parentData);
+
+        // Fetch student reports
+        await fetchStudentReports(studentId);
       } catch (error) {
         console.error('Error in fetchStudentDetails:', error);
         setError('An unexpected error occurred');
@@ -69,6 +82,55 @@ const StudentDetails = ({ studentId, onBack }: StudentDetailsProps) => {
     
     fetchStudentDetails();
   }, [studentId]);
+
+  const fetchStudentReports = async (studentId: number) => {
+    try {
+      setLoadingReports(true);
+      
+      // Check if the directory exists and list files
+      const { data: reportFiles, error: reportsError } = await supabase
+        .storage
+        .from('ishanya')
+        .list(`student-reports/${studentId}`);
+        
+      if (reportsError) {
+        console.error('Error fetching student reports:', reportsError);
+        // Don't set an error state here, as missing reports is not a critical error
+        setReports([]);
+        return;
+      }
+      
+      setReports(reportFiles || []);
+    } catch (error) {
+      console.error('Error fetching student reports:', error);
+      // Don't set an error state, as missing reports is not a critical error
+    } finally {
+      setLoadingReports(false);
+    }
+  };
+
+  const handleViewReport = async (fileName: string) => {
+    try {
+      toast.loading('Opening report...');
+      
+      const { data, error } = await supabase
+        .storage
+        .from('ishanya')
+        .createSignedUrl(`student-reports/${studentId}/${fileName}`, 60);
+        
+      if (error || !data) {
+        toast.dismiss();
+        toast.error('Failed to generate URL for the report');
+        return;
+      }
+      
+      toast.dismiss();
+      window.open(data.signedUrl, '_blank');
+    } catch (error) {
+      console.error('Error viewing report:', error);
+      toast.error('An error occurred while trying to view the report');
+    }
+  };
 
   const displayParentInfo = (parent: any) => {
     return (
@@ -208,6 +270,46 @@ const StudentDetails = ({ studentId, onBack }: StudentDetailsProps) => {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Student Reports Section */}
+          <div className="mt-4">
+            <h3 className="text-lg font-medium mb-4">Student Reports</h3>
+            {loadingReports ? (
+              <div className="flex justify-center p-4">
+                <LoadingSpinner size="sm" />
+              </div>
+            ) : reports.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">No reports available for this student.</p>
+            ) : (
+              <div className="space-y-2 bg-gray-50 p-4 rounded-md">
+                {reports.map((report, index) => (
+                  <div 
+                    key={index} 
+                    className="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-gray-100 transition-colors border border-gray-100"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FileText className="h-5 w-5 text-blue-500" />
+                      <div>
+                        <p className="font-medium">{report.name.replace(/^\d+-/, '')}</p>
+                        <p className="text-xs text-gray-500">
+                          Uploaded: {new Date(report.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleViewReport(report.name)}
+                      className="flex items-center gap-1"
+                    >
+                      <Download className="h-4 w-4" />
+                      View
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

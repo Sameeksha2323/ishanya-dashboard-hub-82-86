@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -121,13 +120,13 @@ const PendingReviews = () => {
 
   const handleAcceptEntry = async (entry: FormEntry) => {
     try {
-      // Close the detail view dialog
+      // Close the detail view dialog if it's open
       setIsDialogOpen(false);
   
       // Show feedback to user
       toast.loading('Preparing student form with prefilled data...');
   
-      // Map form fields to match student database
+      // Map form fields to match student database schema
       const studentFormData = {
         first_name: entry['First Name'] || '',
         last_name: entry['Last Name'] || '',
@@ -146,68 +145,66 @@ const PendingReviews = () => {
         address: entry['Address'] || '',
         // Required fields for student table
         enrollment_year: new Date().getFullYear(),
-        status: 'Active',
+        status: 'active',
         student_email: entry["Parent's Email"] || '',
         program_id: 1, // Default program ID
         center_id: 91 // Default center ID
       };
   
-      // Dispatch event to open the form with prefilled data in TableActions.tsx
+      // Dispatch a custom event to open the form with prefilled data
       window.dispatchEvent(new CustomEvent('openAddRecordForm', {
         detail: { 
           tableName: 'students',
           formData: studentFormData,
-          sourceEntry: entry,
-          onSuccess: async () => {
-            try {
-              // Delete the entry from Google Sheets after successful form submission
-              const deleteResult = await deleteFromGoogleSheet(entry.rowIndex);
-              if (deleteResult) {
-                // Remove entry from local state
-                setEntries(prev => prev.filter(e => e.id !== entry.id));
-                toast.success('Form entry successfully processed and removed from review list');
-              } else {
-                toast.error('Student was added but entry could not be removed from review list');
-              }
-            } catch (err) {
-              console.error('Error removing form entry:', err);
-              toast.error('Student was added but entry could not be removed from review list');
-            }
-          }
+          sourceEntry: entry
         } 
       }));
   
       // Show success toast
       toast.dismiss();
       toast.success('Opening student form with prefilled data');
+      
+      // Set up a listener for successful form submission
+      const handleFormSubmitSuccess = () => {
+        const storedCallback = sessionStorage.getItem('formSubmitCallback');
+        if (storedCallback) {
+          try {
+            const { sourceEntry, hasCallback } = JSON.parse(storedCallback);
+            if (hasCallback && sourceEntry) {
+              // Delete the entry from Google Sheets
+              deleteFromGoogleSheet(entry.rowIndex)
+                .then(success => {
+                  if (success) {
+                    // Remove entry from local state
+                    setEntries(prev => prev.filter(e => e.id !== entry.id));
+                    toast.success('Form entry successfully processed and removed from review list');
+                  } else {
+                    toast.error('Student was added but entry could not be removed from review list');
+                  }
+                })
+                .catch(error => {
+                  console.error('Error removing form entry:', error);
+                  toast.error('Student was added but entry could not be removed from review list');
+                })
+                .finally(() => {
+                  // Clear the callback
+                  sessionStorage.removeItem('formSubmitCallback');
+                  // Remove the event listener
+                  window.removeEventListener('formSubmitSuccess', handleFormSubmitSuccess);
+                });
+            }
+          } catch (error) {
+            console.error('Error parsing stored callback:', error);
+          }
+        }
+      };
+
+      // Add event listener for form submission success
+      window.addEventListener('formSubmitSuccess', handleFormSubmitSuccess);
   
     } catch (err) {
       console.error('Error accepting entry:', err);
       toast.error('Failed to process form submission');
-    }
-  };
-  
-
-  const handleRejectEntry = async (entry: FormEntry) => {
-    try {
-      const loadingToast = toast.loading('Rejecting entry...');
-      
-      // Delete the row from Google Sheets using batchUpdate API
-      const deleteResult = await deleteFromGoogleSheet(entry.rowIndex);
-      
-      if (deleteResult) {
-        // Remove from local state
-        setEntries(prev => prev.filter(e => e.id !== entry.id));
-        toast.success('Entry rejected and removed');
-      } else {
-        toast.error('Failed to reject form submission. Please try again.');
-      }
-      
-      toast.dismiss(loadingToast);
-      setIsDialogOpen(false);
-    } catch (err) {
-      console.error('Error rejecting entry:', err);
-      toast.error('Failed to reject form submission. Please try again.');
     }
   };
 
@@ -266,8 +263,7 @@ const PendingReviews = () => {
       
       console.log('Sending batch update request:', JSON.stringify(batchUpdateRequest));
       
-      // Need to use OAuth token for write operations
-      // For this demo we'll use the workaround with a POST request
+      // Use the batch update API to delete the row
       const deleteResponse = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate?key=${API_KEY}`,
         {
