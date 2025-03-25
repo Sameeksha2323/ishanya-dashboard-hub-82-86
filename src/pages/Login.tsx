@@ -106,8 +106,8 @@ const Login = () => {
           <div className="text-center">
             <Link to="/">
               <img 
-                src="/lovable-uploads/dace9fa7-f264-4482-a965-455c52076512.png" 
-                alt="Sankalp Logo"
+                src="/favicon.svg" 
+                alt="Ishanya Logo"
                 className="h-16 mx-auto"
               />
             </Link>

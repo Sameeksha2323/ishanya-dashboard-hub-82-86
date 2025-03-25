@@ -73,7 +73,7 @@ const translations: Record<Language, Record<string, string>> = {
     'chatbot.no_results': 'No results found for your query.',
     
     // Landing page translations
-    'landing.hero_title': 'Sankalp Portal',
+    'landing.hero_title': 'Ishanya Portal',
     'landing.hero_subtitle': 'Journey to Inclusion',
     'landing.hero_description': 'The Ishanya Foundation\'s comprehensive database management system for supporting individuals with special needs.',
     'landing.foundation_name': 'Ishanya Foundation',

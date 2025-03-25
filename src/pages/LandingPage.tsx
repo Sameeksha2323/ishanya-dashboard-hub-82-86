@@ -93,8 +93,8 @@ const LandingPage = () => {
               <div className="flex-shrink-0 flex items-center">
                 <a href="#home">
                   <img 
-                    src="/lovable-uploads/dace9fa7-f264-4482-a965-455c52076512.png" 
-                    alt="Sankalp Logo" 
+                    src="/favicon.svg" 
+                    alt="Ishanya Logo" 
                     className="h-14 w-auto" 
                   />
                 </a>
@@ -242,7 +242,7 @@ const LandingPage = () => {
               variants={fadeInUp}
             >
               <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white sm:text-5xl lg:text-6xl">
-                <span className="block text-ishanya-green pr-4">{t('landing.hero_title') || 'Sankalp Portal'}</span>
+                <span className="block text-ishanya-green pr-4">{t('landing.hero_title') || 'Ishanya Portal'}</span>
                 <span className="block text-ishanya-yellow mt-1">{t('landing.hero_subtitle') || 'Journey to Inclusion'}</span>
               </h1>
               <p className="mt-6 text-xl text-gray-600 dark:text-gray-300">
@@ -718,8 +718,8 @@ const LandingPage = () => {
             <div className="flex flex-col items-center md:items-start">
               <div className="flex items-center">
                 <img 
-                  src="/lovable-uploads/dace9fa7-f264-4482-a965-455c52076512.png" 
-                  alt="Sankalp Logo" 
+                  src="/favicon.svg" 
+                  alt="Ishanya Logo" 
                   className="h-16 w-auto"
                 />
               </div>
@@ -751,7 +751,7 @@ const LandingPage = () => {
             </div>
           </div>
           <div className="mt-12 pt-8 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center">
-            <p className="text-gray-400">&copy; 2023-{new Date().getFullYear()} Sankalp Portal. All rights reserved.</p>
+            <p className="text-gray-400">&copy; 2023-{new Date().getFullYear()} Ishanya Portal. All rights reserved.</p>
             <div className="mt-4 sm:mt-0 flex space-x-6">
               <a href="#" className="text-gray-400 hover:text-white transition-colors duration-300">{t('landing.privacy_policy') || 'Privacy Policy'}</a>
               <a href="#" className="text-gray-400 hover:text-white transition-colors duration-300">{t('landing.terms') || 'Terms of Service'}</a>
