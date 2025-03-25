@@ -208,6 +208,33 @@ const PendingReviews = () => {
     }
   };
 
+  const handleRejectEntry = async (entry: FormEntry) => {
+    try {
+      // Close the detail view dialog if it's open
+      setIsDialogOpen(false);
+
+      // Show loading toast
+      toast.loading('Rejecting form submission...');
+
+      // Delete the entry from Google Sheets
+      const success = await deleteFromGoogleSheet(entry.rowIndex);
+
+      if (success) {
+        // Remove entry from local state
+        setEntries(prev => prev.filter(e => e.id !== entry.id));
+        toast.dismiss();
+        toast.success('Form submission has been rejected');
+      } else {
+        toast.dismiss();
+        toast.error('Failed to reject form submission');
+      }
+    } catch (err) {
+      console.error('Error rejecting entry:', err);
+      toast.dismiss();
+      toast.error('Failed to reject form submission');
+    }
+  };
+
   const deleteFromGoogleSheet = async (rowIndex: number) => {
     try {
       console.log(`Attempting to delete row at index ${rowIndex}`);

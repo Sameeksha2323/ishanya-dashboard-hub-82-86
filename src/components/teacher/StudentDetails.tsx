@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,7 +39,6 @@ const StudentDetails = ({ studentId, onBack }: StudentDetailsProps) => {
         setLoading(true);
         setError(null);
         
-        // Fetch student details
         const { data: studentData, error: studentError } = await supabase
           .from('students')
           .select('*')
@@ -55,7 +53,6 @@ const StudentDetails = ({ studentId, onBack }: StudentDetailsProps) => {
         
         setStudent(studentData);
         
-        // Fetch parent details
         const { data: parentData, error: parentError } = await supabase
           .from('parents')
           .select('*')
@@ -70,7 +67,6 @@ const StudentDetails = ({ studentId, onBack }: StudentDetailsProps) => {
         
         setParent(parentData);
 
-        // Fetch student reports
         await fetchStudentReports(studentId);
       } catch (error) {
         console.error('Error in fetchStudentDetails:', error);
@@ -87,7 +83,6 @@ const StudentDetails = ({ studentId, onBack }: StudentDetailsProps) => {
     try {
       setLoadingReports(true);
       
-      // Check if the directory exists and list files
       const { data: reportFiles, error: reportsError } = await supabase
         .storage
         .from('ishanya')
@@ -95,15 +90,20 @@ const StudentDetails = ({ studentId, onBack }: StudentDetailsProps) => {
         
       if (reportsError) {
         console.error('Error fetching student reports:', reportsError);
-        // Don't set an error state here, as missing reports is not a critical error
         setReports([]);
         return;
       }
       
-      setReports(reportFiles || []);
+      const formattedReports: StudentReport[] = reportFiles ? reportFiles.map(file => ({
+        name: file.name,
+        created_at: file.created_at,
+        size: file.metadata?.size || 0,
+        id: file.id
+      })) : [];
+      
+      setReports(formattedReports);
     } catch (error) {
       console.error('Error fetching student reports:', error);
-      // Don't set an error state, as missing reports is not a critical error
     } finally {
       setLoadingReports(false);
     }
@@ -147,12 +147,11 @@ const StudentDetails = ({ studentId, onBack }: StudentDetailsProps) => {
     );
   };
 
-  // Function to get the correct profile image based on gender
   const getProfileImage = (gender: string) => {
     if (gender && gender.toLowerCase() === 'female') {
-      return '/lovable-uploads/29e4e0c1-de7b-4d44-86ac-0d3635c81440.png'; // Female image
+      return '/lovable-uploads/29e4e0c1-de7b-4d44-86ac-0d3635c81440.png';
     }
-    return '/lovable-uploads/fb9542e8-5f06-420d-8d09-80d9058b8158.png'; // Male image (default)
+    return '/lovable-uploads/fb9542e8-5f06-420d-8d09-80d9058b8158.png';
   };
 
   if (loading) {
@@ -272,7 +271,6 @@ const StudentDetails = ({ studentId, onBack }: StudentDetailsProps) => {
             </div>
           </div>
 
-          {/* Student Reports Section */}
           <div className="mt-4">
             <h3 className="text-lg font-medium mb-4">Student Reports</h3>
             {loadingReports ? (
