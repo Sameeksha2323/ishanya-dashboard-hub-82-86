@@ -333,12 +333,13 @@ const processFieldData = (data: Record<string, any>): Record<string, any> => {
       }
     }
     
-    // Format date fields
+    // Format date fields (except created_at which is handled by the database)
     if (typeof value === 'string' && 
-        (key.includes('date') || key.includes('dob') || key === 'created_at')) {
-      // If empty string, set to current timestamp
+        (key.includes('date') || key.includes('dob')) && 
+        key !== 'created_at') {
+      // If empty string, set to null
       if (value.trim() === '') {
-        result[key] = new Date().toISOString();
+        result[key] = null;
       } 
       // If non-empty but not in ISO format, try to convert
       else if (!value.includes('T')) {
@@ -366,6 +367,11 @@ const processFieldData = (data: Record<string, any>): Record<string, any> => {
         result[key] = null;
       }
     }
+  }
+  
+  // Remove created_at as the database will handle it
+  if ('created_at' in result) {
+    delete result.created_at;
   }
   
   return result;
@@ -404,14 +410,8 @@ export const insertRow = async (tableName: string, rowData: any): Promise<{ succ
   try {
     console.log(`Inserting row into ${tableName} with data:`, rowData);
     
-    // Always add created_at timestamp with proper format
-    const initialData = {
-      ...rowData,
-      created_at: new Date().toISOString()
-    };
-    
     // Process data to ensure proper formats for arrays, dates, and numbers
-    const processedData = processFieldData(initialData);
+    const processedData = processFieldData(rowData);
     
     console.log('Processed data for insertion:', processedData);
     
@@ -469,11 +469,6 @@ export const insertRow = async (tableName: string, rowData: any): Promise<{ succ
 export const updateRow = async (tableName: string, id: number, rowData: any): Promise<{ success: boolean; errors?: Record<string, string>; data?: any }> => {
   try {
     console.log(`Updating row in ${tableName} with id ${id}:`, rowData);
-    
-    // Handle created_at - if empty, use current timestamp
-    if (!rowData.created_at || rowData.created_at === '') {
-      rowData.created_at = new Date().toISOString();
-    }
     
     // Process data to ensure proper formats for arrays, dates, and numbers
     const processedData = processFieldData(rowData);
@@ -556,9 +551,9 @@ export const bulkInsert = async (tableName: string, rows: any[]): Promise<{ succ
     
     // Process each row to ensure proper data formats
     const processedRows = rows.map(row => {
-      // Add created_at timestamp if missing
-      if (!row.created_at || row.created_at === '') {
-        row.created_at = new Date().toISOString();
+      // Remove created_at as it will be handled by the database
+      if (row.created_at) {
+        delete row.created_at;
       }
       return processFieldData(row);
     });

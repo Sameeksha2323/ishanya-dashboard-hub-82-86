@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -123,9 +124,6 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
     e.preventDefault();
     
     const submissionData = { ...formData };
-    if ('created_at' in submissionData) {
-      delete submissionData.created_at;
-    }
     
     if (!validateForm()) {
       toast.error('Please fix the errors in the form');

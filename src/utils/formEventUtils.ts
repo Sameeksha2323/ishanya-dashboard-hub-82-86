@@ -15,7 +15,7 @@ export const openAddRecordForm = (
   formData: Record<string, any>,
   sourceEntry?: any
 ) => {
-  // Remove created_at if it exists since the database will handle it
+  // Remove created_at as the database will handle it
   if (formData.created_at) {
     delete formData.created_at;
   }
@@ -35,7 +35,7 @@ export const openAddRecordForm = (
  * @param formData The data to set in the form
  */
 export const setFormData = (formData: Record<string, any>) => {
-  // Remove created_at if it exists since the database will handle it
+  // Remove created_at as the database will handle it
   if (formData.created_at) {
     delete formData.created_at;
   }

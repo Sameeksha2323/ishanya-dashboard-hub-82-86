@@ -130,13 +130,12 @@ const FileUpload = ({ bucketName, onFileUpload, existingUrl, entityType, entityI
     setPreviewUrl(existingUrl || null);
   };
 
-  // Fixed function to correctly handle the entityType with proper typing
+  // Function to correctly handle the entityType with proper typing
   const getEntityTypeName = (type: 'student' | 'employee' | 'educator'): string => {
     switch (type) {
       case 'student': return 'Student';
       case 'employee': return 'Employee';
       case 'educator': return 'Educator';
-      default: return type;
     }
   };
 
@@ -172,13 +171,21 @@ const FileUpload = ({ bucketName, onFileUpload, existingUrl, entityType, entityI
         )}
       </div>
       
-      {previewUrl && (
+      {previewUrl && !isDocumentUpload && (
         <div className="relative w-32 h-32 border rounded overflow-hidden bg-gray-50">
           <img 
             src={previewUrl} 
             alt="Preview" 
             className="w-full h-full object-cover"
           />
+        </div>
+      )}
+      
+      {previewUrl && isDocumentUpload && (
+        <div className="text-sm text-blue-600">
+          <a href={previewUrl} target="_blank" rel="noopener noreferrer">
+            View uploaded document
+          </a>
         </div>
       )}
       

@@ -25,7 +25,6 @@ const TableActions = ({
 }: TableActionsProps) => {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isVoiceInputOpen, setIsVoiceInputOpen] = useState(false);
-  const [prefilledData, setPrefilledData] = useState<Record<string, any> | null>(null);
 
   // Listen for custom event to open the add record form with prefilled data
   useEffect(() => {
@@ -93,11 +92,6 @@ const TableActions = ({
   };
 
   const handleVoiceDataComplete = (data: Record<string, any>) => {
-    // Remove created_at if it exists
-    if (data.created_at) {
-      delete data.created_at;
-    }
-    
     // Pre-fill the form with voice data and open it
     window.dispatchEvent(new CustomEvent('setFormData', {
       detail: { formData: data }
