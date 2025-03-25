@@ -123,12 +123,11 @@ const PendingReviews = () => {
     try {
       // Close the detail view dialog
       setIsDialogOpen(false);
-      
+  
       // Show feedback to user
       toast.loading('Preparing student form with prefilled data...');
-      
-      // Map form fields to student database structure
-      // This will be passed to the Add Record form from TableActions
+  
+      // Map form fields to match student database
       const studentFormData = {
         first_name: entry['First Name'] || '',
         last_name: entry['Last Name'] || '',
@@ -145,26 +144,26 @@ const PendingReviews = () => {
         alt_contact_number: entry['Alternate Contact Number'] || '',
         parents_email: entry["Parent's Email"] || '',
         address: entry['Address'] || '',
-        // Required fields for students table
+        // Required fields for student table
         enrollment_year: new Date().getFullYear(),
         status: 'Active',
         student_email: entry["Parent's Email"] || '',
         program_id: 1, // Default program ID
         center_id: 91 // Default center ID
       };
-      
-      // Dispatch a custom event to trigger the student form in TableView/TableActions
-      window.dispatchEvent(new CustomEvent('openAddRecordForm', { 
+  
+      // Dispatch event to open the form with prefilled data in TableActions.tsx
+      window.dispatchEvent(new CustomEvent('openAddRecordForm', {
         detail: { 
           tableName: 'students',
           formData: studentFormData,
           sourceEntry: entry,
           onSuccess: async () => {
-            // On successful student creation, remove the entry from Google Sheets
             try {
+              // Delete the entry from Google Sheets after successful form submission
               const deleteResult = await deleteFromGoogleSheet(entry.rowIndex);
               if (deleteResult) {
-                // Remove from local state too
+                // Remove entry from local state
                 setEntries(prev => prev.filter(e => e.id !== entry.id));
                 toast.success('Form entry successfully processed and removed from review list');
               } else {
@@ -177,15 +176,17 @@ const PendingReviews = () => {
           }
         } 
       }));
-      
+  
+      // Show success toast
       toast.dismiss();
       toast.success('Opening student form with prefilled data');
-      
+  
     } catch (err) {
       console.error('Error accepting entry:', err);
       toast.error('Failed to process form submission');
     }
   };
+  
 
   const handleRejectEntry = async (entry: FormEntry) => {
     try {
