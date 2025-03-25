@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
@@ -38,7 +37,6 @@ const Index = () => {
         const centersData = await fetchCenters();
         if (centersData) {
           setCenters(centersData);
-          calculateStatsFromCenters(centersData);
         }
       } catch (error) {
         console.error('Error fetching centers:', error);
@@ -49,6 +47,7 @@ const Index = () => {
     };
 
     loadCenters();
+    fetchStats();
     
     // Set up real-time listeners for each table
     const studentsChannel = supabase
@@ -58,7 +57,7 @@ const Index = () => {
         schema: 'public',
         table: 'students'
       }, () => {
-        refreshStats();
+        fetchStats();
       })
       .subscribe();
       
@@ -69,7 +68,7 @@ const Index = () => {
         schema: 'public',
         table: 'educators'
       }, () => {
-        refreshStats();
+        fetchStats();
       })
       .subscribe();
       
@@ -80,7 +79,7 @@ const Index = () => {
         schema: 'public',
         table: 'employees'
       }, () => {
-        refreshStats();
+        fetchStats();
       })
       .subscribe();
     
@@ -92,27 +91,38 @@ const Index = () => {
     };
   }, []);
   
-  const refreshStats = async () => {
+  const fetchStats = async () => {
     try {
-      const centersData = await fetchCenters();
-      if (centersData) {
-        calculateStatsFromCenters(centersData);
-      }
+      // Get total students
+      const { count: studentsCount, error: studentsError } = await supabase
+        .from('students')
+        .select('*', { count: 'exact', head: true });
+      
+      if (studentsError) throw studentsError;
+      
+      // Get total educators
+      const { count: educatorsCount, error: educatorsError } = await supabase
+        .from('educators')
+        .select('*', { count: 'exact', head: true });
+      
+      if (educatorsError) throw educatorsError;
+      
+      // Get total employees
+      const { count: employeesCount, error: employeesError } = await supabase
+        .from('employees')
+        .select('*', { count: 'exact', head: true });
+      
+      if (employeesError) throw employeesError;
+      
+      setStats({
+        totalStudents: studentsCount || 0,
+        totalEducators: educatorsCount || 0,
+        totalEmployees: employeesCount || 0
+      });
     } catch (error) {
-      console.error('Error refreshing stats:', error);
+      console.error('Error fetching stats:', error);
+      toast.error('Failed to load statistics');
     }
-  };
-  
-  const calculateStatsFromCenters = (centersData: Center[]) => {
-    const totalStudents = centersData.reduce((sum, center) => sum + (center.num_of_student || 0), 0);
-    const totalEducators = centersData.reduce((sum, center) => sum + (center.num_of_educator || 0), 0);
-    const totalEmployees = centersData.reduce((sum, center) => sum + (center.num_of_employees || 0), 0);
-    
-    setStats({
-      totalStudents,
-      totalEducators,
-      totalEmployees
-    });
   };
 
   const handleSelectCenter = (center: Center) => {
@@ -209,7 +219,6 @@ const Index = () => {
           </Card>
         </div>
         
-        {/* Add PendingReviews component */}
         <PendingReviews />
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
