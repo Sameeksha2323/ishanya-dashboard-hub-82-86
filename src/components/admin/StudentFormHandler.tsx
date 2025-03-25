@@ -16,6 +16,7 @@ interface StudentFormHandlerProps {
   programId?: number;
   formType?: 'student' | 'employee';
   title?: string;
+  initialValues?: any;
 }
 
 const StudentFormHandler = ({ 
@@ -26,7 +27,8 @@ const StudentFormHandler = ({
   centerId,
   programId,
   formType = 'student',
-  title
+  title,
+  initialValues
 }: StudentFormHandlerProps) => {
   const [lastStudentId, setLastStudentId] = useState<number | null>(null);
   const [lastEmployeeId, setLastEmployeeId] = useState<number | null>(null);

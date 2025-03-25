@@ -1,7 +1,6 @@
 
 import { useState, useRef, ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { FileIcon, UploadCloud, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -102,7 +101,9 @@ const FileUpload = ({
       
       // Check if bucket exists, if not try to create it
       const { data: buckets } = await supabase.storage.listBuckets();
-      if (!buckets?.find(b => b.name === effectiveBucket)) {
+      const bucketExists = buckets?.find(b => b.name === effectiveBucket);
+      
+      if (!bucketExists) {
         const { error: bucketError } = await supabase.storage.createBucket(effectiveBucket, {
           public: true
         });

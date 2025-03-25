@@ -19,6 +19,7 @@ import StudentFormHandler from '@/components/admin/StudentFormHandler';
 import StudentForm from '@/components/admin/StudentForm';
 import ActivitiesSection from '@/components/admin/ActivitiesSection';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
+import EmployeeForm from '@/components/hr/EmployeeForm';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -30,6 +31,7 @@ const Index = () => {
     totalEmployees: 0
   });
   const [showStudentForm, setShowStudentForm] = useState(false);
+  const [showEmployeeForm, setShowEmployeeForm] = useState(false);
 
   const [selectedCenter, setSelectedCenter] = useState<Center | null>(null);
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
@@ -171,11 +173,51 @@ const Index = () => {
       return Promise.reject(error);
     }
   };
+  
+  const handleAddEmployee = async (data: any) => {
+    try {
+      const { error } = await supabase
+        .from('employees')
+        .insert([data]);
+        
+      if (error) {
+        throw error;
+      }
+      
+      toast.success('Employee added successfully');
+      fetchStats();
+      return Promise.resolve();
+    } catch (error: any) {
+      console.error('Error adding employee:', error);
+      toast.error(error.message || 'Failed to add employee');
+      return Promise.reject(error);
+    }
+  };
 
   const renderContent = () => {
     if (selectedTable && selectedProgram) {
       return (
-        <FilteredTableView table={selectedTable} />
+        <div>
+          <div className="flex justify-end mb-4">
+            {selectedTable.name === 'students' && (
+              <Button 
+                onClick={() => setShowStudentForm(true)}
+                className="bg-ishanya-green hover:bg-ishanya-green/80 text-white"
+              >
+                Add Student
+              </Button>
+            )}
+            {selectedTable.name === 'employees' && (
+              <Button 
+                onClick={() => setShowEmployeeForm(true)}
+                className="bg-ishanya-purple hover:bg-ishanya-purple/80 text-white"
+              >
+                Add Employee
+              </Button>
+            )}
+          </div>
+          <FilteredTableView table={selectedTable} />
+        </div>
       );
     }
     
@@ -299,24 +341,42 @@ const Index = () => {
     >
       {renderContent()}
       
-      {selectedTable?.name === 'students' && selectedProgram && (
-        <StudentFormHandler
-          isOpen={showStudentForm}
-          onClose={() => setShowStudentForm(false)}
-          onSubmit={handleAddStudent}
-          centerId={selectedCenter?.center_id}
-          programId={selectedProgram?.program_id}
-        >
-          {(handleSubmit) => (
-            <StudentForm
-              onSubmit={handleSubmit}
-              lastStudentId={null}
-              centerId={selectedCenter?.center_id}
-              programId={selectedProgram?.program_id}
-            />
-          )}
-        </StudentFormHandler>
-      )}
+      {/* Student Form Handler */}
+      <StudentFormHandler
+        isOpen={showStudentForm}
+        onClose={() => setShowStudentForm(false)}
+        onSubmit={handleAddStudent}
+        centerId={selectedCenter?.center_id}
+        programId={selectedProgram?.program_id}
+      >
+        {(handleSubmit) => (
+          <StudentForm
+            onSubmit={handleSubmit}
+            lastStudentId={null}
+            centerId={selectedCenter?.center_id}
+            programId={selectedProgram?.program_id}
+          />
+        )}
+      </StudentFormHandler>
+      
+      {/* Employee Form Handler */}
+      <StudentFormHandler
+        isOpen={showEmployeeForm}
+        onClose={() => setShowEmployeeForm(false)}
+        onSubmit={handleAddEmployee}
+        centerId={selectedCenter?.center_id}
+        programId={selectedProgram?.program_id}
+        formType="employee"
+        title="Add Employee Record"
+      >
+        {(handleSubmit) => (
+          <EmployeeForm
+            onSubmit={handleSubmit}
+            centerId={selectedCenter?.center_id}
+            programId={selectedProgram?.program_id}
+          />
+        )}
+      </StudentFormHandler>
     </Layout>
   );
 };
