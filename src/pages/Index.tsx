@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
@@ -17,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import StudentFormHandler from '@/components/admin/StudentFormHandler';
 import StudentForm from '@/components/admin/StudentForm';
 import ActivitiesSection from '@/components/admin/ActivitiesSection';
-import DataManager from '@/components/admin/DataManager';
+import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ const Index = () => {
   const [selectedCenter, setSelectedCenter] = useState<Center | null>(null);
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
   const [selectedTable, setSelectedTable] = useState<any | null>(null);
+  const [showAnalytics, setShowAnalytics] = useState(true);
 
   useEffect(() => {
     const loadCenters = async () => {
@@ -125,15 +127,18 @@ const Index = () => {
     setSelectedCenter(center);
     setSelectedProgram(null);
     setSelectedTable(null);
+    setShowAnalytics(false);
   };
 
   const handleSelectProgram = (program: Program) => {
     setSelectedProgram(program);
     setSelectedTable(null);
+    setShowAnalytics(false);
   };
 
   const handleSelectTable = (table: any) => {
     setSelectedTable(table);
+    setShowAnalytics(false);
   };
 
   const handleBack = () => {
@@ -143,6 +148,7 @@ const Index = () => {
       setSelectedProgram(null);
     } else if (selectedCenter) {
       setSelectedCenter(null);
+      setShowAnalytics(true);
     }
   };
   
@@ -169,28 +175,7 @@ const Index = () => {
   const renderContent = () => {
     if (selectedTable && selectedProgram) {
       return (
-        <>
-          <FilteredTableView table={selectedTable} />
-          
-          {selectedTable.name === 'students' && (
-            <StudentFormHandler
-              isOpen={showStudentForm}
-              onClose={() => setShowStudentForm(false)}
-              onSubmit={handleAddStudent}
-              centerId={selectedCenter?.center_id}
-              programId={selectedProgram?.program_id}
-            >
-              {(handleSubmit) => (
-                <StudentForm
-                  onSubmit={handleSubmit}
-                  lastStudentId={null}
-                  centerId={selectedCenter?.center_id}
-                  programId={selectedProgram?.program_id}
-                />
-              )}
-            </StudentFormHandler>
-          )}
-        </>
+        <FilteredTableView table={selectedTable} />
       );
     }
     
@@ -210,7 +195,15 @@ const Index = () => {
     
     return (
       <>
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-between mb-4">
+          <Button
+            variant="outline"
+            className="bg-white border-ishanya-green text-ishanya-green hover:bg-ishanya-green/10"
+            onClick={() => setShowAnalytics(!showAnalytics)}
+          >
+            {showAnalytics ? "Hide Analytics" : "Show Analytics"}
+          </Button>
+          
           <Button
             variant="default"
             className="bg-ishanya-green hover:bg-ishanya-green/80 text-white"
@@ -258,6 +251,8 @@ const Index = () => {
           </Card>
         </div>
         
+        {showAnalytics && <AnalyticsDashboard />}
+        
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <PendingReviews />
           <ActivitiesSection />
@@ -303,6 +298,25 @@ const Index = () => {
       onBack={handleBack}
     >
       {renderContent()}
+      
+      {selectedTable?.name === 'students' && selectedProgram && (
+        <StudentFormHandler
+          isOpen={showStudentForm}
+          onClose={() => setShowStudentForm(false)}
+          onSubmit={handleAddStudent}
+          centerId={selectedCenter?.center_id}
+          programId={selectedProgram?.program_id}
+        >
+          {(handleSubmit) => (
+            <StudentForm
+              onSubmit={handleSubmit}
+              lastStudentId={null}
+              centerId={selectedCenter?.center_id}
+              programId={selectedProgram?.program_id}
+            />
+          )}
+        </StudentFormHandler>
+      )}
     </Layout>
   );
 };

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,8 @@ import StudentFormHandler from '@/components/admin/StudentFormHandler';
 import StudentForm from '@/components/admin/StudentForm';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import VoiceInputDialog from '@/components/ui/VoiceInputDialog';
+import { openVoiceInputDialog } from '@/utils/formEventUtils';
 
 type TableActionsProps = {
   tableName: string;
@@ -23,6 +26,7 @@ const TableActions = ({
   table
 }: TableActionsProps) => {
   const [showStudentForm, setShowStudentForm] = useState(false);
+  const [showVoiceInput, setShowVoiceInput] = useState(false);
   
   const handleAddStudent = async (data: any) => {
     try {
@@ -49,6 +53,30 @@ const TableActions = ({
       setShowStudentForm(true);
     } else if (onInsert) {
       onInsert();
+    }
+  };
+  
+  const handleVoiceEntry = () => {
+    setShowVoiceInput(true);
+  };
+  
+  const handleVoiceInputComplete = async (data: any) => {
+    try {
+      // Handle the data from voice input
+      const { error } = await supabase
+        .from(tableName.toLowerCase())
+        .insert([data]);
+        
+      if (error) {
+        throw error;
+      }
+      
+      toast.success(`${tableName} added successfully via voice input`);
+      if (onRefresh) onRefresh();
+      setShowVoiceInput(false);
+    } catch (error: any) {
+      console.error(`Error adding ${tableName}:`, error);
+      toast.error(error.message || `Failed to add ${tableName}`);
     }
   };
 
@@ -89,7 +117,7 @@ const TableActions = ({
           
           <Button 
             variant="outline"
-            onClick={() => setShowStudentForm(true)}
+            onClick={handleVoiceEntry}
             className="flex items-center"
           >
             <Mic className="mr-1 h-4 w-4" />
@@ -115,6 +143,15 @@ const TableActions = ({
             />
           )}
         </StudentFormHandler>
+      )}
+      
+      {showVoiceInput && (
+        <VoiceInputDialog
+          isOpen={showVoiceInput}
+          onClose={() => setShowVoiceInput(false)}
+          table={tableName.toLowerCase()}
+          onComplete={handleVoiceInputComplete}
+        />
       )}
     </Card>
   );
