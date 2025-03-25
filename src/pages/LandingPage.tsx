@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -85,7 +84,7 @@ const LandingPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 cursor-default">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
       {/* Navbar */}
       <nav className={`fixed w-full top-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/90 dark:bg-gray-800/90 backdrop-blur-md shadow-md' : 'bg-transparent'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -118,7 +117,7 @@ const LandingPage = () => {
                 </a>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <div className="hidden md:flex items-center space-x-3">
                 <a 
                   href="https://www.facebook.com/ishanyaindia" 
@@ -243,7 +242,7 @@ const LandingPage = () => {
               variants={fadeInUp}
             >
               <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white sm:text-5xl lg:text-6xl">
-                <span className="block text-ishanya-green">{t('landing.hero_title') || 'Sankalp Portal'}</span>
+                <span className="block text-ishanya-green pr-4">{t('landing.hero_title') || 'Sankalp Portal'}</span>
                 <span className="block text-ishanya-yellow mt-1">{t('landing.hero_subtitle') || 'Journey to Inclusion'}</span>
               </h1>
               <p className="mt-6 text-xl text-gray-600 dark:text-gray-300">
@@ -256,7 +255,7 @@ const LandingPage = () => {
                 <motion.div variants={fadeIn}>
                   <Button 
                     onClick={goToLogin}
-                    className="bg-ishanya-green hover:bg-ishanya-green/90 text-white px-6 py-2 text-base font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                    className="bg-ishanya-green hover:bg-ishanya-green/90 text-white px-5 py-2 text-base font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
                     size="default"
                   >
                     {t('login.button') || 'Login'} <ArrowRight className="ml-2 h-5 w-5" />
@@ -265,7 +264,7 @@ const LandingPage = () => {
                 <motion.div variants={fadeIn}>
                   <a 
                     href="#about"
-                    className="inline-flex items-center justify-center px-6 py-2 text-base font-medium rounded-xl bg-white text-ishanya-green hover:bg-gray-50 dark:bg-gray-800 dark:text-ishanya-green dark:hover:bg-gray-700 shadow-lg hover:shadow-xl transition-all duration-300 border border-transparent"
+                    className="inline-flex items-center justify-center px-5 py-2 text-base font-medium rounded-lg bg-white text-ishanya-green hover:bg-gray-50 dark:bg-gray-800 dark:text-ishanya-green dark:hover:bg-gray-700 shadow-lg hover:shadow-xl transition-all duration-300 border border-transparent"
                   >
                     {t('common.learn_more') || 'Learn more'} <ArrowRight className="ml-2 h-5 w-5" />
                   </a>
@@ -312,7 +311,7 @@ const LandingPage = () => {
             </p>
           </motion.div>
           <div className="mt-16">
-            <div className="grid grid-cols-1 gap-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
               <motion.div 
                 className="flex flex-col justify-center"
                 initial="hidden"
@@ -348,6 +347,21 @@ const LandingPage = () => {
                     <span className="ml-2 text-gray-700 dark:text-gray-300">{t('landing.supportive_community') || 'Supportive Community'}</span>
                   </motion.div>
                 </div>
+              </motion.div>
+              
+              {/* Add Indian themed image to About Us section */}
+              <motion.div
+                className="flex justify-center items-center"
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                variants={fadeIn}
+              >
+                <img 
+                  src="https://images.unsplash.com/photo-1524492412937-b28074a5d7da?q=80&w=2071&auto=format&fit=crop"
+                  alt="Indian students in a classroom setting" 
+                  className="rounded-2xl shadow-xl object-cover h-80 w-full" 
+                />
               </motion.div>
             </div>
           </div>
