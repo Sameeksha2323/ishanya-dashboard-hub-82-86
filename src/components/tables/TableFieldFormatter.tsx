@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -196,8 +195,7 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
             <SelectValue placeholder="Select program" />
           </SelectTrigger>
           <SelectContent>
-            {/* Changed from empty string to "none" with a value */}
-            <SelectItem value="0">None</SelectItem>
+            <SelectItem value="none">None</SelectItem>
             {programs.map((program) => (
               <SelectItem key={program.program_id} value={safeToString(program.program_id)}>
                 {program.name}
@@ -228,8 +226,7 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
           </SelectTrigger>
           <SelectContent>
             {fieldName === 'secondary_educator_employee_id' && (
-              // Changed from empty string to "0" with a value
-              <SelectItem value="0">None</SelectItem>
+              <SelectItem value="none">None</SelectItem>
             )}
             {employees.map((employee) => (
               <SelectItem key={employee.employee_id} value={safeToString(employee.employee_id)}>
@@ -267,7 +264,6 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
             <SelectItem value="true">Yes</SelectItem>
             <SelectItem value="false">No</SelectItem>
             {!isRequired && (
-              // Changed from empty string to "null" with a value
               <SelectItem value="null">Not specified</SelectItem>
             )}
           </SelectContent>
@@ -295,7 +291,6 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
             <SelectItem value="Female">Female</SelectItem>
             <SelectItem value="Other">Other</SelectItem>
             {!isRequired && (
-              // Changed from empty string to "unspecified" with a value
               <SelectItem value="unspecified">Not specified</SelectItem>
             )}
           </SelectContent>
@@ -353,7 +348,6 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
             <SelectItem value="O+">O+</SelectItem>
             <SelectItem value="O-">O-</SelectItem>
             {!isRequired && (
-              // Changed from empty string to "unknown" with a value
               <SelectItem value="unknown">Not specified</SelectItem>
             )}
           </SelectContent>
@@ -382,7 +376,6 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
             <SelectItem value="Temporary">Temporary</SelectItem>
             <SelectItem value="Intern">Intern</SelectItem>
             {!isRequired && (
-              // Changed from empty string to "unspecified" with a value
               <SelectItem value="unspecified">Not specified</SelectItem>
             )}
           </SelectContent>
@@ -413,7 +406,6 @@ export const TableFieldFormatter = ({ fieldName, value, onChange, isEditing, isR
             <SelectItem value="Operations">Operations</SelectItem>
             <SelectItem value="Support Staff">Support Staff</SelectItem>
             {!isRequired && (
-              // Changed from empty string to "unspecified" with a value  
               <SelectItem value="unspecified">Not specified</SelectItem>
             )}
           </SelectContent>

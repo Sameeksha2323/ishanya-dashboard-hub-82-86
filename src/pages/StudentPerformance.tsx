@@ -163,7 +163,7 @@ const StudentPerformance = () => {
                 <SelectValue placeholder="Filter by center" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Centers</SelectItem>
+                <SelectItem value="all-centers">All Centers</SelectItem>
                 {centers.map((center) => (
                   <SelectItem key={center.center_id} value={center.center_id.toString()}>
                     {center.center_id} - {center.name}
@@ -180,7 +180,7 @@ const StudentPerformance = () => {
                 <SelectValue placeholder="Filter by program" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Programs</SelectItem>
+                <SelectItem value="all-programs">All Programs</SelectItem>
                 {programs.map((program) => (
                   <SelectItem key={program.program_id} value={program.program_id.toString()}>
                     {program.program_id} - {program.name}

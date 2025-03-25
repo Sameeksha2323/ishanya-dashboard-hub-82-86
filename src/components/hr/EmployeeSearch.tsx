@@ -45,7 +45,6 @@ const EmployeeSearch = ({ onSearch, onCenterChange, centers, selectedCenter }: E
               <SelectValue placeholder="Select center" />
             </SelectTrigger>
             <SelectContent>
-              {/* Changed from "all" to "all-centers" to avoid confusion with empty string */}
               <SelectItem value="all-centers">All Centers</SelectItem>
               {centers.map((center) => (
                 <SelectItem key={center.id} value={center.center_id.toString()}>
