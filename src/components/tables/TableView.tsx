@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,7 +31,6 @@ const TableView = ({ table }: TableViewProps) => {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
-  // Track the source of the form data (for form submissions)
   const [formDataSource, setFormDataSource] = useState<any>(null);
 
   useEffect(() => {
@@ -43,7 +41,6 @@ const TableView = ({ table }: TableViewProps) => {
         
         const tableName = table.name.toLowerCase();
         
-        // Fetch columns first
         const columnsData = await fetchTableColumns(tableName);
         if (!columnsData) {
           setError('Failed to fetch table columns');
@@ -52,7 +49,6 @@ const TableView = ({ table }: TableViewProps) => {
         
         setColumns(columnsData);
         
-        // Fetch table data
         let query = supabase.from(tableName).select('*');
         
         if (tableName.toLowerCase() === 'students' && table.center_id) {
@@ -72,13 +68,11 @@ const TableView = ({ table }: TableViewProps) => {
         setData(tableData || []);
         setFilteredData(tableData || []);
         
-        // Initialize default form data
         const defaultFormData: Record<string, any> = {};
         columnsData.forEach(col => {
           defaultFormData[col] = '';
         });
         
-        // Add center_id from table if available
         if (table.center_id) {
           defaultFormData.center_id = table.center_id;
         }
@@ -95,25 +89,25 @@ const TableView = ({ table }: TableViewProps) => {
     
     fetchData();
 
-    // Listen for the openStudentForm event from PendingReviews
-    const handleOpenStudentForm = (event: any) => {
+    const handleOpenStudentForm = (event: CustomEvent<any>) => {
       if (table.name.toLowerCase() === 'students') {
         const { formData: prefillData, sourceEntry, onSuccess } = event.detail;
+        
         setFormData(prefillData);
         setFormDataSource({ sourceEntry, onSuccess });
         setIsEditing(false);
         setShowForm(true);
+        toast.success('Student form opened with prefilled data');
       }
     };
 
-    window.addEventListener('openStudentForm', handleOpenStudentForm);
+    window.addEventListener('openStudentForm', handleOpenStudentForm as EventListener);
 
     return () => {
-      window.removeEventListener('openStudentForm', handleOpenStudentForm);
+      window.removeEventListener('openStudentForm', handleOpenStudentForm as EventListener);
     };
   }, [table]);
 
-  // Filter data based on search term
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredData(data);
@@ -141,7 +135,6 @@ const TableView = ({ table }: TableViewProps) => {
     setSelectedRow(row);
     setIsEditing(true);
     
-    // Copy row data to form
     const rowFormData: Record<string, any> = {};
     columns.forEach(col => {
       rowFormData[col] = row[col] !== null ? row[col] : '';
@@ -173,7 +166,6 @@ const TableView = ({ table }: TableViewProps) => {
       
       const tableName = table.name.toLowerCase();
       
-      // Prepare data for update
       const updateData: Record<string, any> = {};
       columns.forEach(col => {
         updateData[col] = formData[col] !== null ? formData[col] : null;
@@ -193,7 +185,6 @@ const TableView = ({ table }: TableViewProps) => {
       
       toast.success('Record updated successfully');
       
-      // Update local state
       setData(data.map(item => (item.id === selectedRow.id ? updatedData[0] : item)));
       setFilteredData(filteredData.map(item => (item.id === selectedRow.id ? updatedData[0] : item)));
       setShowForm(false);
@@ -213,7 +204,6 @@ const TableView = ({ table }: TableViewProps) => {
       
       const tableName = table.name.toLowerCase();
       
-      // Prepare data for insert
       const insertData: Record<string, any> = {};
       columns.forEach(col => {
         insertData[col] = formData[col] !== null ? formData[col] : null;
@@ -232,12 +222,10 @@ const TableView = ({ table }: TableViewProps) => {
       
       toast.success('Record added successfully');
       
-      // Update local state
       setData([...data, newRecord[0]]);
       setFilteredData([...filteredData, newRecord[0]]);
       setShowForm(false);
       
-      // If this was from a form submission, call the onSuccess callback
       if (formDataSource && formDataSource.onSuccess) {
         try {
           await formDataSource.onSuccess();
@@ -276,7 +264,6 @@ const TableView = ({ table }: TableViewProps) => {
         
         toast.success('Record deleted successfully');
         
-        // Update local state
         setData(data.filter(item => item.id !== row.id));
         setFilteredData(filteredData.filter(item => item.id !== row.id));
         
@@ -317,13 +304,11 @@ const TableView = ({ table }: TableViewProps) => {
           setSelectedRow(null);
           setFormDataSource(null);
           
-          // Reset form with default values
           const defaultFormData: Record<string, any> = {};
           columns.forEach(col => {
             defaultFormData[col] = '';
           });
           
-          // Add center_id from table if available
           if (table.center_id) {
             defaultFormData.center_id = table.center_id;
           }

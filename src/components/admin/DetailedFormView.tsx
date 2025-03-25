@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -84,8 +83,7 @@ const DetailedFormView = ({
     }
   };
 
-  // Determine which fields to display and in what order
-  const getFormFields = () => {
+  function getFormFields() {
     // Define important fields to show at the top
     const priorityFields = [
       'First Name',
@@ -132,10 +130,9 @@ const DetailedFormView = ({
       // If neither are priority fields, sort alphabetically
       return a.localeCompare(b);
     });
-  };
+  }
 
-  // Format field label for display
-  const formatFieldLabel = (field: string) => {
+  function formatFieldLabel(field: string) {
     // If field is already well-formatted, return as is
     if (/^[A-Z]/.test(field) || field.includes("'")) {
       return field;
@@ -147,13 +144,12 @@ const DetailedFormView = ({
       .replace(/([A-Z])/g, ' $1')
       .replace(/^./, str => str.toUpperCase())
       .trim();
-  };
+  }
 
-  // Determine if a field should use textarea instead of input
-  const shouldUseTextarea = (field: string, value: string) => {
+  function shouldUseTextarea(field: string, value: string) {
     return field.toLowerCase().includes('address') || 
            (typeof value === 'string' && value.length > 50);
-  };
+  }
 
   return (
     <div>

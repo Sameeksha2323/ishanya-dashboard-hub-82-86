@@ -185,26 +185,11 @@ const PendingReviews = () => {
 
   const handleRejectEntry = async (entry: FormEntry) => {
     try {
-      // Use fetch API with the appropriate DELETE method
-      const API_KEY = 'AIzaSyACcbknWrMdZUapY8sQii16PclJ2xlPlqA';
-      const SHEET_ID = '144Qh31BIIsDJYye5vWkE9WFhGI433yZU4TtKLq1wN4w';
-      const RANGE = `Form Responses 1!A${entry.rowIndex}:Z${entry.rowIndex}`;
+      // Show loading toast
+      toast.loading('Rejecting entry...');
       
-      // Instead of deleting the row (which requires OAuth2), we'll clear the values in that row
-      const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}:clear?key=${API_KEY}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        }
-      );
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to clear row: ${response.status} ${response.statusText} - ${errorText}`);
-      }
+      // Delete the row from Google Sheets using batchUpdate API
+      await deleteFromGoogleSheet(entry.rowIndex);
       
       // Remove from local state
       setEntries(prev => prev.filter(e => e.id !== entry.id));
@@ -218,29 +203,57 @@ const PendingReviews = () => {
 
   const deleteFromGoogleSheet = async (rowIndex: number) => {
     try {
-      // Use the clear values endpoint which works with API key
       const API_KEY = 'AIzaSyACcbknWrMdZUapY8sQii16PclJ2xlPlqA';
       const SHEET_ID = '144Qh31BIIsDJYye5vWkE9WFhGI433yZU4TtKLq1wN4w';
-      const RANGE = `Form Responses 1!A${rowIndex}:Z${rowIndex}`;
       
+      // First, get the sheet ID (needed for batch update)
       const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}:clear?key=${API_KEY}`,
+        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?key=${API_KEY}`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch spreadsheet info: ${response.status}`);
+      }
+      
+      const spreadsheetData = await response.json();
+      const sheet = spreadsheetData.sheets[0]; // Assuming we're working with first sheet
+      const sheetId = sheet.properties.sheetId;
+      
+      // Now perform batch update to delete the row
+      const batchUpdateRequest = {
+        "requests": [
+          {
+            "deleteDimension": {
+              "range": {
+                "sheetId": sheetId,
+                "dimension": "ROWS",
+                "startIndex": rowIndex - 1, // Convert 1-based index to 0-based
+                "endIndex": rowIndex // Non-inclusive end index
+              }
+            }
+          }
+        ]
+      };
+      
+      const deleteResponse = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate?key=${API_KEY}`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-          }
+          },
+          body: JSON.stringify(batchUpdateRequest)
         }
       );
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to clear row: ${response.status} ${response.statusText} - ${errorText}`);
+      if (!deleteResponse.ok) {
+        const errorText = await deleteResponse.text();
+        throw new Error(`Failed to delete row: ${deleteResponse.status} - ${errorText}`);
       }
       
       return true;
     } catch (err) {
-      console.error('Error clearing row from Google Sheet:', err);
+      console.error('Error deleting row from Google Sheet:', err);
       throw err;
     }
   };
