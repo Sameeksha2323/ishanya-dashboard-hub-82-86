@@ -19,8 +19,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUser } from '@/lib/auth';
+import { trackDatabaseChange } from '@/utils/dbTracking';
 
-// List of required fields by table
 const requiredFields = {
   students: [
     'first_name', 'last_name', 'gender', 'dob', 'student_id', 'enrollment_year', 
@@ -41,7 +41,6 @@ type FilteredTableViewProps = {
   table: any;
 };
 
-// Define a basic record type to handle Supabase responses
 type RecordWithID = {
   id?: string;
   student_id?: number;
@@ -50,7 +49,6 @@ type RecordWithID = {
   [key: string]: any;
 }
 
-// Define specific types for each table
 type EducatorRecord = {
   center_id: number;
   employee_id: number;
@@ -169,7 +167,6 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
         
         const tableName = table.name.toLowerCase();
         
-        // Fetch columns first
         const columnsData = await fetchTableColumns(tableName);
         if (!columnsData) {
           setError('Failed to fetch table columns');
@@ -178,10 +175,8 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
         
         setColumns(columnsData);
         
-        // Fetch table data with proper filtering
         let query = supabase.from(tableName).select('*');
         
-        // Apply filters based on table name and available filters
         if (tableName === 'students') {
           if (table.center_id) {
             query = query.eq('center_id', table.center_id);
@@ -204,7 +199,6 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
         setData(tableData || []);
         setFilteredData(tableData || []);
         
-        // Get the highest ID value for reference
         if (tableData && tableData.length > 0) {
           const validData = tableData as RecordWithID[];
           
@@ -220,13 +214,11 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
           }
         }
         
-        // Initialize default form data
         const defaultFormData: Record<string, any> = {};
         columnsData.forEach(col => {
           defaultFormData[col] = '';
         });
         
-        // Add center_id and program_id from table if available
         if (table.center_id) {
           defaultFormData.center_id = table.center_id;
         }
@@ -247,7 +239,6 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
     fetchData();
   }, [table]);
 
-  // Filter data based on search term and column
   useEffect(() => {
     if (data.length === 0) return;
     
@@ -286,7 +277,6 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
     setSelectedRow(row);
     setIsEditing(false);
     
-    // Copy row data to form
     const rowFormData: Record<string, any> = {};
     columns.forEach(col => {
       rowFormData[col] = row[col] !== null ? row[col] : '';
@@ -306,9 +296,7 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
       const idField = tableName === 'students' ? 'student_id' : 
                       (tableName === 'employees' || tableName === 'educators') ? 'employee_id' : 'id';
       
-      // Check if this is a new record or an update
       if (selectedRow) {
-        // Update existing record
         const { error } = await supabase
           .from(tableName)
           .update(formData)
@@ -320,7 +308,6 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
           return;
         }
         
-        // If it's employee or educator, sync data between the tables
         if ((tableName === 'employees' || tableName === 'educators') && 
             formData.employee_id && formData.department === 'Education') {
           
@@ -342,41 +329,35 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
               
             if (syncError) {
               console.error(`Error syncing with ${otherTable}:`, syncError);
+            } else {
+              await trackDatabaseChange(otherTable, 'update');
             }
           }
         }
         
         toast.success('Record updated successfully', { duration: 3000 });
         
-        // Update the records in the UI
         const updatedData = data.map(item => 
           item[idField] === selectedRow[idField] ? { ...item, ...formData } : item
         );
         setData(updatedData);
         setFilteredData(updatedData);
       } else {
-        // Insert new record
         let insertData;
         
-        // Create typed data for insertion based on the table type
         if (tableName === 'educators') {
-          // Create a properly typed educator record
           const educatorData: Partial<EducatorRecord> = { ...formData };
           insertData = [educatorData];
         } else if (tableName === 'employees') {
-          // Create a properly typed employee record
           const employeeData: Partial<EmployeeRecord> = { ...formData };
           insertData = [employeeData];
         } else if (tableName === 'students') {
-          // Create a properly typed student record
           const studentData: Partial<StudentRecord> = { ...formData };
           insertData = [studentData];
         } else if (tableName === 'centers') {
-          // Create a properly typed center record
           const centerData: Partial<CenterRecord> = { ...formData };
           insertData = [centerData];
         } else {
-          // Generic fallback for other tables
           insertData = [formData];
         }
         
@@ -391,7 +372,8 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
           return;
         }
         
-        // If it's employee or educator with Education department, create in both tables
+        await trackDatabaseChange(tableName, 'insert');
+        
         if ((tableName === 'employees' || tableName === 'educators') && 
             formData.employee_id && formData.department === 'Education') {
           
@@ -406,7 +388,6 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
           
           const otherTable = tableName === 'employees' ? 'educators' : 'employees';
           
-          // Check if record already exists in the other table
           const { data: existingData } = await supabase
             .from(otherTable)
             .select('*')
@@ -414,7 +395,6 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
             .limit(1);
             
           if (existingData && existingData.length === 0) {
-            // Create properly typed sync data based on the target table
             let syncInsertData;
             
             if (otherTable === 'educators') {
@@ -431,29 +411,26 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
               
             if (syncError) {
               console.error(`Error syncing with ${otherTable}:`, syncError);
+            } else {
+              await trackDatabaseChange(otherTable, 'insert');
             }
           }
         }
         
         toast.success('Record added successfully', { duration: 3000 });
         
-        // Update the records in the UI
-        if (insertedData && insertedData.length > 0) {
-          const newData = [...data, ...insertedData];
-          setData(newData);
-          setFilteredData(newData);
-          
-          // Safely cast insertedData to our RecordWithID type
-          const typedInsertedData = insertedData as RecordWithID[];
-          
-          // Update last record ID
-          if (tableName === 'students' && typedInsertedData[0].student_id) {
-            setLastRecordId(typedInsertedData[0].student_id);
-          } else if ((tableName === 'employees' || tableName === 'educators') && typedInsertedData[0].employee_id) {
-            setLastRecordId(typedInsertedData[0].employee_id);
-          } else if (tableName === 'centers' && typedInsertedData[0].center_id) {
-            setLastRecordId(typedInsertedData[0].center_id);
-          }
+        const newData = [...data, ...insertedData];
+        setData(newData);
+        setFilteredData(newData);
+        
+        const typedInsertedData = insertedData as RecordWithID[];
+        
+        if (tableName === 'students' && typedInsertedData[0].student_id) {
+          setLastRecordId(typedInsertedData[0].student_id);
+        } else if ((tableName === 'employees' || tableName === 'educators') && typedInsertedData[0].employee_id) {
+          setLastRecordId(typedInsertedData[0].employee_id);
+        } else if (tableName === 'centers' && typedInsertedData[0].center_id) {
+          setLastRecordId(typedInsertedData[0].center_id);
         }
       }
       
@@ -486,14 +463,14 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
           return;
         }
         
+        await trackDatabaseChange(tableName, 'delete');
+        
         toast.success('Record deleted successfully', { duration: 3000 });
         
-        // Update the records in the UI
         const updatedData = data.filter(item => item[idField] !== row[idField]);
         setData(updatedData);
         setFilteredData(updatedData);
         
-        // Close dialog if the deleted record was being viewed
         if (selectedRow && selectedRow[idField] === row[idField]) {
           setShowDetails(false);
           setSelectedRow(null);
@@ -514,11 +491,9 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
     if (!file) return;
     
     try {
-      // Create a FileReader to read the file as a data URL
       const reader = new FileReader();
       reader.onload = (e) => {
         const dataUrl = e.target?.result as string;
-        // Set the data URL as the value for the photo field
         setFormData(prev => ({ ...prev, photo: dataUrl }));
       };
       reader.readAsDataURL(file);
@@ -551,7 +526,6 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
       <TableActions
         tableName={table.name}
         onInsert={() => {
-          // Reset form with default values and increment the ID
           const defaultFormData: Record<string, any> = {};
           const tableName = table.name.toLowerCase();
           
@@ -563,7 +537,6 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
             }
           });
           
-          // Add center_id and program_id from table if available
           if (table.center_id) {
             defaultFormData.center_id = table.center_id;
           }
@@ -711,7 +684,6 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
         </div>
       </div>
 
-      {/* Details/Edit Dialog */}
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -734,14 +706,12 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {columns.filter(col => col !== 'id').map((column) => {
-                // Skip password field for non-admin users unless creating/editing
                 if (column === 'password' && 
                     !isFormEditing && 
                     userRole !== 'administrator') {
                   return null;
                 }
                 
-                // Special handling for photo field
                 if (column === 'photo' && isFormEditing) {
                   return (
                     <div key={column} className="space-y-2">
@@ -771,7 +741,6 @@ const FilteredTableView = ({ table }: FilteredTableViewProps) => {
                   );
                 }
                 
-                // For everything else
                 return (
                   <div key={column} className="space-y-2">
                     <Label>

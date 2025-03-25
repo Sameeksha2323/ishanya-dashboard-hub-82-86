@@ -8,6 +8,7 @@ import { Megaphone } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { getCurrentUser } from '@/lib/auth';
+import { trackDatabaseChange } from '@/utils/dbTracking';
 
 type AnnouncementFormProps = {
   onAnnouncementAdded?: () => void;
@@ -57,6 +58,8 @@ const AnnouncementForm = ({ onAnnouncementAdded }: AnnouncementFormProps) => {
         console.error('Error creating notifications:', notificationError);
       } else {
         console.log(`Created ${notifications.length} notifications successfully`);
+        // Track the database change
+        await trackDatabaseChange('notifications', 'insert');
       }
     } catch (error) {
       console.error('Error in createNotificationsForAllUsers:', error);
@@ -94,19 +97,14 @@ const AnnouncementForm = ({ onAnnouncementAdded }: AnnouncementFormProps) => {
       // If announcement was created successfully, create notifications for all users
       if (data && data.length > 0) {
         await createNotificationsForAllUsers(data[0].announcement_id);
+        
+        // Track the announcement creation
+        await trackDatabaseChange('announcements', 'insert');
       }
       
       toast.success('Announcement created successfully');
       setTitle('');
       setContent('');
-      
-      // Log this action to webdata table
-      await supabase
-        .from('webdata')
-        .insert({
-          transaction_name: `New announcement: ${title}`,
-          created_at: new Date().toISOString()
-        });
       
       if (onAnnouncementAdded) {
         onAnnouncementAdded();
