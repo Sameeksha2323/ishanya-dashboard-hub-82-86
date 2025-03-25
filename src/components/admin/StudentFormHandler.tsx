@@ -1,7 +1,5 @@
 
-import { useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Form } from '@/components/ui/form';
 import { toast } from 'sonner';
 
 interface StudentFormHandlerProps {
@@ -51,9 +49,9 @@ const StudentFormHandler = ({
           <SheetTitle>Add Student Record</SheetTitle>
         </SheetHeader>
         <div className="mt-6">
-          {/* Pass the handleSubmit function to children */}
-          {children && typeof children === 'function' 
-            ? children({ onSubmit: handleSubmit })
+          {/* The error is here - fix how we handle children */}
+          {typeof children === 'function' 
+            ? children(handleSubmit)
             : children}
         </div>
       </SheetContent>
