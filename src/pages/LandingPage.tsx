@@ -1,30 +1,62 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Facebook, Instagram, Linkedin, Youtube, ArrowRight, Heart } from 'lucide-react';
+import { Facebook, Instagram, Linkedin, Youtube, ArrowRight, Heart, Mail, MapPin, Phone } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import Header from '@/components/layout/Header';
 import { AccessibilityMenu } from '@/components/ui/AccessibilityMenu';
+import { motion } from 'framer-motion';
 
 const LandingPage = () => {
   const navigate = useNavigate();
   const [isHovering, setIsHovering] = useState<string | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+  
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const goToLogin = () => {
     navigate('/login');
   };
 
+  // Animation variants
+  const fadeInUp = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
+  };
+
+  const fadeIn = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.8 } }
+  };
+
+  const staggerChildren = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { 
+        staggerChildren: 0.2
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
       {/* Navbar */}
-      <nav className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+      <nav className={`fixed w-full top-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/90 dark:bg-gray-800/90 backdrop-blur-md shadow-md' : 'bg-transparent'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <div className="flex-shrink-0 flex items-center">
+                {/* Use a reliable placeholder image */}
                 <img 
-                  src="/lovable-uploads/17953c8a-6715-4e58-af68-a3918c44fd33.png" 
+                  src="https://placehold.co/200x80/3B8A4E/FFFFFF?text=Ishanya" 
                   alt="Ishanya Foundation" 
                   className="h-10 w-auto" 
                 />
@@ -54,7 +86,7 @@ const LandingPage = () => {
                   href="https://facebook.com" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
+                  className="text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors duration-300"
                 >
                   <Facebook size={18} />
                 </a>
@@ -62,7 +94,7 @@ const LandingPage = () => {
                   href="https://instagram.com" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-gray-500 hover:text-pink-600 dark:text-gray-400 dark:hover:text-pink-400"
+                  className="text-gray-500 hover:text-pink-600 dark:text-gray-400 dark:hover:text-pink-400 transition-colors duration-300"
                 >
                   <Instagram size={18} />
                 </a>
@@ -70,7 +102,7 @@ const LandingPage = () => {
                   href="https://linkedin.com" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-gray-500 hover:text-blue-800 dark:text-gray-400 dark:hover:text-blue-500"
+                  className="text-gray-500 hover:text-blue-800 dark:text-gray-400 dark:hover:text-blue-500 transition-colors duration-300"
                 >
                   <Linkedin size={18} />
                 </a>
@@ -78,7 +110,7 @@ const LandingPage = () => {
                   href="https://youtube.com" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-500"
+                  className="text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-500 transition-colors duration-300"
                 >
                   <Youtube size={18} />
                 </a>
@@ -96,10 +128,16 @@ const LandingPage = () => {
       </nav>
 
       {/* Hero Section */}
-      <section id="home" className="relative bg-gradient-to-r from-ishanya-green/10 to-ishanya-yellow/10 dark:from-ishanya-green/5 dark:to-ishanya-yellow/5 py-20">
+      <section id="home" className="relative pt-24 pb-20 md:pt-32 md:pb-28 bg-gradient-to-r from-ishanya-green/10 via-white/10 to-ishanya-yellow/10 dark:from-ishanya-green/5 dark:to-ishanya-yellow/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="lg:flex lg:items-center lg:justify-between">
-            <div className="lg:w-1/2">
+            <motion.div 
+              className="lg:w-1/2"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeInUp}
+            >
               <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white sm:text-5xl lg:text-6xl">
                 <span className="block text-ishanya-green">Sankalp Portal</span>
                 <span className="block text-ishanya-yellow mt-1">Journey to Inclusion</span>
@@ -107,316 +145,445 @@ const LandingPage = () => {
               <p className="mt-6 text-xl text-gray-600 dark:text-gray-300">
                 The Ishanya Foundation's comprehensive database management system for supporting individuals with special needs.
               </p>
-              <div className="mt-8 flex">
-                <div className="inline-flex rounded-md shadow">
+              <motion.div 
+                className="mt-8 flex flex-wrap gap-4"
+                variants={staggerChildren}
+              >
+                <motion.div variants={fadeIn}>
                   <Button 
                     onClick={goToLogin}
-                    className="bg-ishanya-green hover:bg-ishanya-green/90 text-white px-8 py-3 text-base font-medium"
+                    className="bg-ishanya-green hover:bg-ishanya-green/90 text-white px-8 py-6 text-base font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                    size="lg"
                   >
                     Get Started <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
-                </div>
-                <div className="ml-3 inline-flex">
+                </motion.div>
+                <motion.div variants={fadeIn}>
                   <a 
                     href="#about"
-                    className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-ishanya-green bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-ishanya-green dark:hover:bg-gray-700"
+                    className="inline-flex items-center justify-center px-8 py-6 border border-transparent text-base font-medium rounded-xl text-ishanya-green bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-ishanya-green dark:hover:bg-gray-700 shadow-md hover:shadow-lg transition-all duration-300"
                   >
                     Learn more
                   </a>
-                </div>
-              </div>
-            </div>
-            <div className="mt-10 lg:mt-0 lg:w-1/2 flex justify-center">
+                </motion.div>
+              </motion.div>
+            </motion.div>
+            <motion.div 
+              className="mt-10 lg:mt-0 lg:w-1/2 flex justify-center"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeIn}
+            >
               <img 
-                src="https://i.imgur.com/WVhwZr0.png" 
+                src="https://images.unsplash.com/photo-1524069290683-0457abfe42c3?q=80&w=2940&auto=format&fit=crop"
                 alt="Inclusive Education Illustration" 
-                className="max-h-96 animate-fade-in rounded-lg shadow-lg"
+                className="max-h-96 rounded-2xl shadow-2xl object-cover"
               />
-            </div>
+            </motion.div>
           </div>
         </div>
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-b from-transparent to-white dark:to-gray-800"></div>
       </section>
 
       {/* About Section */}
-      <section id="about" className="py-16 bg-white dark:bg-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
+      <section id="about" className="py-16 bg-white dark:bg-gray-800 relative">
+        <div className="absolute top-0 left-0 w-1/3 h-full bg-gradient-to-r from-ishanya-green/5 to-transparent"></div>
+        <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-ishanya-yellow/5 to-transparent"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <motion.div 
+            className="text-center"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeInUp}
+          >
             <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white sm:text-4xl">
               About <span className="text-ishanya-green">Ishanya Foundation</span>
             </h2>
             <p className="mt-4 text-xl text-gray-600 dark:text-gray-300">
               "ISHANYA" - Meaning "North-East," symbolizing Education, Knowledge, and Prosperity.
             </p>
-          </div>
-          <div className="mt-12">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="flex flex-col justify-center">
+          </motion.div>
+          <div className="mt-16">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              <motion.div 
+                className="flex flex-col justify-center"
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                variants={fadeInUp}
+              >
                 <p className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
-                  Founded in 2015, <strong>Ishanya India Foundation (IIF)</strong> supports individuals with special needs and aims to create a more inclusive society. We work with individuals with Autism Spectrum Disorder, Asperger's Syndrome, Learning Disabilities, Down Syndrome, ADHD, and other developmental conditions.
+                  Founded in 2015, <strong className="text-ishanya-green">Ishanya India Foundation (IIF)</strong> supports individuals with special needs and aims to create a more inclusive society. We work with individuals with Autism Spectrum Disorder, Asperger's Syndrome, Learning Disabilities, Down Syndrome, ADHD, and other developmental conditions.
                 </p>
-                <p className="mt-4 text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
+                <p className="mt-6 text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
                   Our approach uses a customized curriculum to cater to different needs and promotes holistic development, employment training, and independent living skills for all our beneficiaries.
                 </p>
-              </div>
-              <div className="order-first md:order-last">
-                <div className="rounded-lg overflow-hidden shadow-lg h-full">
+                <div className="mt-8 flex space-x-4">
+                  <div className="flex items-center">
+                    <div className="bg-ishanya-green/20 p-2 rounded-full">
+                      <Heart className="h-5 w-5 text-ishanya-green" />
+                    </div>
+                    <span className="ml-2 text-gray-700 dark:text-gray-300">Inclusive Education</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="bg-ishanya-yellow/20 p-2 rounded-full">
+                      <Heart className="h-5 w-5 text-ishanya-yellow" />
+                    </div>
+                    <span className="ml-2 text-gray-700 dark:text-gray-300">Supportive Community</span>
+                  </div>
+                </div>
+              </motion.div>
+              <motion.div 
+                className="order-first md:order-last"
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                variants={fadeIn}
+              >
+                <div className="rounded-2xl overflow-hidden shadow-2xl h-full transform transition-transform duration-500 hover:scale-[1.02]">
                   <img 
-                    src="https://i.imgur.com/4R5f6bB.png" 
+                    src="https://images.unsplash.com/photo-1607211851821-8be3cd6146f0?q=80&w=2970&auto=format&fit=crop"
                     alt="Ishanya Foundation Work" 
                     className="w-full h-full object-cover"
                   />
                 </div>
-              </div>
+              </motion.div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Vision & Mission Section */}
-      <section id="mission" className="py-16 bg-gray-50 dark:bg-gray-900">
+      <section id="mission" className="py-20 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-850">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
+          <motion.div 
+            className="text-center mb-16"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeInUp}
+          >
             <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white sm:text-4xl">
               Our Vision & Mission
             </h2>
-          </div>
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Card className="shadow-lg border-t-4 border-ishanya-green hover:shadow-xl transition-shadow duration-300">
-              <CardContent className="pt-6">
-                <h3 className="text-2xl font-bold text-ishanya-green mb-4">Vision</h3>
-                <p className="text-lg text-gray-600 dark:text-gray-300 italic">
-                  "A society built on Diversity, Equity & Inclusion for Persons with Disabilities."
-                </p>
-                <div className="mt-6 flex justify-center">
-                  <img 
-                    src="https://i.imgur.com/nWFUwVF.png" 
-                    alt="Vision Illustration" 
-                    className="h-48 object-contain"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="shadow-lg border-t-4 border-ishanya-yellow hover:shadow-xl transition-shadow duration-300">
-              <CardContent className="pt-6">
-                <h3 className="text-2xl font-bold text-ishanya-yellow mb-4">Mission</h3>
-                <ul className="space-y-2 text-gray-600 dark:text-gray-300">
-                  <li className="flex items-start">
-                    <Heart className="h-5 w-5 text-ishanya-yellow mr-2 mt-1 flex-shrink-0" />
-                    <span>Capacity building of stakeholders</span>
-                  </li>
-                  <li className="flex items-start">
-                    <Heart className="h-5 w-5 text-ishanya-yellow mr-2 mt-1 flex-shrink-0" />
-                    <span>Creating inclusive learning & development spaces</span>
-                  </li>
-                  <li className="flex items-start">
-                    <Heart className="h-5 w-5 text-ishanya-yellow mr-2 mt-1 flex-shrink-0" />
-                    <span>Person-centric approach for tailored solutions</span>
-                  </li>
-                  <li className="flex items-start">
-                    <Heart className="h-5 w-5 text-ishanya-yellow mr-2 mt-1 flex-shrink-0" />
-                    <span>Transitioning from beneficiaries to contributors</span>
-                  </li>
-                  <li className="flex items-start">
-                    <Heart className="h-5 w-5 text-ishanya-yellow mr-2 mt-1 flex-shrink-0" />
-                    <span>Promoting social, economic, and political inclusion</span>
-                  </li>
-                  <li className="flex items-start">
-                    <Heart className="h-5 w-5 text-ishanya-yellow mr-2 mt-1 flex-shrink-0" />
-                    <span>Encouraging independence and raising awareness</span>
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
+            <div className="mt-4 w-24 h-1 bg-ishanya-green mx-auto rounded-full"></div>
+          </motion.div>
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-12">
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeInUp}
+            >
+              <Card className="shadow-xl border-t-4 border-ishanya-green hover:shadow-2xl transition-all duration-500 rounded-2xl overflow-hidden h-full bg-white dark:bg-gray-800">
+                <CardContent className="pt-8 pb-8 px-8">
+                  <div className="flex items-center mb-6">
+                    <div className="h-12 w-12 rounded-full bg-ishanya-green/20 flex items-center justify-center">
+                      <span className="text-2xl font-bold text-ishanya-green">V</span>
+                    </div>
+                    <h3 className="text-2xl font-bold text-ishanya-green ml-4">Vision</h3>
+                  </div>
+                  <p className="text-lg text-gray-600 dark:text-gray-300 italic border-l-4 border-ishanya-green pl-4 py-2">
+                    "A society built on Diversity, Equity & Inclusion for Persons with Disabilities."
+                  </p>
+                  <div className="mt-8 flex justify-center">
+                    <img 
+                      src="https://images.unsplash.com/photo-1531379410502-63bfe8cdaf6f?q=80&w=2787&auto=format&fit=crop"
+                      alt="Vision Illustration" 
+                      className="h-48 object-cover rounded-xl shadow-lg"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeInUp}
+            >
+              <Card className="shadow-xl border-t-4 border-ishanya-yellow hover:shadow-2xl transition-all duration-500 rounded-2xl overflow-hidden h-full bg-white dark:bg-gray-800">
+                <CardContent className="pt-8 pb-8 px-8">
+                  <div className="flex items-center mb-6">
+                    <div className="h-12 w-12 rounded-full bg-ishanya-yellow/20 flex items-center justify-center">
+                      <span className="text-2xl font-bold text-ishanya-yellow">M</span>
+                    </div>
+                    <h3 className="text-2xl font-bold text-ishanya-yellow ml-4">Mission</h3>
+                  </div>
+                  <ul className="space-y-4 text-gray-600 dark:text-gray-300">
+                    {[
+                      "Capacity building of stakeholders",
+                      "Creating inclusive learning & development spaces",
+                      "Person-centric approach for tailored solutions",
+                      "Transitioning from beneficiaries to contributors",
+                      "Promoting social, economic, and political inclusion",
+                      "Encouraging independence and raising awareness"
+                    ].map((item, index) => (
+                      <motion.li 
+                        key={index}
+                        className="flex items-start bg-ishanya-yellow/5 p-3 rounded-lg hover:bg-ishanya-yellow/10 transition-colors duration-300"
+                        initial={{ opacity: 0, x: -10 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        viewport={{ once: true }}
+                      >
+                        <Heart className="h-5 w-5 text-ishanya-yellow mr-3 mt-1 flex-shrink-0" />
+                        <span>{item}</span>
+                      </motion.li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
         </div>
       </section>
 
       {/* Services Section */}
-      <section id="services" className="py-16 bg-white dark:bg-gray-800">
+      <section id="services" className="py-20 bg-white dark:bg-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
+          <motion.div 
+            className="text-center"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeInUp}
+          >
             <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white sm:text-4xl">
               Our Services
             </h2>
-            <p className="mt-4 text-xl text-gray-600 dark:text-gray-300">
+            <p className="mt-4 text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
               Comprehensive solutions for individuals with special needs
             </p>
-          </div>
-          <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="mt-4 w-24 h-1 bg-ishanya-green mx-auto rounded-full"></div>
+          </motion.div>
+          <motion.div 
+            className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+            variants={staggerChildren}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
             {[
               {
                 title: "Education Programs",
                 description: "Personalized learning programs tailored to individual capabilities and needs.",
-                icon: "https://i.imgur.com/hN4qO9W.png"
+                icon: "https://img.icons8.com/fluency/96/000000/book.png"
               },
               {
                 title: "Skill Development",
                 description: "Training in vocational skills to enhance employability and independence.",
-                icon: "https://i.imgur.com/tMROEtq.png"
+                icon: "https://img.icons8.com/fluency/96/000000/development-skill.png"
               },
               {
                 title: "Counseling Services",
                 description: "Professional support for individuals and families navigating special needs.",
-                icon: "https://i.imgur.com/iuubVSU.png"
+                icon: "https://img.icons8.com/fluency/96/000000/conference-call.png"
               },
               {
                 title: "Assistive Technology",
                 description: "Access to tools and technologies that enhance learning and daily living.",
-                icon: "https://i.imgur.com/O2DZ2PF.png"
+                icon: "https://img.icons8.com/fluency/96/000000/technology-items.png"
               },
               {
                 title: "Community Integration",
                 description: "Programs designed to facilitate social inclusion and participation.",
-                icon: "https://i.imgur.com/XVbPH2n.png"
+                icon: "https://img.icons8.com/fluency/96/000000/conference.png"
               },
               {
                 title: "Research & Awareness",
                 description: "Ongoing studies and campaigns to promote understanding and acceptance.",
-                icon: "https://i.imgur.com/Z7oRIik.png"
+                icon: "https://img.icons8.com/fluency/96/000000/research.png"
               }
             ].map((service, index) => (
-              <Card 
+              <motion.div 
                 key={index}
-                className="shadow hover:shadow-lg transition-shadow duration-300 hover:border-ishanya-green border-transparent border"
-                onMouseEnter={() => setIsHovering(service.title)}
-                onMouseLeave={() => setIsHovering(null)}
+                variants={fadeInUp}
+                whileHover={{ y: -10, transition: { duration: 0.3 } }}
               >
-                <CardContent className="p-6 flex flex-col items-center">
-                  <div className="w-20 h-20 flex items-center justify-center mb-4">
-                    <img 
-                      src={service.icon} 
-                      alt={service.title} 
-                      className={`w-16 h-16 object-contain transition-transform duration-300 ${isHovering === service.title ? 'scale-110' : ''}`}
-                    />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{service.title}</h3>
-                  <p className="text-gray-600 dark:text-gray-300 text-center">{service.description}</p>
-                </CardContent>
-              </Card>
+                <Card 
+                  className={`shadow-lg hover:shadow-2xl transition-all duration-500 h-full overflow-hidden border-none bg-gradient-to-br ${index % 2 === 0 ? 'from-ishanya-green/5 to-white' : 'from-ishanya-yellow/5 to-white'} dark:from-gray-700 dark:to-gray-800 rounded-2xl`}
+                  onMouseEnter={() => setIsHovering(service.title)}
+                  onMouseLeave={() => setIsHovering(null)}
+                >
+                  <CardContent className="p-8 flex flex-col items-center h-full">
+                    <div className="w-20 h-20 flex items-center justify-center mb-6 bg-white dark:bg-gray-700 rounded-full shadow-md">
+                      <img 
+                        src={service.icon} 
+                        alt={service.title} 
+                        className={`w-12 h-12 object-contain transition-transform duration-300 ${isHovering === service.title ? 'scale-110' : ''}`}
+                      />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{service.title}</h3>
+                    <p className="text-gray-600 dark:text-gray-300 text-center flex-grow">{service.description}</p>
+                    <div className={`w-12 h-1 mt-6 rounded-full ${index % 2 === 0 ? 'bg-ishanya-green' : 'bg-ishanya-yellow'}`}></div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="py-16 bg-gray-50 dark:bg-gray-900">
+      <section id="contact" className="py-20 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-850 relative">
+        <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-white to-transparent dark:from-gray-800"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
+          <motion.div 
+            className="text-center"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeInUp}
+          >
             <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white sm:text-4xl">
               Contact Us
             </h2>
             <p className="mt-4 text-xl text-gray-600 dark:text-gray-300">
               Get in touch with our team
             </p>
-          </div>
-          <div className="mt-12 bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden">
+            <div className="mt-4 w-24 h-1 bg-ishanya-green mx-auto rounded-full"></div>
+          </motion.div>
+          <motion.div 
+            className="mt-16 bg-white dark:bg-gray-800 shadow-2xl rounded-2xl overflow-hidden"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeInUp}
+          >
             <div className="grid grid-cols-1 md:grid-cols-2">
-              <div className="p-6 md:p-10">
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Reach Out to Us</h3>
-                <div className="space-y-4">
-                  <p className="flex items-start text-gray-600 dark:text-gray-300">
-                    <svg className="h-6 w-6 text-ishanya-green mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <span>123 Education Street, Pune, Maharashtra, India</span>
-                  </p>
-                  <p className="flex items-start text-gray-600 dark:text-gray-300">
-                    <svg className="h-6 w-6 text-ishanya-green mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    <span>info@ishanyafoundation.org</span>
-                  </p>
-                  <p className="flex items-start text-gray-600 dark:text-gray-300">
-                    <svg className="h-6 w-6 text-ishanya-green mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                    <span>+91 98765 43210</span>
-                  </p>
+              <div className="p-8 md:p-12">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">Reach Out to Us</h3>
+                <div className="space-y-6">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0 bg-ishanya-green/10 p-3 rounded-full">
+                      <MapPin className="h-6 w-6 text-ishanya-green" />
+                    </div>
+                    <div className="ml-4">
+                      <h4 className="text-lg font-medium text-gray-900 dark:text-white">Address</h4>
+                      <p className="mt-1 text-gray-600 dark:text-gray-300">123 Education Street, Pune, Maharashtra, India</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0 bg-ishanya-green/10 p-3 rounded-full">
+                      <Mail className="h-6 w-6 text-ishanya-green" />
+                    </div>
+                    <div className="ml-4">
+                      <h4 className="text-lg font-medium text-gray-900 dark:text-white">Email</h4>
+                      <p className="mt-1 text-gray-600 dark:text-gray-300">info@ishanyafoundation.org</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0 bg-ishanya-green/10 p-3 rounded-full">
+                      <Phone className="h-6 w-6 text-ishanya-green" />
+                    </div>
+                    <div className="ml-4">
+                      <h4 className="text-lg font-medium text-gray-900 dark:text-white">Phone</h4>
+                      <p className="mt-1 text-gray-600 dark:text-gray-300">+91 98765 43210</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-8 flex space-x-6">
-                  <a 
-                    href="https://facebook.com" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800"
-                  >
-                    <Facebook size={24} />
-                  </a>
-                  <a 
-                    href="https://instagram.com" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-pink-600 hover:text-pink-800"
-                  >
-                    <Instagram size={24} />
-                  </a>
-                  <a 
-                    href="https://linkedin.com" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-blue-700 hover:text-blue-900"
-                  >
-                    <Linkedin size={24} />
-                  </a>
-                  <a 
-                    href="https://youtube.com" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    <Youtube size={24} />
-                  </a>
-                </div>
-              </div>
-              <div className="bg-gray-50 dark:bg-gray-700 p-6 md:p-10">
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Our Location</h3>
-                <div className="aspect-w-16 aspect-h-9 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-600">
-                  {/* Map placeholder */}
-                  <div className="w-full h-full flex items-center justify-center">
-                    <img 
-                      src="https://i.imgur.com/5KrQAqB.png" 
-                      alt="Map Location" 
-                      className="w-full h-full object-cover"
-                    />
+                <div className="mt-10">
+                  <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Follow Us</h4>
+                  <div className="flex space-x-6">
+                    <a 
+                      href="https://facebook.com" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-full text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors duration-300"
+                    >
+                      <Facebook size={24} />
+                    </a>
+                    <a 
+                      href="https://instagram.com" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="bg-pink-100 dark:bg-pink-900/30 p-3 rounded-full text-pink-600 dark:text-pink-400 hover:bg-pink-200 dark:hover:bg-pink-900/50 transition-colors duration-300"
+                    >
+                      <Instagram size={24} />
+                    </a>
+                    <a 
+                      href="https://linkedin.com" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-full text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors duration-300"
+                    >
+                      <Linkedin size={24} />
+                    </a>
+                    <a 
+                      href="https://youtube.com" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="bg-red-100 dark:bg-red-900/30 p-3 rounded-full text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors duration-300"
+                    >
+                      <Youtube size={24} />
+                    </a>
                   </div>
                 </div>
               </div>
+              <div className="h-96 md:h-auto">
+                <iframe
+                  title="Ishanya Foundation Location"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d242118.17004758748!2d73.7228790241053!3d18.524564857301166!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2bf2e67461101%3A0x828d43bf9d9ee343!2sPune%2C%20Maharashtra!5e0!3m2!1sen!2sin!4v1648231125444!5m2!1sen!2sin"
+                  className="w-full h-full border-0"
+                  allowFullScreen={true}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                ></iframe>
+              </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="bg-ishanya-green py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
+      <section className="bg-gradient-to-r from-ishanya-green to-ishanya-green/90 dark:from-ishanya-green/90 dark:to-ishanya-green/80 py-16 relative overflow-hidden">
+        <div className="absolute top-0 right-0 -mt-20 -mr-20 h-64 w-64 rounded-full bg-white/10 blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 -mb-20 -ml-20 h-64 w-64 rounded-full bg-white/10 blur-3xl"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <motion.div 
+            className="text-center"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeInUp}
+          >
             <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
               Ready to get started?
             </h2>
-            <p className="mt-4 text-xl text-white/80">
+            <p className="mt-4 text-xl text-white/90 max-w-2xl mx-auto">
               Join us in our mission to create a more inclusive society.
             </p>
-            <div className="mt-8">
+            <motion.div 
+              className="mt-10"
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+              viewport={{ once: true }}
+              whileHover={{ scale: 1.05 }}
+            >
               <Button 
                 onClick={goToLogin}
-                className="bg-white text-ishanya-green hover:bg-gray-100 px-8 py-3 text-base font-medium rounded-md"
+                className="bg-white text-ishanya-green hover:bg-gray-100 px-8 py-6 text-lg font-medium rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300"
+                size="lg"
               >
                 Login to Portal
               </Button>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
+      <footer className="bg-gray-900 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             <div>
               <div className="flex items-center">
                 <img 
-                  src="/lovable-uploads/17953c8a-6715-4e58-af68-a3918c44fd33.png" 
+                  src="https://placehold.co/200x80/3B8A4E/FFFFFF?text=Ishanya" 
                   alt="Ishanya Foundation" 
                   className="h-10 w-auto"
                 />
@@ -427,61 +594,86 @@ const LandingPage = () => {
               </p>
             </div>
             <div>
-              <h3 className="text-lg font-bold mb-4">Quick Links</h3>
-              <ul className="space-y-2">
-                <li><a href="#home" className="text-gray-300 hover:text-white">Home</a></li>
-                <li><a href="#about" className="text-gray-300 hover:text-white">About Us</a></li>
-                <li><a href="#mission" className="text-gray-300 hover:text-white">Vision & Mission</a></li>
-                <li><a href="#services" className="text-gray-300 hover:text-white">Services</a></li>
-                <li><a href="#contact" className="text-gray-300 hover:text-white">Contact</a></li>
+              <h3 className="text-lg font-bold mb-6 border-b border-gray-700 pb-2">Quick Links</h3>
+              <ul className="space-y-3">
+                {[
+                  { label: "Home", href: "#home" },
+                  { label: "About Us", href: "#about" },
+                  { label: "Vision & Mission", href: "#mission" },
+                  { label: "Services", href: "#services" },
+                  { label: "Contact", href: "#contact" }
+                ].map((link, index) => (
+                  <li key={index}>
+                    <a 
+                      href={link.href} 
+                      className="text-gray-300 hover:text-white transition-colors duration-300 flex items-center"
+                    >
+                      <ArrowRight className="h-4 w-4 mr-2" />
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-bold mb-4">Connect With Us</h3>
-              <div className="flex space-x-4">
-                <a 
-                  href="https://facebook.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-gray-300 hover:text-white"
-                >
-                  <Facebook size={20} />
-                </a>
-                <a 
-                  href="https://instagram.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-gray-300 hover:text-white"
-                >
-                  <Instagram size={20} />
-                </a>
-                <a 
-                  href="https://linkedin.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-gray-300 hover:text-white"
-                >
-                  <Linkedin size={20} />
-                </a>
-                <a 
-                  href="https://youtube.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-gray-300 hover:text-white"
-                >
-                  <Youtube size={20} />
-                </a>
-              </div>
-              <p className="mt-4 text-gray-300">
-                Subscribe to our newsletter for updates.
+              <h3 className="text-lg font-bold mb-6 border-b border-gray-700 pb-2">Newsletter</h3>
+              <p className="text-gray-300 mb-4">
+                Subscribe to our newsletter for the latest updates and news.
               </p>
+              <div className="flex">
+                <input
+                  type="email"
+                  placeholder="Your email address"
+                  className="px-4 py-2 bg-gray-800 text-white border border-gray-700 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-ishanya-green w-full"
+                />
+                <button className="bg-ishanya-green hover:bg-ishanya-green/90 px-4 py-2 rounded-r-lg transition-colors duration-300">
+                  Subscribe
+                </button>
+              </div>
+              <div className="mt-6">
+                <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Follow Us</h4>
+                <div className="flex space-x-4">
+                  <a 
+                    href="https://facebook.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-gray-400 hover:text-white transition-colors duration-300"
+                  >
+                    <Facebook size={20} />
+                  </a>
+                  <a 
+                    href="https://instagram.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-gray-400 hover:text-white transition-colors duration-300"
+                  >
+                    <Instagram size={20} />
+                  </a>
+                  <a 
+                    href="https://linkedin.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-gray-400 hover:text-white transition-colors duration-300"
+                  >
+                    <Linkedin size={20} />
+                  </a>
+                  <a 
+                    href="https://youtube.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-gray-400 hover:text-white transition-colors duration-300"
+                  >
+                    <Youtube size={20} />
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="mt-8 pt-8 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center">
+          <div className="mt-12 pt-8 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center">
             <p className="text-gray-400">&copy; 2025 Ishanya India Foundation. All rights reserved.</p>
             <div className="mt-4 sm:mt-0 flex space-x-6">
-              <a href="#" className="text-gray-400 hover:text-white">Privacy Policy</a>
-              <a href="#" className="text-gray-400 hover:text-white">Terms of Service</a>
+              <a href="#" className="text-gray-400 hover:text-white transition-colors duration-300">Privacy Policy</a>
+              <a href="#" className="text-gray-400 hover:text-white transition-colors duration-300">Terms of Service</a>
             </div>
           </div>
         </div>
