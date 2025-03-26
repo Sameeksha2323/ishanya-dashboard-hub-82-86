@@ -30,7 +30,6 @@ const Index = () => {
     totalEmployees: 0
   });
   const [showStudentForm, setShowStudentForm] = useState(false);
-  const [lastStudentId, setLastStudentId] = useState<number | null>(null);
 
   const [selectedCenter, setSelectedCenter] = useState<Center | null>(null);
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
@@ -54,7 +53,6 @@ const Index = () => {
 
     loadCenters();
     fetchStats();
-    fetchLastStudentId();
     
     const studentsChannel = supabase
       .channel('students-changes')
@@ -64,7 +62,6 @@ const Index = () => {
         table: 'students'
       }, () => {
         fetchStats();
-        fetchLastStudentId();
       })
       .subscribe();
       
@@ -90,48 +87,12 @@ const Index = () => {
       })
       .subscribe();
     
-    // Listen for form submission events
-    window.addEventListener('openAddRecordForm', handleOpenAddRecordForm);
-    
     return () => {
       supabase.removeChannel(studentsChannel);
       supabase.removeChannel(educatorsChannel);
       supabase.removeChannel(employeesChannel);
-      window.removeEventListener('openAddRecordForm', handleOpenAddRecordForm);
     };
   }, []);
-  
-  const handleOpenAddRecordForm = (event: CustomEvent) => {
-    const { tableName, formData, sourceEntry } = event.detail;
-    
-    if (tableName === 'students') {
-      // Set the form data and open the form
-      setShowStudentForm(true);
-    }
-  };
-  
-  const fetchLastStudentId = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('students')
-        .select('student_id')
-        .order('student_id', { ascending: false })
-        .limit(1);
-        
-      if (error) {
-        console.error('Error fetching last student ID:', error);
-        return;
-      }
-      
-      if (data && data.length > 0) {
-        setLastStudentId(data[0].student_id);
-      } else {
-        setLastStudentId(1000); // Default starting ID
-      }
-    } catch (error) {
-      console.error('Error fetching last student ID:', error);
-    }
-  };
   
   const fetchStats = async () => {
     try {
@@ -203,7 +164,6 @@ const Index = () => {
       
       toast.success('Student added successfully');
       fetchStats();
-      fetchLastStudentId();
       return Promise.resolve();
     } catch (error: any) {
       console.error('Error adding student:', error);
@@ -339,23 +299,24 @@ const Index = () => {
     >
       {renderContent()}
       
-      {/* Global Student Form Handler */}
-      <StudentFormHandler
-        isOpen={showStudentForm}
-        onClose={() => setShowStudentForm(false)}
-        onSubmit={handleAddStudent}
-        centerId={selectedCenter?.center_id}
-        programId={selectedProgram?.program_id}
-      >
-        {(handleSubmit) => (
-          <StudentForm
-            onSubmit={handleSubmit}
-            lastStudentId={lastStudentId}
-            centerId={selectedCenter?.center_id}
-            programId={selectedProgram?.program_id}
-          />
-        )}
-      </StudentFormHandler>
+      {selectedTable?.name === 'students' && selectedProgram && (
+        <StudentFormHandler
+          isOpen={showStudentForm}
+          onClose={() => setShowStudentForm(false)}
+          onSubmit={handleAddStudent}
+          centerId={selectedCenter?.center_id}
+          programId={selectedProgram?.program_id}
+        >
+          {(handleSubmit) => (
+            <StudentForm
+              onSubmit={handleSubmit}
+              lastStudentId={null}
+              centerId={selectedCenter?.center_id}
+              programId={selectedProgram?.program_id}
+            />
+          )}
+        </StudentFormHandler>
+      )}
     </Layout>
   );
 };

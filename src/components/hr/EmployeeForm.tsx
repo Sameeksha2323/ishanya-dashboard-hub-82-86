@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -186,6 +187,7 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
     onSave(submissionData);
   };
 
+  // This array defines the form fields and their properties
   const formFields = [
     { name: 'employee_id', label: 'Employee ID', type: 'number' },
     { name: 'name', label: 'Full Name', type: 'input' },
@@ -216,6 +218,7 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {formFields.map((field) => {
+          // Check if this field should be shown based on conditions
           if (field.name === 'department' && !formData.designation) {
             return null;
           }
@@ -327,12 +330,11 @@ const EmployeeForm = ({ employee, onSave, onCancel }: EmployeeFormProps) => {
               
               {field.type === 'file' && (
                 <FileUpload
-                  bucket={field.fileType === 'lor' ? 'employee-lor' : 'employee-photos'}
+                  bucketName={field.fileType === 'lor' ? 'employee-lor' : 'employee-photos'}
                   onFileUpload={(url) => handleFileUpload(field.name, url)}
-                  value={formData[field.name]}
+                  existingUrl={formData[field.name]}
                   entityType="employee"
                   entityId={formData.employee_id}
-                  fileType={field.fileType === 'photo' ? 'image' : 'any'}
                 />
               )}
               

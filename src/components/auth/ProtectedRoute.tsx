@@ -1,7 +1,7 @@
 
 import { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
-import { isAuthenticated, getCurrentUser, UserRole } from '@/lib/auth';
+import { isAuthenticated, getCurrentUser } from '@/lib/auth';
 
 type ProtectedRouteProps = {
   children: ReactNode;
@@ -22,12 +22,12 @@ const ProtectedRoute = ({
     return <Navigate to="/login" />;
   }
   
-  if (requireAdmin && user?.role !== 'administrator') {
+  if (requireAdmin && !user?.isAdmin) {
     // Redirect to home page if admin access is required but user is not admin
     return <Navigate to="/" />;
   }
   
-  if (user && !allowedRoles.includes(user.role as any)) {
+  if (user && !allowedRoles.includes(user.role)) {
     // Redirect to appropriate dashboard based on role if current route is not allowed
     switch (user.role) {
       case 'administrator':

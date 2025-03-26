@@ -348,6 +348,7 @@ export type Database = {
       goals_tasks: {
         Row: {
           category: string | null
+          created_at: string
           description: string | null
           due_date: string
           educator_employee_id: number
@@ -362,6 +363,7 @@ export type Database = {
         }
         Insert: {
           category?: string | null
+          created_at: string
           description?: string | null
           due_date: string
           educator_employee_id: number
@@ -376,6 +378,7 @@ export type Database = {
         }
         Update: {
           category?: string | null
+          created_at?: string
           description?: string | null
           due_date?: string
           educator_employee_id?: number
@@ -504,9 +507,9 @@ export type Database = {
           "9_description": string | null
           "9_score": number | null
           area_of_development: string
-          comments: string | null
+          description: string | null
           educator_employee_id: number
-          id: string | null
+          id: string
           is_sent: boolean
           program_id: number
           quarter: string
@@ -547,9 +550,9 @@ export type Database = {
           "9_description"?: string | null
           "9_score"?: number | null
           area_of_development: string
-          comments?: string | null
+          description?: string | null
           educator_employee_id: number
-          id?: string | null
+          id?: string
           is_sent?: boolean
           program_id: number
           quarter: string
@@ -590,9 +593,9 @@ export type Database = {
           "9_description"?: string | null
           "9_score"?: number | null
           area_of_development?: string
-          comments?: string | null
+          description?: string | null
           educator_employee_id?: number
-          id?: string | null
+          id?: string
           is_sent?: boolean
           program_id?: number
           quarter?: string

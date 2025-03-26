@@ -602,4 +602,6 @@ export const bulkInsert = async (tableName: string, rows: any[]): Promise<{ succ
   }
 };
 
+export { authenticateUser } from './auth';
+
 export default supabase;

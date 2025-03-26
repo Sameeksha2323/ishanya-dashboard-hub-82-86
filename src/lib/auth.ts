@@ -1,158 +1,210 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import supabase from './api';
+import { toast } from 'sonner';
 
-export type UserRole = 'administrator' | 'educator' | 'parent' | 'employee' | 'hr' | 'teacher';
-
+// Define user types
 export type User = {
   id: string;
-  email: string;
-  name: string;
-  role: UserRole;
-  student_id?: number;
   employee_id?: number;
+  parent_id?: number;
+  student_id?: number; // For parent to know which student they're linked to
+  name: string;
+  email: string;
+  isAdmin: boolean;
   center_id?: number;
-  isAdmin?: boolean;
-};
+  department?: string;
+  designation?: string;
+  role: 'administrator' | 'hr' | 'teacher' | 'parent';
+}
 
-// Load user from localStorage (caching mechanism)
-export const getCurrentUser = (): User | null => {
-  const userStr = localStorage.getItem('user');
-  if (!userStr) return null;
-  
-  try {
-    return JSON.parse(userStr);
-  } catch (error) {
-    console.error('Error parsing user from localStorage:', error);
-    return null;
-  }
-};
-
-// Set the current user in localStorage
-export const setCurrentUser = (user: User | null) => {
-  if (user) {
-    localStorage.setItem('user', JSON.stringify(user));
-  } else {
-    localStorage.removeItem('user');
-  }
-};
-
-// Check if the current user has a specific role
-export const hasRole = (role: UserRole): boolean => {
-  const user = getCurrentUser();
-  return user?.role === role;
-};
-
-// Get the current user's role
-export const getUserRole = (): UserRole | null => {
-  const user = getCurrentUser();
-  return user ? user.role : null;
-};
-
-// Check if the user is an administrator
-export const isAdmin = (): boolean => {
-  const user = getCurrentUser();
-  return user?.role === 'administrator';
-};
-
-// Check if the user is authenticated
-export const isAuthenticated = (): boolean => {
-  return !!getCurrentUser();
-};
-
-// Authenticate user with email and password
+// Authenticate a user with email, password and role
 export const authenticateUser = async (
   email: string, 
   password: string, 
   role: string
-): Promise<{ success: boolean; message?: string; user?: User }> => {
+): Promise<{ 
+  success: boolean; 
+  user?: User; 
+  message?: string; 
+}> => {
   try {
-    // First check if it's a parent login
-    if (role === 'parent') {
-      const { data: parents, error: parentsError } = await supabase
-        .from('parents')
-        .select('*')
-        .eq('email', email)
-        .eq('password', password);
-        
-      if (parentsError) {
-        console.error('Parent login error:', parentsError);
-        return { success: false, message: 'Authentication failed' };
-      }
-      
-      if (parents && parents.length > 0) {
-        // Create a user object
-        const user: User = {
-          id: parents[0].id.toString(),
-          email: parents[0].email,
-          name: parents[0].email.split('@')[0], // Simple name from email
-          role: 'parent',
-          student_id: parents[0].student_id
-        };
-        
-        return { success: true, user };
-      }
-    }
+    console.log('Authenticating user with email:', email, 'and role:', role);
     
-    // For other roles, check the employees table
+    // For administrator, HR, and teacher roles, check the employees table
     if (['administrator', 'hr', 'teacher'].includes(role)) {
-      const { data: employees, error: employeesError } = await supabase
+      // Get the employee record with the matching email and password
+      const { data: employees, error } = await supabase
         .from('employees')
         .select('*')
         .eq('email', email)
-        .eq('password', password);
-        
-      if (employeesError) {
-        console.error('Employee login error:', employeesError);
-        return { success: false, message: 'Authentication failed' };
+        .eq('password', password) // In a real app, this should use hashed passwords with bcrypt
+        .limit(1);
+      
+      if (error) {
+        console.error('Authentication error:', error);
+        return { 
+          success: false, 
+          message: 'An error occurred during authentication' 
+        };
       }
       
-      if (employees && employees.length > 0) {
-        // Map employee role to user role
-        let userRole: UserRole = 'employee';
-        
-        // Determine role based on designation or role selection
-        if (role === 'administrator' && employees[0].designation === 'Administrator') {
-          userRole = 'administrator';
-        } else if (role === 'hr' && employees[0].designation === 'HR') {
-          userRole = 'hr';
-        } else if (role === 'teacher' && employees[0].designation === 'Educator') {
-          userRole = 'teacher';
-        } else {
-          return { success: false, message: 'Your role does not match the selected role' };
-        }
-        
-        // Create a user object
-        const user: User = {
-          id: employees[0].id,
-          email: employees[0].email,
-          name: employees[0].name,
-          role: userRole,
-          employee_id: employees[0].employee_id,
-          center_id: employees[0].center_id,
-          isAdmin: userRole === 'administrator'
+      if (!employees || employees.length === 0) {
+        return { 
+          success: false, 
+          message: 'Invalid email or password' 
         };
-        
-        return { success: true, user };
       }
+      
+      const employee = employees[0];
+      
+      // Check if the employee's role matches the selected role
+      let userRole: 'administrator' | 'hr' | 'teacher' | null = null;
+      let isAdmin = false;
+      
+      // Updated role checks - more specific checks for department and designation
+      if (role === 'administrator') {
+        // Admin if department is admin or designation contains admin
+        isAdmin = employee.department?.toLowerCase() === 'admin' || 
+                employee.designation?.toLowerCase().includes('admin');
+        if (isAdmin) {
+          userRole = 'administrator';
+        }
+      } else if (role === 'hr') {
+        // HR if department is HR or designation contains HR
+        const isHr = employee.department?.toLowerCase() === 'hr' || 
+                    employee.designation?.toLowerCase().includes('hr');
+        if (isHr) {
+          userRole = 'hr';
+        }
+      } else if (role === 'teacher') {
+        // Teacher if designation contains educator or teacher or department is educator
+        const isTeacher = employee.designation?.toLowerCase().includes('educator') || 
+                         employee.designation?.toLowerCase().includes('teacher') ||
+                         employee.department?.toLowerCase() === 'educator';
+        if (isTeacher) {
+          userRole = 'teacher';
+        }
+      }
+      
+      if (!userRole) {
+        return {
+          success: false,
+          message: 'You do not have permission to access the system with the selected role'
+        };
+      }
+      
+      // Create user object
+      const user: User = {
+        id: employee.id,
+        employee_id: employee.employee_id,
+        name: employee.name,
+        email: employee.email,
+        isAdmin: isAdmin,
+        center_id: employee.center_id,
+        department: employee.department,
+        designation: employee.designation,
+        role: userRole
+      };
+      
+      console.log('User authenticated:', user);
+      return { 
+        success: true, 
+        user 
+      };
+    } 
+    // For parent role, check the parents table
+    else if (role === 'parent') {
+      // Query the parents table in Supabase
+      const { data: parents, error } = await supabase
+        .from('parents')
+        .select('*, students(*)')
+        .eq('email', email)
+        .eq('password', password)
+        .limit(1);
+      
+      if (error) {
+        console.error('Parent authentication error:', error);
+        return { 
+          success: false, 
+          message: 'An error occurred during parent authentication' 
+        };
+      }
+      
+      if (!parents || parents.length === 0) {
+        return { 
+          success: false, 
+          message: 'Invalid parent credentials' 
+        };
+      }
+      
+      const parent = parents[0];
+      
+      // Create parent user object
+      const parentUser: User = {
+        id: parent.id.toString(),
+        parent_id: parent.id || 0,
+        student_id: parent.student_id || 0,
+        name: parent.email.split('@')[0] || 'Parent', // Use first part of email as name if available
+        email: parent.email,
+        isAdmin: false,
+        center_id: 0, // Default value since parents table might not have center_id
+        role: 'parent'
+      };
+      
+      console.log('Parent user authenticated:', parentUser);
+      return {
+        success: true,
+        user: parentUser
+      };
     }
     
-    return { success: false, message: 'Invalid credentials' };
+    return {
+      success: false,
+      message: 'Invalid role selected'
+    };
+    
   } catch (error) {
-    console.error('Login error:', error);
-    return { success: false, message: 'An error occurred during authentication' };
+    console.error('Authentication error:', error);
+    return { 
+      success: false, 
+      message: 'An error occurred during authentication' 
+    };
   }
 };
 
-// Log out the current user
-export const logout = async () => {
-  // Clear Supabase auth session
-  await supabase.auth.signOut();
+// Check if user is logged in
+export const isAuthenticated = (): boolean => {
+  const user = localStorage.getItem('user');
+  return !!user;
+};
+
+// Get current user
+export const getCurrentUser = (): User | null => {
+  const userJson = localStorage.getItem('user');
+  if (!userJson) return null;
   
-  // Clear localStorage
+  try {
+    return JSON.parse(userJson) as User;
+  } catch (e) {
+    console.error('Error parsing user data from localStorage:', e);
+    return null;
+  }
+};
+
+// Log out user
+export const logout = (): void => {
   localStorage.removeItem('user');
-  localStorage.removeItem('token');
-  localStorage.removeItem('refresh_token');
-  
-  // Redirect to login page
-  window.location.href = '/login';
+  toast.success('You have been logged out');
+};
+
+// Check if user is admin
+export const isAdmin = (): boolean => {
+  const user = getCurrentUser();
+  return user ? user.isAdmin || user.role === 'administrator' : false;
+};
+
+// Check user role
+export const getUserRole = (): string | null => {
+  const user = getCurrentUser();
+  return user ? user.role : null;
 };
