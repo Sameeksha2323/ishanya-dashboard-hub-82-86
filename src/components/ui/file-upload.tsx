@@ -11,10 +11,14 @@ interface FileUploadProps {
   label?: string;
   value?: string;
   bucket?: string;
+  bucketName?: string; // Added for backward compatibility
   folder?: string;
   accept?: string; // file types to accept
   maxSize?: number; // in MB
   fileType?: 'image' | 'document' | 'any';
+  entityType?: 'student' | 'employee' | 'educator';
+  entityId?: string | number;
+  existingUrl?: string;
 }
 
 const FileUpload = ({
@@ -22,15 +26,22 @@ const FileUpload = ({
   label = 'Upload File',
   value,
   bucket = 'documents',
+  bucketName, // Added for backward compatibility
   folder = '',
   accept = '*',
   maxSize = 5, // 5MB default
-  fileType = 'any'
+  fileType = 'any',
+  entityType,
+  entityId,
+  existingUrl
 }: FileUploadProps) => {
+  // Use bucketName if provided, otherwise fall back to bucket
+  const actualBucket = bucketName || bucket;
+  
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [uploadedUrl, setUploadedUrl] = useState<string>(value || '');
-  const [displayFileName, setDisplayFileName] = useState<string>(value ? value.split('/').pop() || '' : '');
+  const [uploadedUrl, setUploadedUrl] = useState<string>(existingUrl || value || '');
+  const [displayFileName, setDisplayFileName] = useState<string>(uploadedUrl ? uploadedUrl.split('/').pop() || '' : '');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -80,8 +91,8 @@ const FileUpload = ({
       
       // Check if bucket exists, if not try to create it
       const { data: buckets } = await supabase.storage.listBuckets();
-      if (!buckets?.find(b => b.name === bucket)) {
-        const { error: bucketError } = await supabase.storage.createBucket(bucket, {
+      if (!buckets?.find(b => b.name === actualBucket)) {
+        const { error: bucketError } = await supabase.storage.createBucket(actualBucket, {
           public: true
         });
         
@@ -95,7 +106,7 @@ const FileUpload = ({
       
       // Upload the file
       const { data, error } = await supabase.storage
-        .from(bucket)
+        .from(actualBucket)
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true
@@ -110,7 +121,7 @@ const FileUpload = ({
       
       // Get the public URL
       const { data: publicUrlData } = supabase.storage
-        .from(bucket)
+        .from(actualBucket)
         .getPublicUrl(filePath);
       
       const publicUrl = publicUrlData.publicUrl;

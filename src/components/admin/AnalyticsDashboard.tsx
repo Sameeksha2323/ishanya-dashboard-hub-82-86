@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
@@ -82,42 +81,30 @@ const AnalyticsDashboard = () => {
           setCenterNameMap(centerMap);
         }
 
-        // Fetch students grouped by program using the provided SQL query through RPC
-        const { data: programData, error: programError } = await supabase.rpc('get_students_by_program');
+        // Fetch students grouped by program using a standard query instead of RPC
+        const { data: programData, error: programError } = await supabase
+          .from('students')
+          .select('program_id, programs!inner(name)')
+          .order('program_id');
         
         if (programError) {
-          console.error('Error with RPC, falling back to standard query:', programError);
+          console.error('Error fetching program data:', programError);
+          throw programError;
+        }
+        
+        if (programData) {
+          // Process and count program data
+          const programCounts: {[key: string]: number} = {};
           
-          // Fallback: use a standard query to get program data
-          const { data: fallbackData, error: fallbackError } = await supabase
-            .from('students')
-            .select('program_id, programs!inner(name)')
-            .order('program_id');
-            
-          if (fallbackError) throw fallbackError;
+          programData.forEach(student => {
+            // @ts-ignore - we know this structure exists
+            const programName = student.programs?.name || 'Unknown';
+            programCounts[programName] = (programCounts[programName] || 0) + 1;
+          });
           
-          if (fallbackData) {
-            // Process and count program data
-            const programCounts: {[key: string]: number} = {};
-            
-            fallbackData.forEach(student => {
-              // @ts-ignore - we know this structure exists
-              const programName = student.programs?.name || 'Unknown';
-              programCounts[programName] = (programCounts[programName] || 0) + 1;
-            });
-            
-            const formattedProgramData = Object.entries(programCounts).map(([name, count]) => ({
-              name,
-              count
-            }));
-            
-            setStudentsByProgram(formattedProgramData);
-          }
-        } else if (programData) {
-          // Format the RPC data
-          const formattedProgramData = programData.map((item: any) => ({
-            name: item.name,
-            count: Number(item.total_students)
+          const formattedProgramData = Object.entries(programCounts).map(([name, count]) => ({
+            name,
+            count
           }));
           
           setStudentsByProgram(formattedProgramData);
