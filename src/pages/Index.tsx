@@ -195,7 +195,7 @@ const Index = () => {
     
     return (
       <>
-        <div className="flex justify-between mb-4">
+        <div className="flex justify-between mb-6">
           <Button
             variant="outline"
             className="bg-white border-ishanya-green text-ishanya-green hover:bg-ishanya-green/10"
@@ -213,7 +213,7 @@ const Index = () => {
           </Button>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="shadow-md hover:shadow-lg transition-shadow border-t-4 border-ishanya-green">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center gap-2">
@@ -251,20 +251,38 @@ const Index = () => {
           </Card>
         </div>
         
-        {showAnalytics && <AnalyticsDashboard />}
+        {showAnalytics && <div className="mb-8"><AnalyticsDashboard /></div>}
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <PendingReviews />
-          <ActivitiesSection />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+          <Card className="shadow-md hover:shadow-lg transition-shadow h-full">
+            <CardHeader>
+              <CardTitle className="text-lg">Pending Form Reviews</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PendingReviews />
+            </CardContent>
+          </Card>
+          
+          <Card className="shadow-md hover:shadow-lg transition-shadow h-full">
+            <CardHeader>
+              <CardTitle className="text-lg">Recent Activities</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ActivitiesSection />
+            </CardContent>
+          </Card>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <div className="lg:col-span-2">
-            <CenterList onSelectCenter={handleSelectCenter} />
-          </div>
-          
-          <div>
-            <AnnouncementBoard />
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Centers</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <CenterList onSelectCenter={handleSelectCenter} />
+            </div>
+            
+            <div>
+              <AnnouncementBoard />
+            </div>
           </div>
         </div>
       </>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -46,10 +47,14 @@ type Task = {
   description: string;
   status: string;
   due_date: string;
-  created_at: string; // Added this property to fix the TypeScript error
+  created_at: string;
   priority: string;
   category: string;
   feedback?: string;
+  educator_employee_id?: number;
+  program_id?: number;
+  student_id?: number;
+  stage?: string;
 };
 
 type Attendance = {
@@ -124,8 +129,7 @@ const StudentDetails = () => {
         if (taskError) throw taskError;
         
         // Transform the task data to include created_at property
-        // This ensures all tasks have the created_at property with a default value if it's missing
-        const transformedTasks: Task[] = (taskData || []).map(task => ({
+        const transformedTasks = (taskData || []).map(task => ({
           ...task,
           created_at: task.created_at || new Date().toISOString(),
         }));
