@@ -79,14 +79,6 @@ type Task = {
   stage?: string;
 };
 
-type AttendanceRecord = {
-  id: number;
-  date: string;
-  status: string;
-  student_id: string;
-  notes?: string;
-};
-
 type AttendanceSummary = {
   present: number;
   absent: number;
@@ -206,13 +198,14 @@ const StudentDetails = () => {
 
         if (taskError) throw taskError;
         
-        // Don't try to access created_at since it's not in our type
+        // Transform tasks for compatibility with our Task type
         const transformedTasks = (taskData || []).map(task => ({
           ...task,
           title: task.title || '',
           description: task.description || '',
           category: task.category || '',
-          feedback: task.feedback || ''
+          feedback: task.feedback || '',
+          created_at: new Date().toISOString() // Add required created_at field
         }));
         
         setTasks(transformedTasks);
@@ -246,7 +239,7 @@ const StudentDetails = () => {
     const fullQuarter = quarter.includes(yearPrefix) ? quarter : quarter.replace(/\d{4}/g, yearPrefix);
     
     return performanceRecords.find(record => 
-      record.student_id === parseInt(student.student_id) &&
+      record.student_id === student.student_id &&
       record.program_id === student.program_id &&
       record.educator_employee_id === student.educator_employee_id &&
       record.quarter === fullQuarter
@@ -260,7 +253,7 @@ const StudentDetails = () => {
     const fullQuarter = quarter.includes(yearPrefix) ? quarter : quarter.replace(/\d{4}/g, yearPrefix);
     
     return generalReports.find(report => 
-      report.student_id === parseInt(student.student_id) &&
+      report.student_id === student.student_id &&
       report.program_id === student.program_id &&
       report.educator_employee_id === student.educator_employee_id &&
       report.quarter === fullQuarter
@@ -279,7 +272,7 @@ const StudentDetails = () => {
         method: 'post',
         url: 'https://fast-api-ubv8.onrender.com/generate_report',
         data: {
-          student_id: parseInt(student.student_id),
+          student_id: student.student_id,
           program_id: student.program_id,
           educator_employee_id: student.educator_employee_id,
           quarter: fullQuarter

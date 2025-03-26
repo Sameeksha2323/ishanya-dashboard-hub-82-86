@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,12 +10,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { getCurrentUser } from '@/lib/auth';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import ErrorDisplay from '@/components/ui/ErrorDisplay';
-import { Clock, FileText, Upload } from 'lucide-react';
+import { Clock, FileText, Upload, Download, User, GraduationCap, Heart, Phone } from 'lucide-react';
 import ReportUploader from '@/components/parent/ReportUploader';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import axios from 'axios';
 
 const ParentDetailsPage = () => {
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<string>('student-info');
+  const [activeTab, setActiveTab] = useState<string>('personal-info');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [students, setStudents] = useState<any[]>([]);
@@ -24,6 +27,7 @@ const ParentDetailsPage = () => {
   const [loadingReports, setLoadingReports] = useState(false);
   const [showUploader, setShowUploader] = useState(false);
   const [parentData, setParentData] = useState<any | null>(null);
+  const [loadingReport, setLoadingReport] = useState(false);
   const user = getCurrentUser();
   
   useEffect(() => {
@@ -168,6 +172,75 @@ const ParentDetailsPage = () => {
     }
     toast.success('Your report has been uploaded successfully');
   };
+
+  const handleDownloadReport = async () => {
+    if (!selectedStudentId) return;
+    
+    setLoadingReport(true);
+    
+    try {
+      // Get the latest quarter for reporting
+      const currentDate = new Date();
+      const currentYear = currentDate.getFullYear();
+      const currentMonth = currentDate.getMonth() + 1;
+      
+      let quarter;
+      if (currentMonth >= 1 && currentMonth <= 3) {
+        quarter = `January ${currentYear} - March ${currentYear}`;
+      } else if (currentMonth >= 4 && currentMonth <= 6) {
+        quarter = `April ${currentYear} - June ${currentYear}`;
+      } else if (currentMonth >= 7 && currentMonth <= 9) {
+        quarter = `July ${currentYear} - September ${currentYear}`;
+      } else {
+        quarter = `October ${currentYear} - December ${currentYear}`;
+      }
+      
+      // Get student details to find program and educator
+      const activeStudent = students.find(s => s.student_id === selectedStudentId);
+      
+      if (!activeStudent) {
+        toast.error('Student information not found');
+        setLoadingReport(false);
+        return;
+      }
+      
+      const response = await axios({
+        method: 'post',
+        url: 'https://fast-api-ubv8.onrender.com/generate_report',
+        data: {
+          student_id: selectedStudentId,
+          program_id: activeStudent.program_id,
+          educator_employee_id: activeStudent.educator_employee_id,
+          quarter: quarter
+        },
+        responseType: 'blob'
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${activeStudent.first_name}_${activeStudent.last_name}_${quarter.replace(/\s/g, '_')}_Report.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      
+      if (link.parentNode) {
+        link.parentNode.removeChild(link);
+      }
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Report downloaded successfully');
+    } catch (error: any) {
+      console.error('Error downloading report:', error);
+      
+      if (error.response?.status === 404) {
+        toast.error('No report data found for this student');
+      } else {
+        toast.error('Failed to download report');
+      }
+    } finally {
+      setLoadingReport(false);
+    }
+  };
   
   if (loading) {
     return (
@@ -190,134 +263,126 @@ const ParentDetailsPage = () => {
   const activeStudent = students.find(s => s.student_id === selectedStudentId) || students[0];
   
   return (
-    <Layout title="Parent Portal" subtitle={`Welcome, ${user?.name || 'Parent'}`}>
+    <Layout title="Student Profile" subtitle={`${activeStudent?.first_name || 'Student'} ${activeStudent?.last_name || 'Profile'}`}>
       <div className="grid grid-cols-1 gap-6">
+        <div className="flex justify-end">
+          <Button 
+            onClick={handleDownloadReport}
+            disabled={loadingReport}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            {loadingReport ? <LoadingSpinner size="sm" /> : (
+              <>
+                <Download className="h-5 w-5 mr-2" />
+                Download Report
+              </>
+            )}
+          </Button>
+        </div>
+        
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="student-info">Student Information</TabsTrigger>
-            <TabsTrigger value="progress">Progress Reports</TabsTrigger>
-            <TabsTrigger value="communication">Communication</TabsTrigger>
+          <TabsList className="w-full p-0 bg-slate-100 rounded-lg">
+            <TabsTrigger value="personal-info" className="flex-1 py-3 data-[state=active]:bg-white rounded-lg">
+              Personal Info
+            </TabsTrigger>
+            <TabsTrigger value="education-details" className="flex-1 py-3 data-[state=active]:bg-white rounded-lg">
+              Education Details
+            </TabsTrigger>
+            <TabsTrigger value="health-development" className="flex-1 py-3 data-[state=active]:bg-white rounded-lg">
+              Health & Development
+            </TabsTrigger>
+            <TabsTrigger value="progress-contact" className="flex-1 py-3 data-[state=active]:bg-white rounded-lg">
+              Progress & Contact
+            </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="student-info" className="space-y-6">
-            {students.length > 0 && (
+          <TabsContent value="personal-info" className="space-y-6 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Student Details</CardTitle>
+                  <CardTitle>Student Profile</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {students.length > 1 && (
-                    <div className="mb-6">
-                      <label className="block text-sm font-medium mb-2">Select Student:</label>
-                      <div className="flex flex-wrap gap-2">
-                        {students.map((student) => (
-                          <Button
-                            key={student.student_id}
-                            variant={selectedStudentId === student.student_id ? "default" : "outline"}
-                            onClick={() => handleStudentChange(student.student_id)}
-                          >
-                            {student.first_name} {student.last_name}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  <div className="flex flex-col items-center mb-6">
+                    <Avatar className="h-32 w-32 mb-4">
+                      <AvatarFallback className="text-5xl bg-slate-200 text-slate-500">
+                        <User className="h-16 w-16" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <h2 className="text-2xl font-bold">{activeStudent?.first_name} {activeStudent?.last_name}</h2>
+                    <Badge className="mt-2 bg-green-100 text-green-800 hover:bg-green-100">
+                      {activeStudent?.status || 'Active'}
+                    </Badge>
+                  </div>
                   
-                  {activeStudent && (
-                    <div className="grid md:grid-cols-2 gap-8">
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className="text-lg font-medium mb-2">Personal Information</h3>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm text-gray-500">Name</p>
-                              <p>{activeStudent.first_name} {activeStudent.last_name}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Student ID</p>
-                              <p>{activeStudent.student_id}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Gender</p>
-                              <p>{activeStudent.gender}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Date of Birth</p>
-                              <p>{new Date(activeStudent.dob).toLocaleDateString()}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Email</p>
-                              <p>{activeStudent.student_email}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Contact</p>
-                              <p>{activeStudent.contact_number}</p>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <h3 className="text-lg font-medium mb-2">Address</h3>
-                          <p>{activeStudent.address || 'No address provided'}</p>
-                        </div>
-                        
-                        {activeStudent.allergies && (
-                          <div>
-                            <h3 className="text-lg font-medium mb-2">Allergies</h3>
-                            <p>{activeStudent.allergies}</p>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className="text-lg font-medium mb-2">Program Information</h3>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm text-gray-500">Program ID</p>
-                              <p>{activeStudent.program_id}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Enrollment Year</p>
-                              <p>{activeStudent.enrollment_year}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Status</p>
-                              <p>{activeStudent.status}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Sessions</p>
-                              <p>{activeStudent.number_of_sessions || 0}</p>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {activeStudent.strengths && (
-                          <div>
-                            <h3 className="text-lg font-medium mb-2">Strengths</h3>
-                            <p>{activeStudent.strengths}</p>
-                          </div>
-                        )}
-                        
-                        {activeStudent.weakness && (
-                          <div>
-                            <h3 className="text-lg font-medium mb-2">Areas for Improvement</h3>
-                            <p>{activeStudent.weakness}</p>
-                          </div>
-                        )}
-                        
-                        {activeStudent.comments && (
-                          <div>
-                            <h3 className="text-lg font-medium mb-2">Additional Comments</h3>
-                            <p>{activeStudent.comments}</p>
-                          </div>
-                        )}
-                      </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-500">Student ID:</span>
+                      <span className="font-medium">{activeStudent?.student_id}</span>
                     </div>
-                  )}
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-500">Gender:</span>
+                      <span className="font-medium">{activeStudent?.gender}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-500">Date of Birth:</span>
+                      <span className="font-medium">{activeStudent?.dob ? new Date(activeStudent.dob).toLocaleDateString() : 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-500">Enrollment Year:</span>
+                      <span className="font-medium">{activeStudent?.enrollment_year}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-500">Email:</span>
+                      <span className="font-medium">{activeStudent?.student_email || activeStudent?.parents_email || 'N/A'}</span>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
-            )}
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Family Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-6">
+                    <h3 className="font-semibold text-lg mb-3">Parent Details</h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-500">Father's Name</span>
+                        <span className="font-medium">{activeStudent?.fathers_name || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-500">Mother's Name</span>
+                        <span className="font-medium">{activeStudent?.mothers_name || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-500">Primary Contact</span>
+                        <span className="font-medium">{activeStudent?.contact_number || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-500">Alternative Contact</span>
+                        <span className="font-medium">{activeStudent?.alt_contact_number || 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-semibold text-lg mb-3">Address & Transport</h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-500">Home Address</span>
+                        <span className="font-medium">{activeStudent?.address || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-500">Transport Details</span>
+                        <span className="font-medium">{activeStudent?.transport_required ? 'Yes' : 'No'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -394,57 +459,223 @@ const ParentDetailsPage = () => {
             </Card>
           </TabsContent>
           
-          <TabsContent value="progress" className="space-y-6">
+          <TabsContent value="education-details" className="space-y-6 mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Progress Reports</CardTitle>
+                <CardTitle className="flex items-center">
+                  <GraduationCap className="h-5 w-5 mr-2 text-blue-500" />
+                  Education Details
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">
-                  Track your child's development milestones and achievements over time.
-                </p>
-                
-                <div className="p-6 text-center text-gray-500">
-                  <p>Progress reports will be available soon.</p>
+                <div className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <h3 className="font-semibold text-lg">Program Information</h3>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-500">Program ID</span>
+                        <span className="font-medium">{activeStudent?.program_id || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-500">Center ID</span>
+                        <span className="font-medium">{activeStudent?.center_id || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-500">Educator ID</span>
+                        <span className="font-medium">{activeStudent?.educator_employee_id || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-500">Enrollment Year</span>
+                        <span className="font-medium">{activeStudent?.enrollment_year || 'N/A'}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <h3 className="font-semibold text-lg">Academic Progress</h3>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-500">Current Status</span>
+                        <span className="font-medium">{activeStudent?.status || 'Active'}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-500">Sessions Per Week</span>
+                        <span className="font-medium">{activeStudent?.sessions_per_week || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-500">Total Sessions</span>
+                        <span className="font-medium">{activeStudent?.number_of_sessions || 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6">
+                    <h3 className="font-semibold text-lg mb-3">Educational Performance</h3>
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <p className="text-gray-600">
+                        {activeStudent?.performance_summary || 'Educational performance information will be updated after assessment.'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
           
-          <TabsContent value="communication" className="space-y-6">
+          <TabsContent value="health-development" className="space-y-6 mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Contact Educators</CardTitle>
+                <CardTitle className="flex items-center">
+                  <Heart className="h-5 w-5 mr-2 text-red-500" />
+                  Health & Development
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground mb-4">
-                  Use this section to communicate with your child's educators.
-                </p>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-lg">Medical Information</h3>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-500">Primary Diagnosis</span>
+                      <span className="font-medium">{activeStudent?.primary_diagnosis || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-500">Comorbidity</span>
+                      <span className="font-medium">{activeStudent?.comorbidity || 'None'}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-500">Blood Group</span>
+                      <span className="font-medium">{activeStudent?.blood_group || 'Not specified'}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-500">Allergies</span>
+                      <span className="font-medium">{activeStudent?.allergies || 'None'}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-500">UDID</span>
+                      <span className="font-medium">{activeStudent?.udid || 'Not available'}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-lg">Developmental Progress</h3>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-500">Strengths</span>
+                      <span className="font-medium">{activeStudent?.strengths || 'Not assessed yet'}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-500">Areas for Improvement</span>
+                      <span className="font-medium">{activeStudent?.weakness || 'Not assessed yet'}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-500">Additional Comments</span>
+                      <span className="font-medium">{activeStudent?.comments || 'No comments available'}</span>
+                    </div>
+                  </div>
+                </div>
                 
-                <div className="p-6 text-center text-gray-500">
-                  <p>This feature is coming soon. For now, please contact the educators directly via email or phone.</p>
+                <div className="mt-6">
+                  <h3 className="font-semibold text-lg mb-3">Special Requirements</h3>
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <p className="text-gray-600">
+                      {activeStudent?.special_requirements || 'No special requirements have been recorded.'}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="progress-contact" className="space-y-6 mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Phone className="h-5 w-5 mr-2 text-purple-500" />
+                  Contact & Communication
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <h3 className="font-semibold text-lg">Contact Information</h3>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-500">Primary Contact</span>
+                        <span className="font-medium">{activeStudent?.contact_number || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-500">Alternative Contact</span>
+                        <span className="font-medium">{activeStudent?.alt_contact_number || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-500">Parent Email</span>
+                        <span className="font-medium">{activeStudent?.parents_email || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-500">Student Email</span>
+                        <span className="font-medium">{activeStudent?.student_email || 'N/A'}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <h3 className="font-semibold text-lg">Educator Contact</h3>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-500">Educator ID</span>
+                        <span className="font-medium">{activeStudent?.educator_employee_id || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-500">Center Contact</span>
+                        <span className="font-medium">Available during center hours</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6">
+                    <h3 className="font-semibold text-lg mb-3">Parent Feedback</h3>
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <p className="text-gray-600">
+                        {parentData?.feedback || 'No feedback has been provided yet.'}
+                      </p>
+                      <p className="mt-2 text-sm text-gray-500">
+                        To provide or update your feedback, please contact the administration.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
             
             <Card>
               <CardHeader>
-                <CardTitle>Parent Feedback</CardTitle>
+                <CardTitle className="flex items-center">
+                  <FileText className="h-5 w-5 mr-2 text-green-500" />
+                  Progress Reports
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground mb-4">
-                  Your feedback is valuable to us and helps us improve our services.
-                </p>
-                
-                <div className="p-6 text-gray-500">
-                  <div className="mb-4">
-                    <h3 className="font-medium">Current Feedback:</h3>
-                    <p className="italic mt-2">
-                      {parentData?.feedback || "No feedback provided yet."}
-                    </p>
-                  </div>
+                <div className="space-y-4">
+                  <p className="text-muted-foreground">
+                    Track your child's development milestones and achievements over time.
+                  </p>
                   
-                  <p>To provide or update your feedback, please contact the administration.</p>
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <p className="text-gray-600">
+                      Quarterly progress reports will be available here after assessments. 
+                      You can download the latest report using the download button at the top of this page.
+                    </p>
+                    
+                    <div className="mt-4 flex justify-center">
+                      <Button 
+                        onClick={handleDownloadReport}
+                        disabled={loadingReport}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        {loadingReport ? <LoadingSpinner size="sm" /> : (
+                          <>
+                            <Download className="h-5 w-5 mr-2" />
+                            Download Latest Report
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
