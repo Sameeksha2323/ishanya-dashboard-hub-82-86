@@ -66,13 +66,11 @@ const Navbar = () => {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Link to="/">
-                <div className="bg-white rounded-md p-1">
-                  <img 
-                    src="/lovable-uploads/a6017f5f-7947-49ad-a9ed-0bc0e588a9b0.png" 
-                    alt="Ishanya Foundation" 
-                    className="h-10 w-auto" 
-                  />
-                </div>
+                <img 
+                  src="/lovable-uploads/a6017f5f-7947-49ad-a9ed-0bc0e588a9b0.png" 
+                  alt="Ishanya Foundation" 
+                  className="h-10 w-auto" 
+                />
               </Link>
             </div>
           </div>

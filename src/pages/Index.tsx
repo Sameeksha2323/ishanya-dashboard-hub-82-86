@@ -263,7 +263,7 @@ const Index = () => {
         </div>
         
         <div className="mb-6">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-ishanya-green to-ishanya-yellow bg-clip-text text-transparent mb-4 border-b-2 border-ishanya-green pb-1">Centers</h2>
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-ishanya-green to-ishanya-yellow bg-clip-text text-transparent inline-block mb-4 border-b-2 border-ishanya-green pb-1">Centers</h2>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-4 border border-gray-100">
               <CenterList onSelectCenter={handleSelectCenter} />
