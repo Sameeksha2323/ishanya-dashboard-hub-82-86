@@ -45,7 +45,7 @@ const EducatorSelect = ({
       try {
         setLoading(true);
         
-        // Query both educators table and employees with role 'educator' or 'teacher'
+        // Query both educators table and employees with role 'educator'
         let query = supabase.from('educators').select('*');
         
         if (centerId) {

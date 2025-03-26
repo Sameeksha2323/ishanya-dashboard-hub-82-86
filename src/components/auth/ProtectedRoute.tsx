@@ -6,13 +6,13 @@ import { isAuthenticated, getCurrentUser } from '@/lib/auth';
 type ProtectedRouteProps = {
   children: ReactNode;
   requireAdmin?: boolean;
-  allowedRoles?: Array<'administrator' | 'hr' | 'teacher' | 'parent'>;
+  allowedRoles?: Array<'administrator' | 'hr' | 'educator' | 'parent'>;
 };
 
 const ProtectedRoute = ({ 
   children, 
   requireAdmin = false,
-  allowedRoles = ['administrator', 'hr', 'teacher', 'parent'] 
+  allowedRoles = ['administrator', 'hr', 'educator', 'parent'] 
 }: ProtectedRouteProps) => {
   const isLoggedIn = isAuthenticated();
   const user = getCurrentUser();
@@ -34,7 +34,7 @@ const ProtectedRoute = ({
         return <Navigate to="/" />;
       case 'hr':
         return <Navigate to="/hr" />;
-      case 'teacher':
+      case 'educator':
         return <Navigate to="/teacher" />;
       case 'parent':
         return <Navigate to="/parent" />;

@@ -14,7 +14,7 @@ export type User = {
   center_id?: number;
   department?: string;
   designation?: string;
-  role: 'administrator' | 'hr' | 'teacher' | 'parent';
+  role: 'administrator' | 'hr' | 'educator' | 'parent';
 }
 
 // Authenticate a user with email, password and role
@@ -30,8 +30,8 @@ export const authenticateUser = async (
   try {
     console.log('Authenticating user with email:', email, 'and role:', role);
     
-    // For administrator, HR, and teacher roles, check the employees table
-    if (['administrator', 'hr', 'teacher'].includes(role)) {
+    // For administrator, HR, and educator roles, check the employees table
+    if (['administrator', 'hr', 'educator'].includes(role)) {
       // Get the employee record with the matching email and password
       const { data: employees, error } = await supabase
         .from('employees')
@@ -58,7 +58,7 @@ export const authenticateUser = async (
       const employee = employees[0];
       
       // Check if the employee's role matches the selected role
-      let userRole: 'administrator' | 'hr' | 'teacher' | null = null;
+      let userRole: 'administrator' | 'hr' | 'educator' | null = null;
       let isAdmin = false;
       
       // Updated role checks - more specific checks for department and designation
@@ -76,13 +76,13 @@ export const authenticateUser = async (
         if (isHr) {
           userRole = 'hr';
         }
-      } else if (role === 'teacher') {
-        // Teacher if designation contains educator or teacher or department is educator
-        const isTeacher = employee.designation?.toLowerCase().includes('educator') || 
+      } else if (role === 'educator') {
+        // Educator if designation contains educator or teacher or department is educator
+        const isEducator = employee.designation?.toLowerCase().includes('educator') || 
                          employee.designation?.toLowerCase().includes('teacher') ||
                          employee.department?.toLowerCase() === 'educator';
-        if (isTeacher) {
-          userRole = 'teacher';
+        if (isEducator) {
+          userRole = 'educator';
         }
       }
       

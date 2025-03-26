@@ -52,7 +52,7 @@ const PayrollForm = ({ employeeId, onSuccess, initialData, onCancel }: PayrollFo
         last_paid: lastPaidDate ? format(lastPaidDate, 'yyyy-MM-dd') : null
       };
       
-      let error;
+      let error = null;
       
       if (initialData?.id) {
         // Update existing payroll record
@@ -128,7 +128,6 @@ const PayrollForm = ({ employeeId, onSuccess, initialData, onCancel }: PayrollFo
                   selected={lastPaidDate}
                   onSelect={setLastPaidDate}
                   initialFocus
-                  className="pointer-events-auto"
                 />
               </PopoverContent>
             </Popover>

@@ -87,9 +87,9 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 
-                {/* Teacher Dashboard - only for teachers */}
+                {/* Teacher Dashboard - only for educators */}
                 <Route path="/teacher" element={
-                  <ProtectedRoute allowedRoles={['teacher']}>
+                  <ProtectedRoute allowedRoles={['educator']}>
                     <TeacherDashboard />
                   </ProtectedRoute>
                 } />
@@ -136,7 +136,7 @@ const getDefaultRoute = (role: string | null): string => {
       return '/admin';
     case 'hr':
       return '/hr';
-    case 'teacher':
+    case 'educator':
       return '/teacher';
     case 'parent':
       return '/parent/details';
