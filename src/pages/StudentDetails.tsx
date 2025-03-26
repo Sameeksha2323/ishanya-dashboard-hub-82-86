@@ -39,7 +39,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import axios from 'axios';
 
 type Student = {
-  student_id: string;
+  student_id: number; // Changed from string to number to match database
   first_name: string;
   last_name: string;
   gender: string;
@@ -168,11 +168,12 @@ const StudentDetails = () => {
       
       setLoading(true);
       try {
+        // Parse studentId as number since that's what our type expects now
         const studentIdNum = parseInt(studentId, 10);
         
         const { data: studentData, error: studentError } = await supabase
           .from('students')
-          .select('student_id, first_name, last_name, gender, dob, fathers_name, mothers_name, primary_diagnosis, comorbidity, blood_group, allergies, udid, contact_number, alt_contact_number, status, enrollment_year, address, parents_email, student_email, center_id, program_id, educator_employee_id')
+          .select('*')
           .eq('student_id', studentIdNum)
           .single();
 
@@ -205,9 +206,13 @@ const StudentDetails = () => {
 
         if (taskError) throw taskError;
         
+        // Don't try to access created_at since it's not in our type
         const transformedTasks = (taskData || []).map(task => ({
           ...task,
-          created_at: task.created_at || new Date().toISOString(),
+          title: task.title || '',
+          description: task.description || '',
+          category: task.category || '',
+          feedback: task.feedback || ''
         }));
         
         setTasks(transformedTasks);
