@@ -2,7 +2,7 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Home, Users, LogOut, BookOpen, User } from 'lucide-react';
-import { logout, getCurrentUser, getUserRole } from '@/lib/auth';
+import { logout, getCurrentUser, hasRole } from '@/lib/auth';
 import { toast } from 'sonner';
 import { useLanguage } from '@/components/ui/LanguageProvider';
 import NotificationMenu from './NotificationMenu';
@@ -11,7 +11,6 @@ export function DashboardNav() {
   const navigate = useNavigate();
   const location = useLocation();
   const user = getCurrentUser();
-  const userRole = getUserRole();
   const { t } = useLanguage();
 
   const handleLogout = () => {
@@ -36,7 +35,7 @@ export function DashboardNav() {
       <NotificationMenu />
       
       {/* Show admin dashboard link only to administrators */}
-      {userRole === 'administrator' && (
+      {user.role === 'administrator' && (
         <Button 
           variant="ghost" 
           size="icon" 
@@ -50,7 +49,7 @@ export function DashboardNav() {
       )}
       
       {/* Show HR dashboard link only to HR */}
-      {userRole === 'hr' && (
+      {user.role === 'hr' && (
         <Button 
           variant="ghost" 
           size="icon" 
@@ -64,7 +63,7 @@ export function DashboardNav() {
       )}
       
       {/* Show Teacher dashboard link only to teachers */}
-      {userRole === 'teacher' && (
+      {user.role === 'teacher' && (
         <Button 
           variant="ghost" 
           size="icon" 
@@ -78,7 +77,7 @@ export function DashboardNav() {
       )}
       
       {/* Show Parent dashboard link only to parents */}
-      {userRole === 'parent' && (
+      {user.role === 'parent' && (
         <Button 
           variant="ghost" 
           size="icon" 
@@ -102,7 +101,7 @@ export function DashboardNav() {
       
       {user && (
         <span className="ml-2 text-sm font-medium text-gray-600 dark:text-gray-300 hidden md:inline-block">
-          {user.name} ({t(`common.${userRole}`) || userRole})
+          {user.name} ({t(`common.${user.role}`) || user.role})
         </span>
       )}
     </div>

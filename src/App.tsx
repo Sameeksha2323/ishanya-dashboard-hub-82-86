@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,7 +13,7 @@ import ParentDetailsPage from "./pages/ParentDetailsPage";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
-import { isAuthenticated, getUserRole } from "./lib/auth";
+import { isAuthenticated, getCurrentUser } from "./lib/auth";
 import EmployeeDetailPage from './pages/EmployeeDetailPage';
 import LandingPage from './pages/LandingPage';
 import StudentPerformance from './pages/StudentPerformance';
@@ -31,7 +30,7 @@ const queryClient = new QueryClient({
 
 const App = () => {
   const isLoggedIn = isAuthenticated();
-  const userRole = getUserRole();
+  const userRole = getCurrentUser()?.role;
 
   return (
     <QueryClientProvider client={queryClient}>

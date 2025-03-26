@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -51,19 +50,32 @@ const AnalyticsDashboard = () => {
     
     const fetchStudentsByProgram = async () => {
       try {
-        // Use the RPC function to get students by program
         const { data, error } = await supabase
-          .rpc('get_students_by_program');
+          .from('students')
+          .select(`
+            program_id,
+            programs (
+              name
+            )
+          `);
         
         if (error) {
           throw error;
         }
         
         if (data) {
-          // Format the data for the pie chart
-          const formattedData = data.map((item: any) => ({
-            name: item.name,
-            total_students: Number(item.total_students)
+          const programCounts: Record<string, number> = {};
+          
+          data.forEach(student => {
+            const programName = student.programs?.name;
+            if (programName) {
+              programCounts[programName] = (programCounts[programName] || 0) + 1;
+            }
+          });
+          
+          const formattedData = Object.keys(programCounts).map(name => ({
+            name,
+            total_students: programCounts[name]
           }));
           
           setStudentsByProgram(formattedData);
@@ -71,40 +83,6 @@ const AnalyticsDashboard = () => {
       } catch (error) {
         console.error('Error fetching students by program:', error);
         toast.error('Failed to load student program distribution');
-        
-        // Fallback to a database query if the function fails
-        try {
-          const { data, error: queryError } = await supabase
-            .from('students')
-            .select(`
-              program_id,
-              programs (
-                name
-              )
-            `);
-            
-          if (queryError) throw queryError;
-          
-          if (data) {
-            const programCounts: Record<string, number> = {};
-            
-            data.forEach(student => {
-              const programName = student.programs?.name;
-              if (programName) {
-                programCounts[programName] = (programCounts[programName] || 0) + 1;
-              }
-            });
-            
-            const formattedData = Object.keys(programCounts).map(name => ({
-              name,
-              total_students: programCounts[name]
-            }));
-            
-            setStudentsByProgram(formattedData);
-          }
-        } catch (fallbackError) {
-          console.error('Fallback query failed:', fallbackError);
-        }
       } finally {
         setLoading(false);
       }

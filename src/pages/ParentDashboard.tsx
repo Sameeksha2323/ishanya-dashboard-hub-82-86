@@ -102,8 +102,7 @@ const ParentDashboard = () => {
         if (isMounted) {
           if (loading) {
             toast({
-              title: "Welcome to your dashboard",
-              description: "View your child's details for more information",
+              description: "Welcome to your dashboard. View your child's details for more information",
             });
           }
           setLoading(false);
@@ -158,7 +157,6 @@ const ParentDashboard = () => {
       fetchReportsForStudent(selectedStudentId);
     }
     toast({
-      title: "Success",
       description: "Your report has been uploaded successfully",
     });
   };
@@ -174,8 +172,6 @@ const ParentDashboard = () => {
         
       if (error || !data) {
         toast({
-          variant: "destructive",
-          title: "Error",
           description: "Failed to generate URL for the report",
         });
         return;
@@ -185,8 +181,6 @@ const ParentDashboard = () => {
     } catch (error) {
       console.error('Error viewing report:', error);
       toast({
-        variant: "destructive",
-        title: "Error",
         description: "An error occurred while trying to view the report",
       });
     }

@@ -1,224 +1,153 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Clock, Eye, Check, X } from 'lucide-react';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from '@/components/ui/dialog';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import DetailedFormView from './DetailedFormView';
-import StudentForm from './StudentForm';
+import { ChevronRight, Loader2, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import { fetchSheetData, deleteSheetRow, formatStudentDataFromSheet } from '@/utils/googleSheetsUtils';
 import StudentFormHandler from './StudentFormHandler';
+import StudentForm from './StudentForm';
 import { supabase } from '@/integrations/supabase/client';
 
-type FormEntry = {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  submittedAt: string;
-  rowIndex: number;
-  [key: string]: any;
-};
-
 const PendingReviews = () => {
-  const [entries, setEntries] = useState<FormEntry[]>([]);
+  const [sheetData, setSheetData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedEntry, setSelectedEntry] = useState<FormEntry | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState<'view' | 'edit'>('view');
+  const [selectedEntry, setSelectedEntry] = useState<any | null>(null);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [rejectRowIndex, setRejectRowIndex] = useState<number | null>(null);
+  const [processingAction, setProcessingAction] = useState(false);
   const [showStudentForm, setShowStudentForm] = useState(false);
-  const [currentPointer, setCurrentPointer] = useState<number>(() => {
-    return parseInt(localStorage.getItem('formEntryPointer') || '2', 10);
-  });
-
+  const [lastStudentId, setLastStudentId] = useState<number | null>(1001);
+  const [formattedStudentData, setFormattedStudentData] = useState<any>(null);
+  
   useEffect(() => {
-    localStorage.setItem('formEntryPointer', currentPointer.toString());
-  }, [currentPointer]);
-
-  const fetchGoogleSheetData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const API_KEY = 'AIzaSyACcbknWrMdZUapY8sQii16PclJ2xlPlqA';
-      const SHEET_ID = '144Qh31BIIsDJYye5vWkE9WFhGI433yZU4TtKLq1wN4w';
-      const RANGE = `Form Responses 1!A${currentPointer}:Z`;
-      
-      console.log(`Fetching data starting from row ${currentPointer}`);
-      
-      const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`
-      );
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      const rows = data.values || [];
-      
-      if (!rows || rows.length === 0) {
-        setEntries([]);
-        toast.info('No form submissions to review');
-        return;
-      }
-      
-      const headerResponse = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Form Responses 1!A1:Z1?key=${API_KEY}`
-      );
-      
-      if (!headerResponse.ok) {
-        throw new Error(`Failed to fetch headers: ${headerResponse.status} ${headerResponse.statusText}`);
-      }
-      
-      const headerData = await headerResponse.json();
-      const headers = headerData.values?.[0] || [];
-      
-      const formattedEntries = rows.map((row: any[], index: number) => {
-        if (!row[0] && !row[1]) return null;
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchSheetData();
         
-        const entry: FormEntry = {
-          id: index.toString(),
-          name: row[1] || 'N/A',
-          email: row[14] || 'N/A',
-          phone: row[12] || 'N/A',
-          submittedAt: row[0] || 'N/A',
-          rowIndex: currentPointer + index,
-        };
-        
-        headers.forEach((header, i) => {
-          if (i < row.length && i >= 0) {
-            entry[header.toString()] = row[i];
-          }
-        });
-        
-        return entry;
-      }).filter(Boolean);
-      
-      setEntries(formattedEntries);
-      
-      if (formattedEntries.length > 0) {
-        toast.info(`${formattedEntries.length} form submissions pending review`);
-      }
-    } catch (err) {
-      console.error('Error fetching Google Sheet data:', err);
-      setError('Failed to fetch form submissions');
-      toast.error('Error loading form submissions');
-    } finally {
-      setLoading(false);
-    }
-  }, [currentPointer]);
-
-  useEffect(() => {
-    fetchGoogleSheetData();
-  }, [fetchGoogleSheetData]);
-
-  const handleViewEntry = (entry: FormEntry) => {
-    setSelectedEntry(entry);
-    setDialogMode('view');
-    setIsDialogOpen(true);
-  };
-
-  const handleEditEntry = (entry: FormEntry) => {
-    setSelectedEntry(entry);
-    setDialogMode('edit');
-    setIsDialogOpen(true);
-  };
-
-  const formatDateForDB = (dateString: string | undefined): string | null => {
-    if (!dateString) return null;
-    
-    try {
-      if (dateString.includes('/')) {
-        const parts = dateString.split('/');
-        if (parts.length === 3) {
-          return `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+        if (data && Array.isArray(data)) {
+          setSheetData(data);
+        } else {
+          setError('Invalid data format received from the API');
         }
+      } catch (err) {
+        console.error('Error fetching sheet data:', err);
+        setError('Failed to load pending reviews. Please try again later.');
+      } finally {
+        setLoading(false);
       }
-      
-      const date = new Date(dateString);
-      if (!isNaN(date.getTime())) {
-        return date.toISOString().split('T')[0];
-      }
-      
-      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-        return dateString;
-      }
-      
-      return null;
-    } catch (e) {
-      console.error('Error formatting date:', e);
-      return null;
-    }
-  };
-
-  const extractNumberFromField = (field: string | undefined): number | null => {
-    if (!field) return null;
+    };
     
-    try {
-      const match = field.match(/ID:\s*(\d+)/i) || field.match(/\((\d+)\)/) || field.match(/(\d+)/);
-      if (match && match[1]) {
-        return parseInt(match[1], 10);
+    const fetchLastStudentId = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('students')
+          .select('student_id')
+          .order('student_id', { ascending: false })
+          .limit(1);
+          
+        if (error) {
+          console.error('Error fetching last student ID:', error);
+          return;
+        }
+        
+        if (data && data.length > 0) {
+          setLastStudentId(data[0].student_id);
+        } else {
+          setLastStudentId(1000); // Default starting ID
+        }
+      } catch (err) {
+        console.error('Error fetching last student ID:', err);
       }
-      return null;
-    } catch (e) {
-      console.error('Error extracting number from field:', e);
-      return null;
-    }
+    };
+    
+    fetchData();
+    fetchLastStudentId();
+    
+    // Refresh data every 5 minutes
+    const interval = setInterval(fetchData, 300000);
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  const handleViewDetails = (entry: any) => {
+    setSelectedEntry(entry);
+    setShowDetailDialog(true);
   };
-
-  const handleAcceptEntry = async (entry: FormEntry) => {
+  
+  const handleAccept = (entry: any) => {
+    // Format the sheet data to match the student data structure
+    const formattedData = formatStudentDataFromSheet(entry);
+    setFormattedStudentData(formattedData);
+    setSelectedEntry(entry);
+    
+    // Open the student form with pre-filled data
+    setShowStudentForm(true);
+  };
+  
+  const handleReject = (entry: any, rowIndex: number) => {
+    setSelectedEntry(entry);
+    setRejectRowIndex(rowIndex);
+    setShowConfirmDialog(true);
+  };
+  
+  const confirmReject = async () => {
+    if (rejectRowIndex === null) return;
+    
+    setProcessingAction(true);
     try {
-      setIsDialogOpen(false);
-  
-      toast.loading('Preparing student form with prefilled data...');
-  
-      const studentFormData = {
-        first_name: entry['First Name'] || '',
-        last_name: entry['Last Name'] || '',
-        gender: entry['Gender'] || '',
-        dob: formatDateForDB(entry['Date of Birth']),
-        primary_diagnosis: entry['Primary Diagnosis'] || '',
-        comorbidity: entry['Comorbidity'] || '',
-        udid: entry['UDID'] || '',
-        fathers_name: entry["Father's Name"] || '',
-        mothers_name: entry["Mother's Name"] || '',
-        blood_group: entry['Blood Group'] || '',
-        allergies: entry['Allergies'] || '',
-        contact_number: entry['Contact Number'] || '',
-        alt_contact_number: entry['Alternate Contact Number'] || '',
-        parents_email: entry["Parent's Email"] || '',
-        address: entry['Address'] || '',
-        enrollment_year: new Date().getFullYear(),
-        status: 'Active',
-        student_email: entry["Parent's Email"] || '',
-        center_id: extractNumberFromField(entry['Center']),
-        program_id: extractNumberFromField(entry['Program']),
-        student_id: entry['Student ID'] || `STU${Date.now().toString().slice(-6)}`,
-      };
-  
-      // Store source entry for later reference
-      sessionStorage.setItem('pendingFormEntry', JSON.stringify(entry));
-  
-      // Open the student form
-      setSelectedEntry(entry);
-      setShowStudentForm(true);
-  
-      toast.dismiss();
-      toast.success('Opening student form with prefilled data');
+      // Row indexes are 0-based in the API but 1-based in the sheet
+      await deleteSheetRow(rejectRowIndex + 1);
       
+      // Update the UI by removing the rejected entry
+      setSheetData(sheetData.filter((_, index) => index !== rejectRowIndex));
+      
+      toast({
+        description: "Entry rejected and removed from the pending list.",
+      });
     } catch (err) {
-      console.error('Error accepting entry:', err);
-      toast.error('Failed to process form submission');
+      console.error('Error rejecting entry:', err);
+      toast({
+        description: "Failed to reject entry. Please try again.",
+      });
+    } finally {
+      setProcessingAction(false);
+      setShowConfirmDialog(false);
+      setRejectRowIndex(null);
     }
   };
-
-  const handleAddStudent = async (data: any) => {
+  
+  const handleStudentSubmit = async (data: any) => {
+    setProcessingAction(true);
     try {
-      // First add the student to the database
+      // Submit to database
       const { error } = await supabase
         .from('students')
         .insert([data]);
@@ -227,404 +156,248 @@ const PendingReviews = () => {
         throw error;
       }
       
-      const storedEntry = sessionStorage.getItem('pendingFormEntry');
-      if (storedEntry) {
-        const entry = JSON.parse(storedEntry);
-        
-        // Move the pointer forward to "delete" the entry
-        setCurrentPointer(prev => {
-          const newPointer = entry.rowIndex + 1;
-          console.log(`Moving pointer from ${prev} to ${newPointer}`);
-          return newPointer;
-        });
-        
-        // Remove the stored entry
-        sessionStorage.removeItem('pendingFormEntry');
-        
-        // Update the entries list
-        setEntries(prev => prev.filter(e => e.rowIndex !== entry.rowIndex));
+      // If successful, delete from sheet
+      if (selectedEntry && typeof selectedEntry.rowIndex === 'number') {
+        await deleteSheetRow(selectedEntry.rowIndex);
       }
       
-      // Add a parent record if parent email exists
-      if (data.parents_email) {
-        const { error: parentError } = await supabase
-          .from('parents')
-          .insert([{
-            email: data.parents_email,
-            student_id: data.student_id,
-            password: '1234' // Default password
-          }]);
-          
-        if (parentError) {
-          console.error('Error adding parent record:', parentError);
-        }
-      }
+      // Update the UI
+      setSheetData(sheetData.filter(entry => entry !== selectedEntry));
       
+      toast({
+        description: "Student added successfully and removed from pending list.",
+      });
+      
+      setShowStudentForm(false);
       return Promise.resolve();
-    } catch (error: any) {
-      console.error('Error adding student:', error);
-      toast.error(error.message || 'Failed to add student');
-      return Promise.reject(error);
-    }
-  };
-
-  const handleRejectEntry = async (entry: FormEntry) => {
-    try {
-      setIsDialogOpen(false);
-
-      toast.loading('Rejecting form submission...');
-
-      setCurrentPointer(prev => {
-        const newPointer = entry.rowIndex + 1;
-        console.log(`Moving pointer from ${prev} to ${newPointer}`);
-        return newPointer;
+    } catch (err: any) {
+      console.error('Error adding student:', err);
+      toast({
+        description: err.message || "Failed to add student",
       });
-      
-      setEntries(prev => prev.filter(e => e.id !== entry.id));
-      
-      toast.dismiss();
-      toast.success('Form submission has been rejected');
-    } catch (err) {
-      console.error('Error rejecting entry:', err);
-      toast.dismiss();
-      toast.error('Failed to reject form submission');
+      return Promise.reject(err);
+    } finally {
+      setProcessingAction(false);
     }
   };
-
-  const updateGoogleSheetEntry = async (entry: FormEntry, updatedData: Record<string, any>) => {
-    try {
-      const API_KEY = 'AIzaSyACcbknWrMdZUapY8sQii16PclJ2xlPlqA';
-      const SHEET_ID = '144Qh31BIIsDJYye5vWkE9WFhGI433yZU4TtKLq1wN4w';
-      
-      const headerResponse = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Form Responses 1!A1:Z1?key=${API_KEY}`
-      );
-      
-      if (!headerResponse.ok) {
-        const errorText = await headerResponse.text();
-        console.error(`Failed to fetch headers: ${headerResponse.status} - ${errorText}`);
-        throw new Error(`Failed to fetch headers: ${headerResponse.status} ${headerResponse.statusText}`);
-      }
-      
-      const headerData = await headerResponse.json();
-      const headers = headerData.values?.[0] || [];
-      
-      const currentRowResponse = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Form Responses 1!A${entry.rowIndex}:Z${entry.rowIndex}?key=${API_KEY}`
-      );
-      
-      if (!currentRowResponse.ok) {
-        const errorText = await currentRowResponse.text();
-        console.error(`Failed to fetch current row: ${currentRowResponse.status} - ${errorText}`);
-        throw new Error(`Failed to fetch current row: ${currentRowResponse.status}`);
-      }
-      
-      const currentRowData = await currentRowResponse.json();
-      const currentValues = currentRowData.values?.[0] || [];
-      
-      const rowData = headers.map((header: string, index: number) => {
-        if (updatedData[header] !== undefined) {
-          return updatedData[header];
-        } else if (index < currentValues.length) {
-          return currentValues[index];
-        }
-        return '';
-      });
-      
-      console.log('Updating row with data:', rowData);
-      
-      const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Form Responses 1!A${entry.rowIndex}:Z${entry.rowIndex}?valueInputOption=RAW&key=${API_KEY}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            range: `Form Responses 1!A${entry.rowIndex}:Z${entry.rowIndex}`,
-            majorDimension: 'ROWS',
-            values: [rowData]
-          })
-        }
-      );
-      
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error(`Failed to update row: ${response.status} - ${errorData}`);
-        throw new Error(`Failed to update row: ${response.status} ${response.statusText}`);
-      }
-      
-      setEntries(prev => 
-        prev.map(e => 
-          e.id === entry.id 
-            ? { ...e, ...updatedData } 
-            : e
-        )
-      );
-      
-      toast.success('Entry updated successfully');
-      return true;
-    } catch (err) {
-      console.error('Error updating Google Sheet:', err);
-      toast.error('Failed to update entry');
-      throw err;
-    }
-  };
-
-  const handleSaveEdit = async (updatedData: Record<string, any>) => {
-    if (!selectedEntry) return;
-    
-    try {
-      const updateResult = await updateGoogleSheetEntry(selectedEntry, updatedData);
-      if (updateResult) {
-        setIsDialogOpen(false);
-        fetchGoogleSheetData();
-      }
-    } catch (err) {
-      console.error('Error saving edits:', err);
-    }
-  };
-
-  const handleResetPointer = () => {
-    if (window.confirm('Are you sure you want to reset the form entry pointer? This will start processing entries from the beginning.')) {
-      setCurrentPointer(2);
-      toast.success('Form entry pointer has been reset');
-    }
-  };
-
-  if (loading) {
+  
+  if (loading && sheetData.length === 0) {
     return (
-      <Card className="mb-6">
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-gray-500" />
-            Pending Form Reviews
-          </CardTitle>
+          <CardTitle>Pending Reviews</CardTitle>
+          <CardDescription>Students waiting for review</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex justify-center p-6">
-            <LoadingSpinner size="md" />
+        <CardContent className="min-h-[200px] flex items-center justify-center">
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+            <p className="text-sm text-gray-500">Loading pending reviews...</p>
           </div>
         </CardContent>
       </Card>
     );
   }
-
+  
   if (error) {
     return (
-      <Card className="mb-6">
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-red-500" />
-            Pending Form Reviews
-          </CardTitle>
+          <CardTitle>Pending Reviews</CardTitle>
+          <CardDescription>Students waiting for review</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="text-red-500">{error}</div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="mt-2"
-            onClick={fetchGoogleSheetData}
-          >
-            Try Again
-          </Button>
+        <CardContent className="min-h-[200px] flex items-center justify-center">
+          <div className="flex flex-col items-center gap-2 text-red-500">
+            <AlertCircle className="h-8 w-8" />
+            <p>{error}</p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              variant="outline" 
+              size="sm" 
+              className="mt-2"
+            >
+              Retry
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
   }
-
+  
   return (
     <>
-      <Card className="mb-6">
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-center flex-wrap gap-2">
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-ishanya-yellow" />
-              Pending Form Reviews
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={fetchGoogleSheetData}
-              >
-                Refresh
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleResetPointer}
-                className="text-amber-600 hover:text-amber-700"
-              >
-                Reset Pointer
-              </Button>
-            </div>
-          </div>
-          <div className="text-xs text-gray-500 mt-1">
-            Currently reading from row {currentPointer}
-          </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Pending Reviews</CardTitle>
+          <CardDescription>Students waiting for review</CardDescription>
         </CardHeader>
         <CardContent>
-          {entries.length === 0 ? (
-            <div className="text-center py-4 text-gray-500">
-              No pending form submissions to review
+          {sheetData.length === 0 ? (
+            <div className="min-h-[150px] flex items-center justify-center">
+              <p className="text-gray-500">No pending reviews at this time.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Submitted</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {entries.map((entry) => (
-                    <TableRow key={entry.id}>
-                      <TableCell className="font-medium">
-                        {entry['First Name'] || ''} {entry['Last Name'] || ''}
-                      </TableCell>
-                      <TableCell>{entry["Parent's Email"] || entry.email}</TableCell>
-                      <TableCell>{entry['Contact Number'] || entry.phone}</TableCell>
-                      <TableCell>{entry.submittedAt}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleViewEntry(entry)}
-                            title="View/Edit details"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleAcceptEntry(entry)}
-                            className="text-green-600"
-                            title="Accept"
-                          >
-                            <Check className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleRejectEntry(entry)}
-                            className="text-red-600"
-                            title="Reject"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="space-y-4">
+              {sheetData.slice(0, 5).map((entry, index) => (
+                <div 
+                  key={index} 
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <div>
+                    <h3 className="font-medium">
+                      {entry.firstName} {entry.lastName}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {entry.email || 'No email'} • {new Date(entry.timestamp).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleViewDetails(entry)}
+                    >
+                      View Details <ChevronRight className="ml-1 h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 border-green-200"
+                      onClick={() => handleAccept(entry)}
+                    >
+                      <CheckCircle className="mr-1 h-4 w-4" /> Accept
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-red-200"
+                      onClick={() => handleReject(entry, index)}
+                    >
+                      <XCircle className="mr-1 h-4 w-4" /> Reject
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              
+              {sheetData.length > 5 && (
+                <div className="flex justify-center mt-4">
+                  <Button variant="link">View All ({sheetData.length})</Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
       </Card>
-
-      {selectedEntry && (
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>
-                {dialogMode === 'view' ? 'Form Submission Details' : 'Edit Form Submission'}
-              </DialogTitle>
-              <DialogDescription>
-                Submitted on {selectedEntry.submittedAt}
-              </DialogDescription>
-            </DialogHeader>
-            
-            <DetailedFormView 
-              entry={selectedEntry} 
-              mode={dialogMode} 
-              onSave={handleSaveEdit}
-              onAccept={handleAcceptEntry}
-              onReject={handleRejectEntry}
-            />
-            
-            <DialogFooter className="flex justify-between sm:justify-between">
-              {dialogMode === 'view' && (
-                <div className="flex gap-2">
-                  <Button onClick={() => handleEditEntry(selectedEntry)}>
-                    Edit
-                  </Button>
-                </div>
+      
+      {/* Detail Dialog */}
+      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Student Application Details</DialogTitle>
+            <DialogDescription>
+              Review the application information below
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedEntry && (
+            <div className="grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto py-4">
+              {Object.entries(selectedEntry).map(([key, value]) => 
+                key !== 'rowIndex' && (
+                  <div key={key} className="space-y-1">
+                    <p className="text-sm font-medium text-gray-500 capitalize">
+                      {key.replace(/([A-Z])/g, ' $1').trim()}
+                    </p>
+                    <p className="text-sm">{String(value || '-')}</p>
+                  </div>
+                )
               )}
-              <div className="flex gap-2">
-                {dialogMode === 'view' && (
-                  <>
-                    <Button 
-                      onClick={() => handleAcceptEntry(selectedEntry)}
-                      variant="default"
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      Accept & Add Student
-                    </Button>
-                    <Button 
-                      onClick={() => handleRejectEntry(selectedEntry)}
-                      variant="destructive"
-                    >
-                      Reject
-                    </Button>
-                  </>
-                )}
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  Close
-                </Button>
-              </div>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Student Form Handler */}
+            </div>
+          )}
+          
+          <DialogFooter className="flex justify-between sm:justify-between">
+            <div className="flex gap-2">
+              <Button 
+                variant="destructive" 
+                onClick={() => {
+                  setShowDetailDialog(false);
+                  if (selectedEntry) {
+                    handleReject(selectedEntry, selectedEntry.rowIndex || 0);
+                  }
+                }}
+              >
+                <XCircle className="mr-2 h-4 w-4" /> Reject
+              </Button>
+            </div>
+            
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowDetailDialog(false)}
+              >
+                Close
+              </Button>
+              <Button 
+                variant="default"
+                className="bg-ishanya-green hover:bg-ishanya-green/90"
+                onClick={() => {
+                  setShowDetailDialog(false);
+                  if (selectedEntry) {
+                    handleAccept(selectedEntry);
+                  }
+                }}
+              >
+                <CheckCircle className="mr-2 h-4 w-4" /> Accept
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Confirm Reject Dialog */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will permanently delete this entry from the pending reviews. 
+              This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={processingAction}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault();
+                confirmReject();
+              }}
+              disabled={processingAction}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {processingAction ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Reject'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Student Form */}
       <StudentFormHandler
         isOpen={showStudentForm}
         onClose={() => setShowStudentForm(false)}
-        onSubmit={handleAddStudent}
-        formType="student"
-        title="Add Student from Form Entry"
-        sourceEntry={selectedEntry || undefined}
+        onSubmit={handleStudentSubmit}
+        title="Add Student from Application"
+        sourceEntry={selectedEntry}
       >
         {(handleSubmit) => (
           <StudentForm
             onSubmit={handleSubmit}
-            initialData={selectedEntry ? {
-              first_name: selectedEntry['First Name'] || '',
-              last_name: selectedEntry['Last Name'] || '',
-              gender: selectedEntry['Gender'] || '',
-              dob: formatDateForDB(selectedEntry['Date of Birth']),
-              primary_diagnosis: selectedEntry['Primary Diagnosis'] || '',
-              comorbidity: selectedEntry['Comorbidity'] || '',
-              udid: selectedEntry['UDID'] || '',
-              fathers_name: selectedEntry["Father's Name"] || '',
-              mothers_name: selectedEntry["Mother's Name"] || '',
-              blood_group: selectedEntry['Blood Group'] || '',
-              allergies: selectedEntry['Allergies'] || '',
-              contact_number: selectedEntry['Contact Number'] || '',
-              alt_contact_number: selectedEntry['Alternate Contact Number'] || '',
-              parents_email: selectedEntry["Parent's Email"] || '',
-              address: selectedEntry['Address'] || '',
-              enrollment_year: new Date().getFullYear(),
-              status: 'Active',
-              student_email: selectedEntry["Parent's Email"] || '',
-              center_id: extractNumberFromField(selectedEntry['Center']),
-              program_id: extractNumberFromField(selectedEntry['Program']),
-            } : undefined}
             lastStudentId={lastStudentId}
-            centerId={extractNumberFromField(selectedEntry?.['Center'])}
-            programId={extractNumberFromField(selectedEntry?.['Program'])}
+            initialData={formattedStudentData}
           />
         )}
       </StudentFormHandler>
