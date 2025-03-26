@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import ErrorDisplay from '@/components/ui/ErrorDisplay';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { getCurrentUser } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { Upload, FileText, Clock, ChevronDown } from 'lucide-react';
@@ -33,9 +33,14 @@ const ParentDashboard = () => {
   const [students, setStudents] = useState<StudentInfo[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
   const navigate = useNavigate();
-  const { toast } = useToast();
   const user = getCurrentUser();
   const initialized = useRef(false);
+  
+  useEffect(() => {
+    // Redirect directly to details page
+    navigate('/parent/details');
+    return;
+  }, [navigate]);
   
   useEffect(() => {
     if (initialized.current) return;
@@ -118,7 +123,7 @@ const ParentDashboard = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [loading, user]);
   
   const fetchReportsForStudent = async (studentId: number) => {
     if (!studentId) return;
@@ -158,18 +163,6 @@ const ParentDashboard = () => {
     });
   };
   
-  const handleViewStudentInfo = () => {
-    navigate('/parent/details', { state: { activeTab: 'student-info' } });
-  };
-  
-  const handleViewProgress = () => {
-    navigate('/parent/details', { state: { activeTab: 'progress' } });
-  };
-  
-  const handleViewCommunication = () => {
-    navigate('/parent/details', { state: { activeTab: 'communication' } });
-  };
-  
   const handleViewReport = async (fileName: string) => {
     if (!user || !selectedStudentId) return;
     
@@ -199,152 +192,8 @@ const ParentDashboard = () => {
     }
   };
   
-  return (
-    <Layout
-      title="Parent Dashboard"
-      subtitle={`Welcome, ${user?.name || 'Parent'}`}
-    >
-      <div className="grid grid-cols-1 gap-6 mb-6">
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <LoadingSpinner size="lg" />
-          </div>
-        ) : error ? (
-          <ErrorDisplay message={error} />
-        ) : (
-          <>
-            <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100">
-              <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome to Your Parent Portal</h2>
-                <p className="text-gray-600 max-w-2xl mx-auto">
-                  Access your child's information, communicate with educators, and track progress all in one place.
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div className="bg-blue-50 p-6 rounded-lg border border-blue-100">
-                  <h3 className="text-lg font-semibold text-blue-700 mb-3">Student Information</h3>
-                  <p className="text-gray-600 mb-4">View detailed information about your child, including personal details, program enrollment, and session schedules.</p>
-                  <Button onClick={handleViewStudentInfo} className="w-full">
-                    View Details
-                  </Button>
-                </div>
-                
-                <div className="bg-purple-50 p-6 rounded-lg border border-purple-100">
-                  <h3 className="text-lg font-semibold text-purple-700 mb-3">Progress Tracking</h3>
-                  <p className="text-gray-600 mb-4">Monitor your child's progress, download reports, and stay updated on their development journey.</p>
-                  <Button variant="outline" onClick={handleViewProgress} className="w-full">
-                    Track Progress
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="bg-green-50 p-6 rounded-lg border border-green-100">
-                <h3 className="text-lg font-semibold text-green-700 mb-3">Educator Communication</h3>
-                <p className="text-gray-600 mb-4">Contact your child's assigned educators, share feedback, and maintain open communication to support their learning journey.</p>
-                <Button variant="outline" onClick={handleViewCommunication} className="w-full">
-                  Contact & Feedback
-                </Button>
-              </div>
-            </div>
-            
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-blue-500" />
-                    Student Reports
-                  </CardTitle>
-                  <Button 
-                    onClick={() => setShowUploader(true)} 
-                    className="flex items-center gap-2"
-                  >
-                    <Upload className="h-4 w-4" />
-                    Upload Report
-                  </Button>
-                </div>
-                
-                {students.length > 1 && (
-                  <div className="mt-4">
-                    <Select 
-                      value={selectedStudentId?.toString()} 
-                      onValueChange={handleStudentChange}
-                    >
-                      <SelectTrigger className="w-full md:w-[250px]">
-                        <SelectValue placeholder="Select student" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {students.map(student => (
-                          <SelectItem 
-                            key={student.student_id} 
-                            value={student.student_id.toString()}
-                          >
-                            {student.first_name} {student.last_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </CardHeader>
-              <CardContent>
-                {showUploader ? (
-                  <ReportUploader 
-                    onSuccess={handleUploadSuccess} 
-                    onCancel={() => setShowUploader(false)}
-                    studentId={selectedStudentId || undefined}
-                  />
-                ) : (
-                  <div>
-                    {reports.length === 0 ? (
-                      <div className="text-center py-8 text-gray-500">
-                        <Upload className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                        <p>No reports have been uploaded yet</p>
-                        <Button 
-                          variant="outline" 
-                          className="mt-4"
-                          onClick={() => setShowUploader(true)}
-                        >
-                          Upload Your First Report
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {reports.map((report, index) => (
-                          <div 
-                            key={index} 
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                          >
-                            <div className="flex items-center gap-3">
-                              <FileText className="h-5 w-5 text-blue-500" />
-                              <div>
-                                <p className="font-medium">{report.name.replace(/^\d+-/, '')}</p>
-                                <p className="text-xs text-gray-500">
-                                  <Clock className="inline h-3 w-3 mr-1" />
-                                  {new Date(report.created_at).toLocaleDateString()}
-                                </p>
-                              </div>
-                            </div>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleViewReport(report.name)}
-                            >
-                              View
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </>
-        )}
-      </div>
-    </Layout>
-  );
+  // We're redirecting directly to details, so this component won't be rendered
+  return null;
 };
 
 export default ParentDashboard;

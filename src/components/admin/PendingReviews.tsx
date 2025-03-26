@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,9 @@ import { toast } from 'sonner';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import DetailedFormView from './DetailedFormView';
+import StudentForm from './StudentForm';
+import StudentFormHandler from './StudentFormHandler';
+import { supabase } from '@/integrations/supabase/client';
 
 type FormEntry = {
   id: string;
@@ -25,6 +29,7 @@ const PendingReviews = () => {
   const [selectedEntry, setSelectedEntry] = useState<FormEntry | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'view' | 'edit'>('view');
+  const [showStudentForm, setShowStudentForm] = useState(false);
   const [currentPointer, setCurrentPointer] = useState<number>(() => {
     return parseInt(localStorage.getItem('formEntryPointer') || '2', 10);
   });
@@ -123,6 +128,48 @@ const PendingReviews = () => {
     setIsDialogOpen(true);
   };
 
+  const formatDateForDB = (dateString: string | undefined): string | null => {
+    if (!dateString) return null;
+    
+    try {
+      if (dateString.includes('/')) {
+        const parts = dateString.split('/');
+        if (parts.length === 3) {
+          return `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+        }
+      }
+      
+      const date = new Date(dateString);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().split('T')[0];
+      }
+      
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        return dateString;
+      }
+      
+      return null;
+    } catch (e) {
+      console.error('Error formatting date:', e);
+      return null;
+    }
+  };
+
+  const extractNumberFromField = (field: string | undefined): number | null => {
+    if (!field) return null;
+    
+    try {
+      const match = field.match(/ID:\s*(\d+)/i) || field.match(/\((\d+)\)/) || field.match(/(\d+)/);
+      if (match && match[1]) {
+        return parseInt(match[1], 10);
+      }
+      return null;
+    } catch (e) {
+      console.error('Error extracting number from field:', e);
+      return null;
+    }
+  };
+
   const handleAcceptEntry = async (entry: FormEntry) => {
     try {
       setIsDialogOpen(false);
@@ -153,52 +200,71 @@ const PendingReviews = () => {
         student_id: entry['Student ID'] || `STU${Date.now().toString().slice(-6)}`,
       };
   
-      sessionStorage.setItem('formSubmitCallback', JSON.stringify({
-        sourceEntry: entry,
-        hasCallback: true
-      }));
-      
-      window.dispatchEvent(new CustomEvent('openAddRecordForm', {
-        detail: { 
-          tableName: 'students',
-          formData: studentFormData,
-          sourceEntry: entry
-        } 
-      }));
+      // Store source entry for later reference
+      sessionStorage.setItem('pendingFormEntry', JSON.stringify(entry));
+  
+      // Open the student form
+      setSelectedEntry(entry);
+      setShowStudentForm(true);
   
       toast.dismiss();
       toast.success('Opening student form with prefilled data');
       
-      const handleFormSubmitSuccess = () => {
-        const storedCallback = sessionStorage.getItem('formSubmitCallback');
-        if (storedCallback) {
-          try {
-            const { sourceEntry, hasCallback } = JSON.parse(storedCallback);
-            if (hasCallback && sourceEntry) {
-              setCurrentPointer(prev => {
-                const newPointer = entry.rowIndex + 1;
-                console.log(`Moving pointer from ${prev} to ${newPointer}`);
-                return newPointer;
-              });
-              
-              setEntries(prev => prev.filter(e => e.id !== entry.id));
-              toast.success('Form entry successfully processed and removed from review list');
-              
-              sessionStorage.removeItem('formSubmitCallback');
-            }
-          } catch (error) {
-            console.error('Error parsing stored callback:', error);
-          }
-        }
-        
-        window.removeEventListener('formSubmitSuccess', handleFormSubmitSuccess);
-      };
-
-      window.addEventListener('formSubmitSuccess', handleFormSubmitSuccess);
-  
     } catch (err) {
       console.error('Error accepting entry:', err);
       toast.error('Failed to process form submission');
+    }
+  };
+
+  const handleAddStudent = async (data: any) => {
+    try {
+      // First add the student to the database
+      const { error } = await supabase
+        .from('students')
+        .insert([data]);
+        
+      if (error) {
+        throw error;
+      }
+      
+      const storedEntry = sessionStorage.getItem('pendingFormEntry');
+      if (storedEntry) {
+        const entry = JSON.parse(storedEntry);
+        
+        // Move the pointer forward to "delete" the entry
+        setCurrentPointer(prev => {
+          const newPointer = entry.rowIndex + 1;
+          console.log(`Moving pointer from ${prev} to ${newPointer}`);
+          return newPointer;
+        });
+        
+        // Remove the stored entry
+        sessionStorage.removeItem('pendingFormEntry');
+        
+        // Update the entries list
+        setEntries(prev => prev.filter(e => e.rowIndex !== entry.rowIndex));
+      }
+      
+      // Add a parent record if parent email exists
+      if (data.parents_email) {
+        const { error: parentError } = await supabase
+          .from('parents')
+          .insert([{
+            email: data.parents_email,
+            student_id: data.student_id,
+            password: '1234' // Default password
+          }]);
+          
+        if (parentError) {
+          console.error('Error adding parent record:', parentError);
+        }
+      }
+      
+      return Promise.resolve();
+    } catch (error: any) {
+      console.error('Error adding student:', error);
+      toast.error(error.message || 'Failed to add student');
+      return Promise.reject(error);
     }
   };
 
@@ -323,48 +389,6 @@ const PendingReviews = () => {
     if (window.confirm('Are you sure you want to reset the form entry pointer? This will start processing entries from the beginning.')) {
       setCurrentPointer(2);
       toast.success('Form entry pointer has been reset');
-    }
-  };
-
-  const formatDateForDB = (dateString: string | undefined): string | null => {
-    if (!dateString) return null;
-    
-    try {
-      if (dateString.includes('/')) {
-        const parts = dateString.split('/');
-        if (parts.length === 3) {
-          return `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
-        }
-      }
-      
-      const date = new Date(dateString);
-      if (!isNaN(date.getTime())) {
-        return date.toISOString().split('T')[0];
-      }
-      
-      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-        return dateString;
-      }
-      
-      return null;
-    } catch (e) {
-      console.error('Error formatting date:', e);
-      return null;
-    }
-  };
-
-  const extractNumberFromField = (field: string | undefined): number | null => {
-    if (!field) return null;
-    
-    try {
-      const match = field.match(/ID:\s*(\d+)/i) || field.match(/\((\d+)\)/) || field.match(/(\d+)/);
-      if (match && match[1]) {
-        return parseInt(match[1], 10);
-      }
-      return null;
-    } catch (e) {
-      console.error('Error extracting number from field:', e);
-      return null;
     }
   };
 
@@ -563,6 +587,47 @@ const PendingReviews = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Student Form Handler */}
+      <StudentFormHandler
+        isOpen={showStudentForm}
+        onClose={() => setShowStudentForm(false)}
+        onSubmit={handleAddStudent}
+        formType="student"
+        title="Add Student from Form Entry"
+        sourceEntry={selectedEntry || undefined}
+      >
+        {(handleSubmit) => (
+          <StudentForm
+            onSubmit={handleSubmit}
+            initialData={selectedEntry ? {
+              first_name: selectedEntry['First Name'] || '',
+              last_name: selectedEntry['Last Name'] || '',
+              gender: selectedEntry['Gender'] || '',
+              dob: formatDateForDB(selectedEntry['Date of Birth']),
+              primary_diagnosis: selectedEntry['Primary Diagnosis'] || '',
+              comorbidity: selectedEntry['Comorbidity'] || '',
+              udid: selectedEntry['UDID'] || '',
+              fathers_name: selectedEntry["Father's Name"] || '',
+              mothers_name: selectedEntry["Mother's Name"] || '',
+              blood_group: selectedEntry['Blood Group'] || '',
+              allergies: selectedEntry['Allergies'] || '',
+              contact_number: selectedEntry['Contact Number'] || '',
+              alt_contact_number: selectedEntry['Alternate Contact Number'] || '',
+              parents_email: selectedEntry["Parent's Email"] || '',
+              address: selectedEntry['Address'] || '',
+              enrollment_year: new Date().getFullYear(),
+              status: 'Active',
+              student_email: selectedEntry["Parent's Email"] || '',
+              center_id: extractNumberFromField(selectedEntry['Center']),
+              program_id: extractNumberFromField(selectedEntry['Program']),
+            } : undefined}
+            lastStudentId={lastStudentId}
+            centerId={extractNumberFromField(selectedEntry?.['Center'])}
+            programId={extractNumberFromField(selectedEntry?.['Program'])}
+          />
+        )}
+      </StudentFormHandler>
     </>
   );
 };

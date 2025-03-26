@@ -16,6 +16,7 @@ interface StudentFormHandlerProps {
   programId?: number;
   formType?: 'student' | 'employee';
   title?: string;
+  sourceEntry?: Record<string, any>;
 }
 
 const StudentFormHandler = ({ 
@@ -26,7 +27,8 @@ const StudentFormHandler = ({
   centerId,
   programId,
   formType = 'student',
-  title
+  title,
+  sourceEntry
 }: StudentFormHandlerProps) => {
   const [lastStudentId, setLastStudentId] = useState<number | null>(null);
   const [lastEmployeeId, setLastEmployeeId] = useState<number | null>(null);
@@ -83,7 +85,9 @@ const StudentFormHandler = ({
   // Handle successful form submission
   const handleFormSubmitSuccess = () => {
     // Dispatch a custom event to notify any listeners that form submission was successful
-    window.dispatchEvent(new CustomEvent('formSubmitSuccess'));
+    window.dispatchEvent(new CustomEvent('formSubmitSuccess', {
+      detail: sourceEntry ? { sourceEntry } : {}
+    }));
     
     // Close the form
     onClose();

@@ -1,642 +1,789 @@
 
 import { useState, useEffect } from 'react';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
-import { 
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
 } from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { formatColumnName, isFieldRequired } from '@/utils/formEventUtils';
 import DatePickerFormField from '@/components/ui/DatePickerFormField';
-import EducatorSelect from './EducatorSelect';
 
+// Define types for props
 interface StudentFormProps {
   onSubmit: (data: any) => Promise<void>;
-  initialData?: any;
-  lastStudentId?: number | null;
-  centerId?: number;
-  programId?: number;
+  lastStudentId: number | null;
+  centerId?: number | null;
+  programId?: number | null;
+  initialData?: Record<string, any>;
 }
 
-const YEARS = Array.from({ length: 11 }, (_, i) => 2025 - i);
-const GENDERS = ['Male', 'Female', 'Other'];
-const STATUSES = ['Active', 'Inactive', 'On Leave', 'Graduated'];
-const SESSION_TYPES = ['Online', 'Offline', 'Hybrid'];
-const TRANSPORT_OPTIONS = ['Yes', 'No'];
-const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+// Define schema for form validation
+const studentFormSchema = z.object({
+  student_id: z.number().or(z.string().transform(val => parseInt(val, 10))),
+  first_name: z.string().min(1, "First name is required"),
+  last_name: z.string().min(1, "Last name is required"),
+  gender: z.string().min(1, "Gender is required"),
+  dob: z.date().optional(),
+  primary_diagnosis: z.string().optional(),
+  comorbidity: z.string().optional(),
+  udid: z.string().optional(),
+  fathers_name: z.string().optional(),
+  mothers_name: z.string().optional(),
+  blood_group: z.string().optional(),
+  allergies: z.string().optional(),
+  contact_number: z.string().min(1, "Contact number is required"),
+  alt_contact_number: z.string().optional(),
+  parents_email: z.string().email().optional(),
+  address: z.string().optional(),
+  enrollment_year: z.number().min(1000, "Valid year required").max(3000, "Valid year required"),
+  status: z.string().min(1, "Status is required"),
+  student_email: z.string().email().optional(),
+  center_id: z.number(),
+  program_id: z.number(),
+  educator_employee_id: z.number().optional(),
+  secondary_educator_employee_id: z.number().optional(),
+  program_2_id: z.number().optional(),
+  timings: z.string().optional(),
+  session_type: z.string().optional(),
+  transport: z.string().optional(),
+  days_of_week: z.array(z.string()).optional(),
+  strengths: z.string().optional(),
+  weakness: z.string().optional(),
+  comments: z.string().optional(),
+});
 
-const StudentForm = ({ 
-  onSubmit, 
-  initialData = {}, 
-  lastStudentId = null,
-  centerId,
-  programId
-}: StudentFormProps) => {
-  const [formData, setFormData] = useState(initialData);
-  const [loading, setLoading] = useState(false);
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+const StudentForm = ({ onSubmit, lastStudentId, centerId, programId, initialData }: StudentFormProps) => {
+  const [centers, setCenters] = useState<any[]>([]);
+  const [programs, setPrograms] = useState<any[]>([]);
+  const [educators, setEducators] = useState<any[]>([]);
+  const [filteredPrograms, setFilteredPrograms] = useState<any[]>([]);
+  const [filteredEducators, setFilteredEducators] = useState<any[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // Initialize form with default values
+  const form = useForm<z.infer<typeof studentFormSchema>>({
+    resolver: zodResolver(studentFormSchema),
+    defaultValues: {
+      student_id: lastStudentId ? lastStudentId + 1 : 1001,
+      first_name: initialData?.first_name || '',
+      last_name: initialData?.last_name || '',
+      gender: initialData?.gender || '',
+      dob: initialData?.dob ? new Date(initialData.dob) : undefined,
+      primary_diagnosis: initialData?.primary_diagnosis || '',
+      comorbidity: initialData?.comorbidity || '',
+      udid: initialData?.udid || '',
+      fathers_name: initialData?.fathers_name || '',
+      mothers_name: initialData?.mothers_name || '',
+      blood_group: initialData?.blood_group || '',
+      allergies: initialData?.allergies || '',
+      contact_number: initialData?.contact_number || '',
+      alt_contact_number: initialData?.alt_contact_number || '',
+      parents_email: initialData?.parents_email || '',
+      address: initialData?.address || '',
+      enrollment_year: initialData?.enrollment_year || new Date().getFullYear(),
+      status: initialData?.status || 'Active',
+      student_email: initialData?.student_email || '',
+      center_id: initialData?.center_id || centerId || 0,
+      program_id: initialData?.program_id || programId || 0,
+      educator_employee_id: initialData?.educator_employee_id || undefined,
+      secondary_educator_employee_id: initialData?.secondary_educator_employee_id || undefined,
+      program_2_id: initialData?.program_2_id || undefined,
+      timings: initialData?.timings || '',
+      session_type: initialData?.session_type || '',
+      transport: initialData?.transport || '',
+      days_of_week: initialData?.days_of_week || [],
+      strengths: initialData?.strengths || '',
+      weakness: initialData?.weakness || '',
+      comments: initialData?.comments || '',
+    },
+  });
+  
+  // Update form values when lastStudentId or initialData changes
   useEffect(() => {
-    // Pre-fill student_id if it's a new record (and we have lastStudentId)
-    if (!initialData.student_id && lastStudentId) {
-      setFormData(prev => ({
-        ...prev,
-        student_id: lastStudentId + 1
-      }));
+    if (lastStudentId && !initialData?.student_id) {
+      form.setValue('student_id', lastStudentId + 1);
     }
     
-    // Pre-fill center_id and program_id if provided and not already set
-    if (centerId && !formData.center_id) {
-      setFormData(prev => ({
-        ...prev,
-        center_id: centerId
-      }));
+    if (centerId) {
+      form.setValue('center_id', centerId);
     }
     
-    if (programId && !formData.program_id) {
-      setFormData(prev => ({
-        ...prev,
-        program_id: programId
-      }));
+    if (programId) {
+      form.setValue('program_id', programId);
     }
-    
-    // If there's a photo URL in the initial data, set it as preview
-    if (initialData.photo) {
-      setPhotoPreview(initialData.photo);
-    }
-  }, [initialData, lastStudentId, centerId, programId]);
+  }, [lastStudentId, centerId, programId, form, initialData]);
   
-  const handleChange = (key: string, value: any) => {
-    setFormData({
-      ...formData,
-      [key]: value,
-    });
-  };
-  
-  const handleDateChange = (key: string, date: Date | undefined) => {
-    setFormData({
-      ...formData,
-      [key]: date ? date.toISOString().split('T')[0] : null,
-    });
-  };
-  
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Photo size must be less than 5MB');
-      return;
-    }
-    
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Only image files are allowed');
-      return;
-    }
-    
-    setPhotoFile(file);
-    
-    // Create a preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      setPhotoPreview(result);
+  // Fetch centers, programs, and educators on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch centers
+        const { data: centersData, error: centersError } = await supabase
+          .from('centers')
+          .select('*');
+          
+        if (centersError) {
+          console.error('Error fetching centers:', centersError);
+          return;
+        }
+        
+        setCenters(centersData || []);
+        
+        // Fetch programs
+        const { data: programsData, error: programsError } = await supabase
+          .from('programs')
+          .select('*');
+          
+        if (programsError) {
+          console.error('Error fetching programs:', programsError);
+          return;
+        }
+        
+        setPrograms(programsData || []);
+        
+        // Initial filter for programs based on centerId
+        if (centerId) {
+          setFilteredPrograms(programsData?.filter(p => p.center_id === centerId) || []);
+        } else {
+          setFilteredPrograms(programsData || []);
+        }
+        
+        // Fetch educators
+        const { data: educatorsData, error: educatorsError } = await supabase
+          .from('educators')
+          .select('*');
+          
+        if (educatorsError) {
+          console.error('Error fetching educators:', educatorsError);
+          return;
+        }
+        
+        setEducators(educatorsData || []);
+        
+        // Initial filter for educators based on centerId
+        if (centerId) {
+          setFilteredEducators(educatorsData?.filter(e => e.center_id === centerId) || []);
+        } else {
+          setFilteredEducators(educatorsData || []);
+        }
+      } catch (err) {
+        console.error('Error fetching data:', err);
+      }
     };
-    reader.readAsDataURL(file);
+    
+    fetchData();
+  }, [centerId]);
+  
+  // Filter programs and educators when center changes
+  const handleCenterChange = (centerId: number) => {
+    form.setValue('center_id', centerId);
+    
+    // Filter programs by centerId
+    const filtered = programs.filter(program => program.center_id === centerId);
+    setFilteredPrograms(filtered);
+    
+    // Filter educators by centerId
+    const filteredEduactors = educators.filter(educator => educator.center_id === centerId);
+    setFilteredEducators(filteredEduactors);
+    
+    // Reset program and educator selection
+    form.setValue('program_id', 0);
+    form.setValue('educator_employee_id', undefined);
   };
   
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  // Handle form submission
+  const handleFormSubmit = async (data: z.infer<typeof studentFormSchema>) => {
     try {
-      setLoading(true);
+      setIsSubmitting(true);
       
-      // Validate required fields
-      const requiredFields = [
-        'first_name', 'last_name', 'gender', 'dob', 'student_id', 
-        'enrollment_year', 'status', 'student_email', 'program_id', 
-        'educator_employee_id', 'contact_number', 'center_id'
-      ];
-      
-      for (const field of requiredFields) {
-        if (!formData[field] && formData[field] !== 0) {
-          toast.error(`${formatColumnName(field)} is required`);
-          setLoading(false);
-          return;
-        }
-      }
-      
-      // Check if primary and secondary educators are the same
-      if (formData.educator_employee_id && 
-          formData.secondary_educator_employee_id && 
-          formData.educator_employee_id === formData.secondary_educator_employee_id) {
-        toast.error('Primary and secondary educators cannot be the same');
-        setLoading(false);
-        return;
-      }
-      
-      // Process the photo upload if there's a new photo
-      let photoUrl = formData.photo;
-      if (photoFile) {
-        const fileExt = photoFile.name.split('.').pop();
-        const fileName = `${Date.now()}_${formData.student_id}.${fileExt}`;
-        const filePath = `${fileName}`;
-        
-        const { error: uploadError, data: uploadData } = await supabase.storage
-          .from('student-photos')
-          .upload(filePath, photoFile);
-          
-        if (uploadError) {
-          console.error('Error uploading photo:', uploadError);
-          toast.error('Failed to upload photo');
-          setLoading(false);
-          return;
-        }
-        
-        // Get the public URL
-        const { data: urlData } = supabase.storage
-          .from('student-photos')
-          .getPublicUrl(filePath);
-          
-        photoUrl = urlData.publicUrl;
-      }
-      
-      // Prepare the final form data
-      const finalFormData = {
-        ...formData,
-        photo: photoUrl,
+      // Convert form data to match database schema
+      const formattedData = {
+        ...data,
+        dob: data.dob ? new Date(data.dob).toISOString().split('T')[0] : null,
       };
       
-      // Delete created_at if present
-      if ('created_at' in finalFormData) {
-        delete finalFormData.created_at;
-      }
-      
-      await onSubmit(finalFormData);
+      await onSubmit(formattedData);
+      form.reset();
     } catch (error) {
-      console.error('Error in form submission:', error);
-      toast.error('Failed to submit form');
+      console.error('Error submitting form:', error);
+      // Error handling is done in the parent component
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
   
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Student ID */}
-        <div>
-          <Label htmlFor="student_id">
-            {formatColumnName('student_id')}
-            <span className="text-red-500 ml-1">*</span>
-          </Label>
-          <Input
-            id="student_id"
-            type="number"
-            value={formData.student_id || ''}
-            onChange={(e) => handleChange('student_id', parseInt(e.target.value) || '')}
-            required
-          />
-        </div>
-        
-        {/* Center ID - Read-only if provided via props */}
-        <div>
-          <Label htmlFor="center_id">
-            {formatColumnName('center_id')}
-            <span className="text-red-500 ml-1">*</span>
-          </Label>
-          <Input
-            id="center_id"
-            type="number"
-            value={formData.center_id || ''}
-            onChange={(e) => handleChange('center_id', parseInt(e.target.value) || '')}
-            readOnly={!!centerId}
-            required
-          />
-        </div>
-        
-        {/* Program ID - Read-only if provided via props */}
-        <div>
-          <Label htmlFor="program_id">
-            {formatColumnName('program_id')}
-            <span className="text-red-500 ml-1">*</span>
-          </Label>
-          <Input
-            id="program_id"
-            type="number"
-            value={formData.program_id || ''}
-            onChange={(e) => handleChange('program_id', parseInt(e.target.value) || '')}
-            readOnly={!!programId}
-            required
-          />
-        </div>
-        
-        {/* First Name */}
-        <div>
-          <Label htmlFor="first_name">
-            {formatColumnName('first_name')}
-            <span className="text-red-500 ml-1">*</span>
-          </Label>
-          <Input
-            id="first_name"
-            value={formData.first_name || ''}
-            onChange={(e) => handleChange('first_name', e.target.value)}
-            required
-          />
-        </div>
-        
-        {/* Last Name */}
-        <div>
-          <Label htmlFor="last_name">
-            {formatColumnName('last_name')}
-            <span className="text-red-500 ml-1">*</span>
-          </Label>
-          <Input
-            id="last_name"
-            value={formData.last_name || ''}
-            onChange={(e) => handleChange('last_name', e.target.value)}
-            required
-          />
-        </div>
-        
-        {/* Gender - Dropdown */}
-        <div>
-          <Label htmlFor="gender">
-            {formatColumnName('gender')}
-            <span className="text-red-500 ml-1">*</span>
-          </Label>
-          <Select
-            value={formData.gender || ''}
-            onValueChange={(value) => handleChange('gender', value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select gender" />
-            </SelectTrigger>
-            <SelectContent>
-              {GENDERS.map((gender) => (
-                <SelectItem key={gender} value={gender}>
-                  {gender}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        {/* DOB - Date Picker */}
-        <DatePickerFormField
-          label="DOB"
-          value={formData.dob ? new Date(formData.dob) : undefined}
-          onChange={(date) => handleDateChange('dob', date)}
-          required
-        />
-        
-        {/* Enrollment Year - Dropdown */}
-        <div>
-          <Label htmlFor="enrollment_year">
-            {formatColumnName('enrollment_year')}
-            <span className="text-red-500 ml-1">*</span>
-          </Label>
-          <Select
-            value={formData.enrollment_year?.toString() || ''}
-            onValueChange={(value) => handleChange('enrollment_year', parseInt(value))}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select year" />
-            </SelectTrigger>
-            <SelectContent>
-              {YEARS.map((year) => (
-                <SelectItem key={year} value={year.toString()}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        {/* Status - Dropdown */}
-        <div>
-          <Label htmlFor="status">
-            {formatColumnName('status')}
-            <span className="text-red-500 ml-1">*</span>
-          </Label>
-          <Select
-            value={formData.status || ''}
-            onValueChange={(value) => handleChange('status', value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select status" />
-            </SelectTrigger>
-            <SelectContent>
-              {STATUSES.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {status}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        {/* Student Email */}
-        <div>
-          <Label htmlFor="student_email">
-            {formatColumnName('student_email')}
-            <span className="text-red-500 ml-1">*</span>
-          </Label>
-          <Input
-            id="student_email"
-            type="email"
-            value={formData.student_email || ''}
-            onChange={(e) => handleChange('student_email', e.target.value)}
-            required
-          />
-        </div>
-        
-        {/* Contact Number */}
-        <div>
-          <Label htmlFor="contact_number">
-            {formatColumnName('contact_number')}
-            <span className="text-red-500 ml-1">*</span>
-          </Label>
-          <Input
-            id="contact_number"
-            value={formData.contact_number || ''}
-            onChange={(e) => handleChange('contact_number', e.target.value)}
-            required
-          />
-        </div>
-        
-        {/* Alternate Contact Number */}
-        <div>
-          <Label htmlFor="alt_contact_number">
-            {formatColumnName('alt_contact_number')}
-          </Label>
-          <Input
-            id="alt_contact_number"
-            value={formData.alt_contact_number || ''}
-            onChange={(e) => handleChange('alt_contact_number', e.target.value)}
-          />
-        </div>
-        
-        {/* Primary Educator - Custom Component */}
-        <EducatorSelect
-          label={formatColumnName('educator_employee_id')}
-          value={formData.educator_employee_id}
-          onChange={(value) => handleChange('educator_employee_id', value)}
-          required
-          centerId={formData.center_id}
-          excludeEducatorId={formData.secondary_educator_employee_id}
-        />
-        
-        {/* Secondary Educator - Custom Component */}
-        <EducatorSelect
-          label={formatColumnName('secondary_educator_employee_id')}
-          value={formData.secondary_educator_employee_id}
-          onChange={(value) => handleChange('secondary_educator_employee_id', value)}
-          centerId={formData.center_id}
-          excludeEducatorId={formData.educator_employee_id}
-        />
-        
-        {/* Photo Upload */}
-        <div>
-          <Label htmlFor="photo">
-            {formatColumnName('photo')}
-          </Label>
-          <Input
-            id="photo"
-            type="file"
-            accept="image/*"
-            onChange={handlePhotoChange}
-          />
-          {photoPreview && (
-            <div className="mt-2">
-              <img 
-                src={photoPreview} 
-                alt="Student preview" 
-                className="w-32 h-32 object-cover rounded-md border"
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <FormField
+                control={form.control}
+                name="student_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Student ID <span className="text-red-500">*</span></FormLabel>
+                    <FormControl>
+                      <Input {...field} type="number" readOnly />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="first_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>First Name <span className="text-red-500">*</span></FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="last_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Last Name <span className="text-red-500">*</span></FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="gender"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Gender <span className="text-red-500">*</span></FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Male">Male</SelectItem>
+                        <SelectItem value="Female">Female</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="dob"
+                render={({ field }) => (
+                  <FormItem>
+                    <DatePickerFormField
+                      label="Date of Birth"
+                      value={field.value}
+                      onChange={field.onChange}
+                      required
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="enrollment_year"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Enrollment Year <span className="text-red-500">*</span></FormLabel>
+                    <FormControl>
+                      <Input {...field} type="number" min="1900" max="2100" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status <span className="text-red-500">*</span></FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Active">Active</SelectItem>
+                        <SelectItem value="Inactive">Inactive</SelectItem>
+                        <SelectItem value="On Leave">On Leave</SelectItem>
+                        <SelectItem value="Graduated">Graduated</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-          )}
-        </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+              <FormField
+                control={form.control}
+                name="center_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Center <span className="text-red-500">*</span></FormLabel>
+                    <Select
+                      onValueChange={(value) => handleCenterChange(parseInt(value))}
+                      defaultValue={field.value ? field.value.toString() : undefined}
+                      value={field.value ? field.value.toString() : undefined}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select center" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {centers.map((center) => (
+                          <SelectItem key={center.center_id} value={center.center_id.toString()}>
+                            {center.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="program_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Program <span className="text-red-500">*</span></FormLabel>
+                    <Select
+                      onValueChange={(value) => form.setValue('program_id', parseInt(value))}
+                      defaultValue={field.value ? field.value.toString() : undefined}
+                      value={field.value ? field.value.toString() : undefined}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select program" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {filteredPrograms.map((program) => (
+                          <SelectItem key={program.program_id} value={program.program_id.toString()}>
+                            {program.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="educator_employee_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Primary Educator</FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      defaultValue={field.value ? field.value.toString() : undefined}
+                      value={field.value ? field.value.toString() : undefined}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select educator" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {filteredEducators.map((educator) => (
+                          <SelectItem key={educator.employee_id} value={educator.employee_id.toString()}>
+                            {educator.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </CardContent>
+        </Card>
         
-        {/* Blood Group - Dropdown */}
-        <div>
-          <Label htmlFor="blood_group">
-            {formatColumnName('blood_group')}
-          </Label>
-          <Select
-            value={formData.blood_group || ''}
-            onValueChange={(value) => handleChange('blood_group', value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select blood group" />
-            </SelectTrigger>
-            <SelectContent>
-              {BLOOD_GROUPS.map((group) => (
-                <SelectItem key={group} value={group}>
-                  {group}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <h3 className="text-lg font-medium mb-4">Medical Information</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="primary_diagnosis"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Primary Diagnosis</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="comorbidity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Comorbidity</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="blood_group"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Blood Group</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select blood group" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="A+">A+</SelectItem>
+                        <SelectItem value="A-">A-</SelectItem>
+                        <SelectItem value="B+">B+</SelectItem>
+                        <SelectItem value="B-">B-</SelectItem>
+                        <SelectItem value="AB+">AB+</SelectItem>
+                        <SelectItem value="AB-">AB-</SelectItem>
+                        <SelectItem value="O+">O+</SelectItem>
+                        <SelectItem value="O-">O-</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="allergies"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Allergies</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="udid"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>UDID</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </CardContent>
+        </Card>
         
-        {/* Session Type - Dropdown */}
-        <div>
-          <Label htmlFor="session_type">
-            {formatColumnName('session_type')}
-          </Label>
-          <Select
-            value={formData.session_type || ''}
-            onValueChange={(value) => handleChange('session_type', value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select session type" />
-            </SelectTrigger>
-            <SelectContent>
-              {SESSION_TYPES.map((type) => (
-                <SelectItem key={type} value={type}>
-                  {type}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <h3 className="text-lg font-medium mb-4">Contact Information</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="fathers_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Father's Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="mothers_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mother's Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="contact_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contact Number <span className="text-red-500">*</span></FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="alt_contact_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Alternate Contact Number</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="student_email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Student Email <span className="text-red-500">*</span></FormLabel>
+                    <FormControl>
+                      <Input {...field} type="email" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="parents_email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Parent's Email</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="email" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem className="md:col-span-2">
+                    <FormLabel>Address</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} rows={3} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </CardContent>
+        </Card>
         
-        {/* Transport - Dropdown */}
-        <div>
-          <Label htmlFor="transport">
-            {formatColumnName('transport')}
-          </Label>
-          <Select
-            value={formData.transport || ''}
-            onValueChange={(value) => handleChange('transport', value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select transport option" />
-            </SelectTrigger>
-            <SelectContent>
-              {TRANSPORT_OPTIONS.map((option) => (
-                <SelectItem key={option} value={option}>
-                  {option}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <h3 className="text-lg font-medium mb-4">Session Information</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="timings"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Session Timings</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="e.g. 9:00 AM - 11:00 AM" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="session_type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Session Type</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select session type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Individual">Individual</SelectItem>
+                        <SelectItem value="Group">Group</SelectItem>
+                        <SelectItem value="Mixed">Mixed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="transport"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Transport</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select transport option" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="School Transport">School Transport</SelectItem>
+                        <SelectItem value="Own Transport">Own Transport</SelectItem>
+                        <SelectItem value="Public Transport">Public Transport</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </CardContent>
+        </Card>
         
-        {/* Address */}
-        <div className="md:col-span-2">
-          <Label htmlFor="address">
-            {formatColumnName('address')}
-          </Label>
-          <Textarea
-            id="address"
-            value={formData.address || ''}
-            onChange={(e) => handleChange('address', e.target.value)}
-            rows={3}
-          />
-        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <h3 className="text-lg font-medium mb-4">Additional Information</h3>
+            
+            <div className="grid grid-cols-1 gap-6">
+              <FormField
+                control={form.control}
+                name="strengths"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Strengths</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} rows={3} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="weakness"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Areas for Improvement</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} rows={3} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="comments"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Additional Comments</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} rows={3} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </CardContent>
+        </Card>
         
-        {/* UDID */}
-        <div>
-          <Label htmlFor="udid">
-            {formatColumnName('udid')}
-          </Label>
-          <Input
-            id="udid"
-            value={formData.udid || ''}
-            onChange={(e) => handleChange('udid', e.target.value)}
-          />
+        <div className="flex justify-end">
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Submitting...' : 'Submit'}
+          </Button>
         </div>
-        
-        {/* Parents' Names */}
-        <div>
-          <Label htmlFor="fathers_name">
-            {formatColumnName('fathers_name')}
-          </Label>
-          <Input
-            id="fathers_name"
-            value={formData.fathers_name || ''}
-            onChange={(e) => handleChange('fathers_name', e.target.value)}
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="mothers_name">
-            {formatColumnName('mothers_name')}
-          </Label>
-          <Input
-            id="mothers_name"
-            value={formData.mothers_name || ''}
-            onChange={(e) => handleChange('mothers_name', e.target.value)}
-          />
-        </div>
-        
-        {/* Parents' Email */}
-        <div>
-          <Label htmlFor="parents_email">
-            {formatColumnName('parents_email')}
-          </Label>
-          <Input
-            id="parents_email"
-            type="email"
-            value={formData.parents_email || ''}
-            onChange={(e) => handleChange('parents_email', e.target.value)}
-          />
-        </div>
-        
-        {/* Medical Information */}
-        <div className="md:col-span-2">
-          <Label htmlFor="primary_diagnosis">
-            {formatColumnName('primary_diagnosis')}
-          </Label>
-          <Textarea
-            id="primary_diagnosis"
-            value={formData.primary_diagnosis || ''}
-            onChange={(e) => handleChange('primary_diagnosis', e.target.value)}
-            rows={2}
-          />
-        </div>
-        
-        <div className="md:col-span-2">
-          <Label htmlFor="comorbidity">
-            {formatColumnName('comorbidity')}
-          </Label>
-          <Textarea
-            id="comorbidity"
-            value={formData.comorbidity || ''}
-            onChange={(e) => handleChange('comorbidity', e.target.value)}
-            rows={2}
-          />
-        </div>
-        
-        <div className="md:col-span-2">
-          <Label htmlFor="allergies">
-            {formatColumnName('allergies')}
-          </Label>
-          <Textarea
-            id="allergies"
-            value={formData.allergies || ''}
-            onChange={(e) => handleChange('allergies', e.target.value)}
-            rows={2}
-          />
-        </div>
-        
-        {/* Student Strengths & Weaknesses */}
-        <div className="md:col-span-2">
-          <Label htmlFor="strengths">
-            {formatColumnName('strengths')}
-          </Label>
-          <Textarea
-            id="strengths"
-            value={formData.strengths || ''}
-            onChange={(e) => handleChange('strengths', e.target.value)}
-            rows={2}
-          />
-        </div>
-        
-        <div className="md:col-span-2">
-          <Label htmlFor="weakness">
-            {formatColumnName('weakness')}
-          </Label>
-          <Textarea
-            id="weakness"
-            value={formData.weakness || ''}
-            onChange={(e) => handleChange('weakness', e.target.value)}
-            rows={2}
-          />
-        </div>
-        
-        {/* Comments */}
-        <div className="md:col-span-2">
-          <Label htmlFor="comments">
-            {formatColumnName('comments')}
-          </Label>
-          <Textarea
-            id="comments"
-            value={formData.comments || ''}
-            onChange={(e) => handleChange('comments', e.target.value)}
-            rows={3}
-          />
-        </div>
-      </div>
-      
-      <div className="flex justify-end">
-        <Button type="submit" disabled={loading}>
-          {loading ? 'Saving...' : 'Save Student'}
-        </Button>
-      </div>
-    </form>
+      </form>
+    </Form>
   );
 };
 
