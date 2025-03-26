@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -47,7 +46,7 @@ type Task = {
   description: string;
   status: string;
   due_date: string;
-  created_at: string;
+  created_at: string; // Added this property to fix the TypeScript error
   priority: string;
   category: string;
   feedback?: string;
