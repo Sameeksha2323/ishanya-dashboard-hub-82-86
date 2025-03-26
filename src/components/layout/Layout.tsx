@@ -22,8 +22,8 @@ const Layout = ({ title, subtitle, children, showBackButton = false, onBack }: L
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const user = getCurrentUser();
   
-  // Only show chatbot button for admin, hr, and teacher roles
-  const shouldShowChatbot = user && ['administrator', 'hr', 'teacher'].includes(user.role);
+  // Only show chatbot button for admin, hr, and educator roles
+  const shouldShowChatbot = user && ['administrator', 'hr', 'educator'].includes(user.role);
   
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">

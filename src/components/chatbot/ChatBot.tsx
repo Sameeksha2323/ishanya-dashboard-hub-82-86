@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -47,7 +46,7 @@ const ChatBot = ({ isOpen, onClose }: ChatBotProps) => {
         return 1;
       case 'hr':
         return 2;
-      case 'teacher':
+      case 'educator':
         return 3;
       default:
         return 3;

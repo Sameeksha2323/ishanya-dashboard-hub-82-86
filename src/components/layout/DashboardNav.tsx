@@ -72,8 +72,8 @@ export function DashboardNav() {
         </Button>
       )}
       
-      {/* Show Teacher dashboard link only to teachers */}
-      {userRole === 'teacher' && (
+      {/* Show Teacher dashboard link only to educators */}
+      {userRole === 'educator' && (
         <>
           <Button 
             variant="ghost" 
