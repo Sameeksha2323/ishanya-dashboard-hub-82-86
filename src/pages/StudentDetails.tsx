@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -122,7 +123,14 @@ const StudentDetails = () => {
           .eq('student_id', studentIdNum);
 
         if (taskError) throw taskError;
-        setTasks(taskData || []);
+        
+        // Transform the task data to include created_at (using current time as fallback)
+        const transformedTasks: Task[] = (taskData || []).map(task => ({
+          ...task,
+          created_at: task.created_at || new Date().toISOString(),
+        }));
+        
+        setTasks(transformedTasks);
 
         // Fetch attendance
         const { data: attendanceData, error: attendanceError } = await supabase
