@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,10 +9,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { getCurrentUser } from '@/lib/auth';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import ErrorDisplay from '@/components/ui/ErrorDisplay';
-import { Clock, FileText, Upload, Download, User, GraduationCap, Heart, Phone, Calendar, FileIcon } from 'lucide-react';
+import { Clock, FileText, Upload, Download, User, GraduationCap, Heart, Phone, Calendar, FileIcon, MessageSquare, Send } from 'lucide-react';
 import ReportUploader from '@/components/parent/ReportUploader';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import axios from 'axios';
 
 const ParentDetailsPage = () => {
@@ -241,6 +243,66 @@ const ParentDetailsPage = () => {
     }
   };
   
+  const [progressData, setProgressData] = useState([
+    { 
+      date: '12/1/2023', 
+      activity: 'Reading Session', 
+      progress: 'Good', 
+      notes: 'Completed 3 pages' 
+    },
+    { 
+      date: '12/5/2023', 
+      activity: 'Math Exercise', 
+      progress: 'Excellent', 
+      notes: 'Mastered addition' 
+    },
+    { 
+      date: '12/10/2023', 
+      activity: 'Speech Therapy', 
+      progress: 'Improving', 
+      notes: 'Pronounced 5 new words' 
+    },
+    { 
+      date: '12/15/2023', 
+      activity: 'Physical Activity', 
+      progress: 'Good', 
+      notes: 'Participated enthusiastically' 
+    }
+  ]);
+  const [feedbackText, setFeedbackText] = useState('My child is doing well');
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  
+  const handleFeedbackChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setFeedbackText(e.target.value);
+  };
+  
+  const handleSubmitFeedback = async () => {
+    if (!feedbackText.trim() || !selectedStudentId) return;
+    
+    setSubmittingFeedback(true);
+    
+    try {
+      // Update parent feedback in database
+      const { error } = await supabase
+        .from('parents')
+        .update({ feedback: feedbackText })
+        .eq('student_id', selectedStudentId)
+        .eq('email', user?.email || '');
+        
+      if (error) {
+        console.error('Error submitting feedback:', error);
+        toast.error('Failed to submit feedback');
+      } else {
+        toast.success('Feedback submitted successfully');
+      }
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      toast.error('An error occurred while submitting feedback');
+    } finally {
+      setSubmittingFeedback(false);
+    }
+  };
+  
   if (loading) {
     return (
       <Layout title="Loading" subtitle="Please wait...">
@@ -294,6 +356,7 @@ const ParentDetailsPage = () => {
               Progress & Contact
             </TabsTrigger>
           </TabsList>
+          
           
           <TabsContent value="personal-info" className="space-y-6 mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -642,56 +705,72 @@ const ParentDetailsPage = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Phone className="h-5 w-5 mr-2 text-purple-500" />
-                  Contact & Communication
+                  <FileText className="h-5 w-5 mr-2 text-blue-500" />
+                  Recent Progress
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                      <h3 className="font-semibold text-lg">Contact Information</h3>
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="text-gray-500">Primary Contact</span>
-                        <span className="font-medium">{activeStudent?.contact_number || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="text-gray-500">Alternative Contact</span>
-                        <span className="font-medium">{activeStudent?.alt_contact_number || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="text-gray-500">Parent Email</span>
-                        <span className="font-medium">{activeStudent?.parents_email || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="text-gray-500">Student Email</span>
-                        <span className="font-medium">{activeStudent?.student_email || 'N/A'}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <h3 className="font-semibold text-lg">Educator Contact</h3>
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="text-gray-500">Educator ID</span>
-                        <span className="font-medium">{activeStudent?.educator_employee_id || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="text-gray-500">Center Contact</span>
-                        <span className="font-medium">Available during center hours</span>
-                      </div>
-                    </div>
-                  </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[100px]">Date</TableHead>
+                      <TableHead>Activity</TableHead>
+                      <TableHead>Progress</TableHead>
+                      <TableHead>Notes</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {progressData.map((item, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="font-medium">{item.date}</TableCell>
+                        <TableCell>{item.activity}</TableCell>
+                        <TableCell>
+                          <Badge className={
+                            item.progress === 'Excellent' ? 'bg-green-100 text-green-800 hover:bg-green-100' :
+                            item.progress === 'Good' ? 'bg-blue-100 text-blue-800 hover:bg-blue-100' :
+                            'bg-yellow-100 text-yellow-800 hover:bg-yellow-100'
+                          }>
+                            {item.progress}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{item.notes}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-center">Feedback & Communication</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <p className="text-gray-600">
+                    Share your thoughts, concerns, or feedback about your child's progress or educational needs. This information will be reviewed by our staff.
+                  </p>
                   
-                  <div className="mt-6">
-                    <h3 className="font-semibold text-lg mb-3">Parent Feedback</h3>
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="text-gray-600">
-                        {parentData?.feedback || 'No feedback has been provided yet.'}
-                      </p>
-                      <p className="mt-2 text-sm text-gray-500">
-                        To provide or update your feedback, please contact the administration.
-                      </p>
-                    </div>
+                  <Textarea 
+                    value={feedbackText}
+                    onChange={handleFeedbackChange}
+                    placeholder="Type your feedback here..."
+                    className="min-h-[150px]"
+                  />
+                  
+                  <div className="flex justify-end">
+                    <Button 
+                      onClick={handleSubmitFeedback}
+                      disabled={submittingFeedback}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {submittingFeedback ? <LoadingSpinner size="sm" /> : (
+                        <>
+                          <Send className="h-5 w-5 mr-2" />
+                          Submit Feedback
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -700,45 +779,43 @@ const ParentDetailsPage = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <FileText className="h-5 w-5 mr-2 text-green-500" />
-                  Progress Reports
+                  <Phone className="h-5 w-5 mr-2 text-purple-500" />
+                  Contact Information
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <p className="text-muted-foreground">
-                    Track your child's development milestones and achievements over time.
-                  </p>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-lg">Family Contacts</h3>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-500">Primary Contact</span>
+                      <span className="font-medium">{activeStudent?.contact_number || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-500">Alternative Contact</span>
+                      <span className="font-medium">{activeStudent?.alt_contact_number || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-500">Parent Email</span>
+                      <span className="font-medium">{activeStudent?.parents_email || 'N/A'}</span>
+                    </div>
+                  </div>
                   
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <p className="text-gray-600">
-                      Quarterly progress reports will be available here after assessments. 
-                      You can download the latest report using the download button at the top of this page.
-                    </p>
-                    
-                    <div className="mt-4 flex justify-center">
-                      <Button 
-                        onClick={handleDownloadReport}
-                        disabled={loadingReport}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        {loadingReport ? <LoadingSpinner size="sm" /> : (
-                          <>
-                            <Download className="h-5 w-5 mr-2" />
-                            Download Latest Report
-                          </>
-                        )}
-                      </Button>
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-lg">School Contacts</h3>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-500">Educator Name</span>
+                      <span className="font-medium">{activeStudent?.educator_name || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-500">Educator Email</span>
+                      <span className="font-medium">{activeStudent?.educator_email || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-500">Center Phone</span>
+                      <span className="font-medium">Available during center hours</span>
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </Layout>
-  );
-};
-
-export default ParentDetailsPage;
+                
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
