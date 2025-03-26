@@ -52,22 +52,26 @@ const PayrollForm = ({ employeeId, onSuccess, initialData, onCancel }: PayrollFo
         last_paid: lastPaidDate ? format(lastPaidDate, 'yyyy-MM-dd') : null
       };
       
-      // Using explicit type annotation to avoid deep type instantiation
+      // Completely separate operations to avoid deep type instantiation
       if (initialData?.id) {
         // Update existing payroll record
-        const { error: updateError } = await supabase
+        const result = await supabase
           .from('employee_payroll')
           .update(payrollData)
           .eq('id', initialData.id);
-          
-        if (updateError) throw updateError;
+        
+        if (result.error) {
+          throw result.error;
+        }
       } else {
         // Insert new payroll record
-        const { error: insertError } = await supabase
+        const result = await supabase
           .from('employee_payroll')
           .insert(payrollData);
-          
-        if (insertError) throw insertError;
+        
+        if (result.error) {
+          throw result.error;
+        }
       }
       
       // Track the database change

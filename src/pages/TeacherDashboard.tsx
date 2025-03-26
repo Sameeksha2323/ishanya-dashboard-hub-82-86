@@ -164,8 +164,8 @@ const TeacherDashboard = () => {
 
   return (
     <Layout
-      title="Teacher Dashboard"
-      subtitle={`Welcome back, ${user?.name || 'Teacher'}`}
+      title="Educator Dashboard"
+      subtitle={`Welcome back, ${user?.name || 'Educator'}`}
     >
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
