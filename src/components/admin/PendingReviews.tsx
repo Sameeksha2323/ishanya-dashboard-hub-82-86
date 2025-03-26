@@ -7,9 +7,6 @@ import { toast } from 'sonner';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import DetailedFormView from './DetailedFormView';
-import StudentFormHandler from './StudentFormHandler';
-import StudentForm from './StudentForm';
-import { supabase } from '@/integrations/supabase/client';
 
 type FormEntry = {
   id: string;
@@ -28,8 +25,6 @@ const PendingReviews = () => {
   const [selectedEntry, setSelectedEntry] = useState<FormEntry | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'view' | 'edit'>('view');
-  const [isStudentFormOpen, setIsStudentFormOpen] = useState(false);
-  const [prefillData, setPrefillData] = useState<any>(null);
   const [currentPointer, setCurrentPointer] = useState<number>(() => {
     return parseInt(localStorage.getItem('formEntryPointer') || '2', 10);
   });
@@ -128,10 +123,12 @@ const PendingReviews = () => {
     setIsDialogOpen(true);
   };
 
-  const handleAcceptEntry = (entry: FormEntry) => {
+  const handleAcceptEntry = async (entry: FormEntry) => {
     try {
       setIsDialogOpen(false);
-      
+  
+      toast.loading('Preparing student form with prefilled data...');
+  
       const studentFormData = {
         first_name: entry['First Name'] || '',
         last_name: entry['Last Name'] || '',
@@ -155,15 +152,52 @@ const PendingReviews = () => {
         program_id: extractNumberFromField(entry['Program']),
         student_id: entry['Student ID'] || `STU${Date.now().toString().slice(-6)}`,
       };
+  
+      sessionStorage.setItem('formSubmitCallback', JSON.stringify({
+        sourceEntry: entry,
+        hasCallback: true
+      }));
       
-      setPrefillData({
-        formData: studentFormData,
-        sourceEntry: entry
-      });
+      window.dispatchEvent(new CustomEvent('openAddRecordForm', {
+        detail: { 
+          tableName: 'students',
+          formData: studentFormData,
+          sourceEntry: entry
+        } 
+      }));
+  
+      toast.dismiss();
+      toast.success('Opening student form with prefilled data');
       
-      setIsStudentFormOpen(true);
+      const handleFormSubmitSuccess = () => {
+        const storedCallback = sessionStorage.getItem('formSubmitCallback');
+        if (storedCallback) {
+          try {
+            const { sourceEntry, hasCallback } = JSON.parse(storedCallback);
+            if (hasCallback && sourceEntry) {
+              setCurrentPointer(prev => {
+                const newPointer = entry.rowIndex + 1;
+                console.log(`Moving pointer from ${prev} to ${newPointer}`);
+                return newPointer;
+              });
+              
+              setEntries(prev => prev.filter(e => e.id !== entry.id));
+              toast.success('Form entry successfully processed and removed from review list');
+              
+              sessionStorage.removeItem('formSubmitCallback');
+            }
+          } catch (error) {
+            console.error('Error parsing stored callback:', error);
+          }
+        }
+        
+        window.removeEventListener('formSubmitSuccess', handleFormSubmitSuccess);
+      };
+
+      window.addEventListener('formSubmitSuccess', handleFormSubmitSuccess);
+  
     } catch (err) {
-      console.error('Error preparing form data:', err);
+      console.error('Error accepting entry:', err);
       toast.error('Failed to process form submission');
     }
   };
@@ -188,37 +222,6 @@ const PendingReviews = () => {
       console.error('Error rejecting entry:', err);
       toast.dismiss();
       toast.error('Failed to reject form submission');
-    }
-  };
-
-  const handleSubmitStudent = async (data: any) => {
-    try {
-      const { error } = await supabase
-        .from('students')
-        .insert([data]);
-        
-      if (error) {
-        throw error;
-      }
-      
-      if (prefillData?.sourceEntry) {
-        setCurrentPointer(prev => {
-          const newPointer = prefillData.sourceEntry.rowIndex + 1;
-          return newPointer;
-        });
-        
-        setEntries(prev => prev.filter(e => e.id !== prefillData.sourceEntry.id));
-      }
-      
-      toast.success('Student added successfully');
-      setIsStudentFormOpen(false);
-      setPrefillData(null);
-      
-      return Promise.resolve();
-    } catch (error: any) {
-      console.error('Error adding student:', error);
-      toast.error(error.message || 'Failed to add student');
-      return Promise.reject(error);
     }
   };
 
@@ -519,8 +522,8 @@ const PendingReviews = () => {
               entry={selectedEntry} 
               mode={dialogMode} 
               onSave={handleSaveEdit}
-              onAccept={() => handleAcceptEntry(selectedEntry)}
-              onReject={() => handleRejectEntry(selectedEntry)}
+              onAccept={handleAcceptEntry}
+              onReject={handleRejectEntry}
             />
             
             <DialogFooter className="flex justify-between sm:justify-between">
@@ -560,28 +563,6 @@ const PendingReviews = () => {
           </DialogContent>
         </Dialog>
       )}
-      
-      <StudentFormHandler
-        isOpen={isStudentFormOpen}
-        onClose={() => {
-          setIsStudentFormOpen(false);
-          setPrefillData(null);
-        }}
-        onSubmit={handleSubmitStudent}
-        centerId={prefillData?.formData?.center_id}
-        programId={prefillData?.formData?.program_id}
-        title="Add Student from Form Submission"
-      >
-        {(handleSubmit) => (
-          <StudentForm
-            onSubmit={handleSubmit}
-            lastStudentId={null}
-            centerId={prefillData?.formData?.center_id}
-            programId={prefillData?.formData?.program_id}
-            initialValues={prefillData?.formData}
-          />
-        )}
-      </StudentFormHandler>
     </>
   );
 };

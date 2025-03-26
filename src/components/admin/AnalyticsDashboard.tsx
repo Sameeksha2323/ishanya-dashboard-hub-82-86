@@ -1,172 +1,293 @@
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { toast } from 'sonner';
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+
+interface CenterData {
+  center_id: number;
+  name: string;
+}
+
+interface ProgramData {
+  program_id: number;
+  name: string;
+}
+
+interface StudentsByProgramData {
+  name: string;
+  total_students: number;
+}
 
 const AnalyticsDashboard = () => {
+  const [centers, setCenters] = useState<CenterData[]>([]);
+  const [programs, setPrograms] = useState<ProgramData[]>([]);
+  const [selectedCenter, setSelectedCenter] = useState<number | null>(null);
+  const [selectedProgram, setSelectedProgram] = useState<number | null>(null);
+  const [studentsByProgram, setStudentsByProgram] = useState<StudentsByProgramData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [studentsByProgram, setStudentsByProgram] = useState([]);
-  const [activeTab, setActiveTab] = useState('students');
-  
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        // Fetch student counts by program
-        const { data: programStudentCounts, error: programError } = await supabase
-          .from('students')
-          .select(`
-            program_id,
-            programs:programs!inner(
-              program_id,
-              name
-            )
-          `)
-          .then(({ data, error }) => {
-            if (error) throw error;
-            
-            // Count students by program
-            const programCounts = data.reduce((acc, curr) => {
-              const programName = curr.programs?.name || 'Unknown Program';
-              acc[programName] = (acc[programName] || 0) + 1;
-              return acc;
-            }, {});
-            
-            // Convert to array format for PieChart
-            return {
-              data: Object.entries(programCounts).map(([name, value]) => ({
-                name,
-                value
-              })),
-              error: null
-            };
-          });
 
-        if (programError) {
-          console.error('Error fetching student program data:', programError);
-          setLoading(false);
-          return;
+  useEffect(() => {
+    const fetchCenters = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('centers')
+          .select('center_id, name')
+          .order('name');
+          
+        if (error) throw error;
+        if (data) setCenters(data);
+      } catch (error) {
+        console.error('Error fetching centers:', error);
+        toast.error('Failed to load centers');
+      }
+    };
+    
+    const fetchStudentsByProgram = async () => {
+      try {
+        // Use the RPC function to get students by program
+        const { data, error } = await supabase
+          .rpc('get_students_by_program');
+        
+        if (error) {
+          throw error;
         }
         
-        setStudentsByProgram(programStudentCounts || []);
-        setLoading(false);
+        if (data) {
+          // Format the data for the pie chart
+          const formattedData = data.map((item: any) => ({
+            name: item.name,
+            total_students: Number(item.total_students)
+          }));
+          
+          setStudentsByProgram(formattedData);
+        }
       } catch (error) {
-        console.error('Error in fetchData:', error);
+        console.error('Error fetching students by program:', error);
+        toast.error('Failed to load student program distribution');
+        
+        // Fallback to a database query if the function fails
+        try {
+          const { data, error: queryError } = await supabase
+            .from('students')
+            .select(`
+              program_id,
+              programs (
+                name
+              )
+            `);
+            
+          if (queryError) throw queryError;
+          
+          if (data) {
+            const programCounts: Record<string, number> = {};
+            
+            data.forEach(student => {
+              const programName = student.programs?.name;
+              if (programName) {
+                programCounts[programName] = (programCounts[programName] || 0) + 1;
+              }
+            });
+            
+            const formattedData = Object.keys(programCounts).map(name => ({
+              name,
+              total_students: programCounts[name]
+            }));
+            
+            setStudentsByProgram(formattedData);
+          }
+        } catch (fallbackError) {
+          console.error('Fallback query failed:', fallbackError);
+        }
+      } finally {
         setLoading(false);
       }
     };
     
-    fetchData();
+    fetchCenters();
+    fetchStudentsByProgram();
   }, []);
   
-  // Colors for the pie chart
-  const COLORS = ['#8884d8', '#83a6ed', '#8dd1e1', '#82ca9d', '#a4de6c', '#d0ed57'];
+  useEffect(() => {
+    const fetchPrograms = async () => {
+      if (selectedCenter) {
+        try {
+          const { data, error } = await supabase
+            .from('programs')
+            .select('program_id, name, center_id')
+            .eq('center_id', selectedCenter)
+            .order('name');
+            
+          if (error) throw error;
+          if (data) setPrograms(data);
+        } catch (error) {
+          console.error('Error fetching programs:', error);
+          toast.error('Failed to load programs');
+        }
+      } else {
+        setPrograms([]);
+      }
+    };
+    
+    fetchPrograms();
+  }, [selectedCenter]);
+
+  const handleCenterChange = (centerId: string) => {
+    setSelectedCenter(parseInt(centerId));
+    setSelectedProgram(null);
+  };
   
-  // Custom tooltip for pie chart - Fixed the type issue
-  const CustomTooltip = ({ active, payload }: { active?: boolean, payload?: any[] }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-2 border shadow-sm rounded">
-          <p className="font-medium">{payload[0].name}</p>
-          <p>Students: <span className="font-bold">{payload[0].value}</span></p>
-        </div>
-      );
-    }
-    return null;
+  const handleProgramChange = (programId: string) => {
+    setSelectedProgram(parseInt(programId));
   };
 
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle>Analytics Dashboard</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs 
-          defaultValue="students" 
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="space-y-4"
-        >
-          <TabsList className="grid grid-cols-3 w-[400px]">
-            <TabsTrigger value="students">Students</TabsTrigger>
-            <TabsTrigger value="educators">Educators</TabsTrigger>
-            <TabsTrigger value="performance">Performance</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="students" className="space-y-4">
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row gap-4">
+        <Card className="w-full md:w-1/2">
+          <CardHeader>
+            <CardTitle>Student Program Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="text-gray-500">Loading data...</div>
+              </div>
+            ) : studentsByProgram.length > 0 ? (
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={studentsByProgram}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="total_students"
+                    >
+                      {studentsByProgram.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => [`${value} students`, 'Count']} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="flex justify-center items-center h-64">
+                <div className="text-gray-500">No student data available</div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        
+        {/* Additional cards can be added here */}
+      </div>
+      
+      <Tabs defaultValue="overview">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="centers">Centers</TabsTrigger>
+          <TabsTrigger value="programs">Programs</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="overview" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Overall Statistics</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* Overall statistics content */}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="centers" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-md">Students by Program</CardTitle>
+                <CardTitle>Select Center</CardTitle>
               </CardHeader>
               <CardContent>
-                {loading ? (
-                  <div className="flex justify-center items-center h-[300px]">
-                    <LoadingSpinner />
-                  </div>
-                ) : studentsByProgram.length > 0 ? (
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={studentsByProgram}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={120}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {studentsByProgram.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip content={<CustomTooltip />} />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    No student data available
-                  </div>
-                )}
+                <Select value={selectedCenter?.toString() || ''} onValueChange={handleCenterChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a center" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {centers.map((center) => (
+                      <SelectItem key={center.center_id} value={center.center_id.toString()}>
+                        {center.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </CardContent>
             </Card>
-          </TabsContent>
-          
-          <TabsContent value="educators" className="space-y-4">
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="programs" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-md">Educators Dashboard</CardTitle>
+                <CardTitle>Select Program</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-gray-500">
-                  Educator analytics coming soon
+                <div className="space-y-4">
+                  <Select 
+                    value={selectedCenter?.toString() || ''} 
+                    onValueChange={handleCenterChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a center" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {centers.map((center) => (
+                        <SelectItem key={center.center_id} value={center.center_id.toString()}>
+                          {center.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {selectedCenter && (
+                    <Select 
+                      value={selectedProgram?.toString() || ''} 
+                      onValueChange={handleProgramChange}
+                      disabled={!selectedCenter}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a program" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {programs.map((program) => (
+                          <SelectItem key={program.program_id} value={program.program_id.toString()}>
+                            {program.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  
+                  {selectedProgram && (
+                    <Button className="w-full">View Program Details</Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-          
-          <TabsContent value="performance" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-md">Performance Metrics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-gray-500">
-                  Performance analytics coming soon
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 

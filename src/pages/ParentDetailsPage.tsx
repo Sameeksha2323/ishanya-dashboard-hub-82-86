@@ -6,14 +6,14 @@ import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import ErrorDisplay from '@/components/ui/ErrorDisplay';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { getCurrentUser } from '@/lib/auth';
-import { supabase } from '@/integrations/supabase/client';
-import { ArrowDown, Download, Send, Calendar, User, Clock, FileText, Heart, AlertTriangle, FileBarChart, Upload } from 'lucide-react';
-import ReportUploader from '@/components/parent/ReportUploader';
+import supabase from '@/lib/api';
+import { ArrowDown, Download, Send, Calendar, User, Clock, MapPin, FileText, Heart, AlertTriangle, FileBarChart } from 'lucide-react';
 
 interface StudentData {
   id: string;
@@ -67,8 +67,6 @@ const ParentDetailsPage = () => {
   const [error, setError] = useState<string | null>(null);
   const reportRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
-  const [showUploader, setShowUploader] = useState(false);
-  const [reports, setReports] = useState<any[]>([]);
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -145,7 +143,6 @@ const ParentDetailsPage = () => {
         
         if (isMounted) {
           setStudentData(student);
-          fetchReportsForStudent(student.student_id);
         }
         
         if (student.educator_employee_id) {
@@ -179,26 +176,6 @@ const ParentDetailsPage = () => {
       isMounted = false;
     };
   }, []);
-
-  const fetchReportsForStudent = async (studentId: string | number) => {
-    if (!studentId) return;
-    
-    try {
-      const { data: reportData, error: reportError } = await supabase
-        .storage
-        .from('ishanya')
-        .list(`student-reports/${studentId}`);
-        
-      if (reportError) {
-        console.error('Error fetching reports:', reportError);
-        return;
-      }
-      
-      setReports(reportData || []);
-    } catch (error) {
-      console.error('Error fetching reports:', error);
-    }
-  };
 
   const handleBack = () => {
     navigate('/parent');
@@ -319,46 +296,6 @@ const ParentDetailsPage = () => {
     { date: '2023-12-10', activity: 'Speech Therapy', progress: 'Improving', notes: 'Pronounced 5 new words' },
     { date: '2023-12-15', activity: 'Physical Activity', progress: 'Good', notes: 'Participated enthusiastically' },
   ];
-
-  const handleUploadSuccess = () => {
-    setShowUploader(false);
-    if (studentData) {
-      fetchReportsForStudent(studentData.student_id);
-    }
-    toast({
-      title: "Success",
-      description: "Your report has been uploaded successfully",
-    });
-  };
-
-  const handleViewReport = async (fileName: string) => {
-    if (!user || !studentData) return;
-    
-    try {
-      const { data, error } = await supabase
-        .storage
-        .from('ishanya')
-        .createSignedUrl(`student-reports/${studentData.student_id}/${fileName}`, 60);
-        
-      if (error || !data) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to generate URL for the report",
-        });
-        return;
-      }
-      
-      window.open(data.signedUrl, '_blank');
-    } catch (error) {
-      console.error('Error viewing report:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An error occurred while trying to view the report",
-      });
-    }
-  };
 
   return (
     <Layout
@@ -726,78 +663,6 @@ const ParentDetailsPage = () => {
                 </CardFooter>
               </Card>
             </TabsContent>
-            
-            <TabsContent value="reports" className="space-y-4">
-              <Card>
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-blue-500" />
-                      Student Reports
-                    </CardTitle>
-                    <Button 
-                      onClick={() => setShowUploader(true)} 
-                      className="flex items-center gap-2"
-                    >
-                      <Upload className="h-4 w-4" />
-                      Upload Report
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {showUploader ? (
-                    <ReportUploader 
-                      onSuccess={handleUploadSuccess} 
-                      onCancel={() => setShowUploader(false)}
-                      studentId={studentData.student_id}
-                    />
-                  ) : (
-                    <div>
-                      {reports.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500">
-                          <Upload className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                          <p>No reports have been uploaded yet</p>
-                          <Button 
-                            variant="outline" 
-                            className="mt-4"
-                            onClick={() => setShowUploader(true)}
-                          >
-                            Upload Your First Report
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          {reports.map((report, index) => (
-                            <div 
-                              key={index} 
-                              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                            >
-                              <div className="flex items-center gap-3">
-                                <FileText className="h-5 w-5 text-blue-500" />
-                                <div>
-                                  <p className="font-medium">{report.name.replace(/^\d+-/, '')}</p>
-                                  <p className="text-xs text-gray-500">
-                                    <Clock className="inline h-3 w-3 mr-1" />
-                                    {new Date(report.created_at).toLocaleDateString()}
-                                  </p>
-                                </div>
-                              </div>
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => handleViewReport(report.name)}
-                              >
-                                View
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
           </Tabs>
           
           <div className="hidden">
@@ -915,3 +780,4 @@ const ParentDetailsPage = () => {
 };
 
 export default ParentDetailsPage;
+
