@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -10,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { getCurrentUser } from '@/lib/auth';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import ErrorDisplay from '@/components/ui/ErrorDisplay';
-import { Clock, FileText, Upload, Download, User, GraduationCap, Heart, Phone } from 'lucide-react';
+import { Clock, FileText, Upload, Download, User, GraduationCap, Heart, Phone, Calendar, FileIcon } from 'lucide-react';
 import ReportUploader from '@/components/parent/ReportUploader';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -462,57 +461,113 @@ const ParentDetailsPage = () => {
           <TabsContent value="education-details" className="space-y-6 mt-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <GraduationCap className="h-5 w-5 mr-2 text-blue-500" />
-                  Education Details
+                <CardTitle className="text-xl font-semibold text-center">
+                  Program & Session Information
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                      <h3 className="font-semibold text-lg">Program Information</h3>
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="text-gray-500">Program ID</span>
-                        <span className="font-medium">{activeStudent?.program_id || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="text-gray-500">Center ID</span>
-                        <span className="font-medium">{activeStudent?.center_id || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="text-gray-500">Educator ID</span>
-                        <span className="font-medium">{activeStudent?.educator_employee_id || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="text-gray-500">Enrollment Year</span>
-                        <span className="font-medium">{activeStudent?.enrollment_year || 'N/A'}</span>
-                      </div>
+                <div className="grid md:grid-cols-2 gap-10">
+                  {/* Left Column - Program Details */}
+                  <div className="space-y-8">
+                    <div className="flex items-center gap-2 mb-6">
+                      <FileText className="h-5 w-5 text-blue-500" />
+                      <h3 className="font-semibold text-lg">Program Details</h3>
                     </div>
                     
-                    <div className="space-y-3">
-                      <h3 className="font-semibold text-lg">Academic Progress</h3>
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="text-gray-500">Current Status</span>
-                        <span className="font-medium">{activeStudent?.status || 'Active'}</span>
+                    <div className="space-y-6">
+                      <div className="flex flex-col items-center text-center">
+                        <p className="text-sm text-gray-500 mb-1">Assigned Program</p>
+                        <p className="text-xl font-semibold">
+                          {activeStudent?.program_name || 'Siddhi'}
+                        </p>
                       </div>
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="text-gray-500">Sessions Per Week</span>
-                        <span className="font-medium">{activeStudent?.sessions_per_week || 'N/A'}</span>
+                      
+                      <div className="flex flex-col items-center text-center">
+                        <p className="text-sm text-gray-500 mb-1">Number of Sessions</p>
+                        <p className="text-xl font-semibold">
+                          {activeStudent?.number_of_sessions || 3}
+                        </p>
                       </div>
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="text-gray-500">Total Sessions</span>
-                        <span className="font-medium">{activeStudent?.number_of_sessions || 'N/A'}</span>
+                      
+                      <div className="flex flex-col items-center text-center">
+                        <p className="text-sm text-gray-500 mb-1">Session Type</p>
+                        <p className="text-xl font-semibold">
+                          {activeStudent?.session_type || 'Offline'}
+                        </p>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="mt-6">
-                    <h3 className="font-semibold text-lg mb-3">Educational Performance</h3>
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="text-gray-600">
-                        {activeStudent?.performance_summary || 'Educational performance information will be updated after assessment.'}
-                      </p>
+                  {/* Right Column - Schedule Information */}
+                  <div className="space-y-8">
+                    <div className="flex items-center gap-2 mb-6">
+                      <Calendar className="h-5 w-5 text-blue-500" />
+                      <h3 className="font-semibold text-lg">Schedule Information</h3>
+                    </div>
+                    
+                    <div className="space-y-6">
+                      <div className="flex flex-col items-center text-center">
+                        <p className="text-sm text-gray-500 mb-1">Scheduled Days</p>
+                        <p className="text-xl font-semibold">
+                          {activeStudent?.scheduled_days || 'Monday, Thursday'}
+                        </p>
+                      </div>
+                      
+                      <div className="flex flex-col items-center text-center">
+                        <p className="text-sm text-gray-500 mb-1">Session Timings</p>
+                        <p className="text-xl font-semibold">
+                          {activeStudent?.session_timings || '10:30 AM - 11:30 AM'}
+                        </p>
+                      </div>
+                      
+                      <div className="flex flex-col items-center text-center">
+                        <p className="text-sm text-gray-500 mb-1">Assigned Educator</p>
+                        <p className="text-xl font-semibold">
+                          {activeStudent?.educator_name || 'Neeraj Thakur'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold text-center">
+                  Educator Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col md:flex-row items-center gap-8">
+                  <div className="flex-shrink-0">
+                    <div className="w-32 h-32 bg-blue-100 rounded-full flex items-center justify-center">
+                      <User className="h-16 w-16 text-blue-500" />
+                    </div>
+                  </div>
+                  
+                  <div className="flex-grow space-y-4">
+                    <div className="text-center md:text-left">
+                      <h3 className="text-2xl font-semibold">
+                        {activeStudent?.educator_name || 'Neeraj Thakur'}
+                      </h3>
+                      <p className="text-gray-500">Educator</p>
+                    </div>
+                    
+                    <div className="grid md:grid-cols-2 gap-6 mt-4">
+                      <div>
+                        <p className="text-gray-500 mb-1">Email</p>
+                        <p className="text-blue-600">
+                          {activeStudent?.educator_email || 'neeraj.thakur@gmail.com'}
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-gray-500 mb-1">Phone</p>
+                        <p className="font-medium">
+                          {activeStudent?.educator_phone || '9876543312'}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
