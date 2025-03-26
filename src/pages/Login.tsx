@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authenticateUser } from '@/lib/auth';
@@ -106,7 +105,7 @@ const Login = () => {
           <div className="text-center">
             <Link to="/">
               <img 
-                src="/favicon.svg" 
+                src="/lovable-uploads/a6017f5f-7947-49ad-a9ed-0bc0e588a9b0.png" 
                 alt="Ishanya Logo"
                 className="h-16 mx-auto"
               />
@@ -129,6 +128,7 @@ const Login = () => {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                
                 <FormField
                   control={form.control}
                   name="email"

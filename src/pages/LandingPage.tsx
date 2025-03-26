@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -94,7 +93,7 @@ const LandingPage = () => {
               <div className="flex-shrink-0 flex items-center">
                 <a href="#home">
                   <img 
-                    src="/favicon.svg" 
+                    src="/lovable-uploads/a6017f5f-7947-49ad-a9ed-0bc0e588a9b0.png" 
                     alt="Ishanya Logo" 
                     className="h-14 w-auto" 
                   />
@@ -719,7 +718,7 @@ const LandingPage = () => {
             <div className="flex flex-col items-center md:items-start">
               <div className="flex items-center">
                 <img 
-                  src="/favicon.svg" 
+                  src="/lovable-uploads/a6017f5f-7947-49ad-a9ed-0bc0e588a9b0.png" 
                   alt="Ishanya Logo" 
                   className="h-16 w-auto"
                 />

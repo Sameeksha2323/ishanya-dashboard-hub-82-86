@@ -67,7 +67,7 @@ const Navbar = () => {
             <div className="flex-shrink-0 flex items-center">
               <Link to="/">
                 <img 
-                  src="/lovable-uploads/17953c8a-6715-4e58-af68-a3918c44fd33.png" 
+                  src="/lovable-uploads/a6017f5f-7947-49ad-a9ed-0bc0e588a9b0.png" 
                   alt="Ishanya Foundation" 
                   className="h-10 w-auto" 
                 />
