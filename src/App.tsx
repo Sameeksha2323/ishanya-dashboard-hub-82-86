@@ -94,10 +94,10 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 
-                {/* Parent Dashboard - only for parents */}
+                {/* Parent Dashboard - redirect to details page */}
                 <Route path="/parent" element={
                   <ProtectedRoute allowedRoles={['parent']}>
-                    <ParentDashboard />
+                    <Navigate to="/parent/details" />
                   </ProtectedRoute>
                 } />
                 
@@ -139,7 +139,7 @@ const getDefaultRoute = (role: string | null): string => {
     case 'teacher':
       return '/teacher';
     case 'parent':
-      return '/parent';
+      return '/parent/details';
     default:
       return '/login';
   }
