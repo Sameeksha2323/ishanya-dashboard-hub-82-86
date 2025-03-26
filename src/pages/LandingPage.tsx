@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -349,7 +350,7 @@ const LandingPage = () => {
                 </div>
               </motion.div>
               
-              {/* Add Indian themed image to About Us section */}
+              {/* Replace the image with the new image */}
               <motion.div
                 className="flex justify-center items-center"
                 initial="hidden"
@@ -358,8 +359,8 @@ const LandingPage = () => {
                 variants={fadeIn}
               >
                 <img 
-                  src="https://images.unsplash.com/photo-1524492412937-b28074a5d7da?q=80&w=2071&auto=format&fit=crop"
-                  alt="Indian students in a classroom setting" 
+                  src="/lovable-uploads/903e9b92-3113-4ad9-aa06-7650ccfbcd20.png"
+                  alt="Inclusion and accessibility illustration showing hands supporting people with disabilities" 
                   className="rounded-2xl shadow-xl object-cover h-80 w-full" 
                 />
               </motion.div>
