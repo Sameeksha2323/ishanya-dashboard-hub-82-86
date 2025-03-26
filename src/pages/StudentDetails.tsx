@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -23,6 +24,11 @@ import {
   HelpCircle,
   Info,
   Bookmark,
+  ChevronDown,
+  ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+  Download
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +36,7 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import axios from 'axios';
 
 type Student = {
   student_id: string;
@@ -51,9 +58,9 @@ type Student = {
   address: string;
   parents_email: string | null;
   student_email: string | null;
-  profile_photo: string | null;
   center_id: number;
   program_id: number;
+  educator_employee_id: number;
 };
 
 type Task = {
@@ -72,12 +79,17 @@ type Task = {
   stage?: string;
 };
 
-type Attendance = {
+type AttendanceRecord = {
   id: number;
   date: string;
   status: string;
   student_id: string;
   notes?: string;
+};
+
+type AttendanceSummary = {
+  present: number;
+  absent: number;
 };
 
 type Assessment = {
@@ -102,6 +114,33 @@ type Guardian = {
   student_id: string;
 };
 
+type PerformanceRecord = {
+  id: string | null;
+  student_id: number;
+  program_id: number;
+  educator_employee_id: number;
+  quarter: string;
+  area_of_development: string;
+  is_sent: boolean;
+  skill_area?: string | null;
+  comments?: string | null;
+  [key: string]: any; // To allow for dynamic properties like "1_score", "2_description", etc.
+};
+
+type GeneralReport = {
+  id: string | null;
+  student_id: number;
+  program_id: number;
+  educator_employee_id: number;
+  quarter: string;
+  is_sent: boolean;
+  punctuality?: string | null;
+  preparedness?: string | null;
+  assistance_required?: string | null;
+  parental_support?: string | null;
+  any_behavioral_issues?: string | null;
+};
+
 const QUARTERS = [
   "January 2025 - March 2025",
   "April 2025 - June 2025",
@@ -117,7 +156,7 @@ const StudentDetails = () => {
   const [performanceRecords, setPerformanceRecords] = useState<PerformanceRecord[]>([]);
   const [generalReports, setGeneralReports] = useState<GeneralReport[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [attendance, setAttendance] = useState<Attendance>({ present: 0, absent: 0 });
+  const [attendance, setAttendance] = useState<AttendanceSummary>({ present: 0, absent: 0 });
   const [expandedQuarter, setExpandedQuarter] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentYear, setCurrentYear] = useState<number>(2025);
@@ -133,12 +172,15 @@ const StudentDetails = () => {
         
         const { data: studentData, error: studentError } = await supabase
           .from('students')
-          .select('student_id, first_name, last_name, gender, dob, fathers_name, mothers_name, primary_diagnosis, comorbidity, blood_group, allergies, udid, contact_number, alt_contact_number, status, enrollment_year, address, parents_email, student_email, profile_photo, center_id, program_id')
+          .select('student_id, first_name, last_name, gender, dob, fathers_name, mothers_name, primary_diagnosis, comorbidity, blood_group, allergies, udid, contact_number, alt_contact_number, status, enrollment_year, address, parents_email, student_email, center_id, program_id, educator_employee_id')
           .eq('student_id', studentIdNum)
           .single();
 
         if (studentError) throw studentError;
-        setStudent(studentData);
+        
+        if (studentData) {
+          setStudent(studentData as Student);
+        }
 
         const { data: perfData, error: perfError } = await supabase
           .from('performance_records')
@@ -199,7 +241,7 @@ const StudentDetails = () => {
     const fullQuarter = quarter.includes(yearPrefix) ? quarter : quarter.replace(/\d{4}/g, yearPrefix);
     
     return performanceRecords.find(record => 
-      record.student_id === student.student_id &&
+      record.student_id === parseInt(student.student_id) &&
       record.program_id === student.program_id &&
       record.educator_employee_id === student.educator_employee_id &&
       record.quarter === fullQuarter
@@ -213,7 +255,7 @@ const StudentDetails = () => {
     const fullQuarter = quarter.includes(yearPrefix) ? quarter : quarter.replace(/\d{4}/g, yearPrefix);
     
     return generalReports.find(report => 
-      report.student_id === student.student_id &&
+      report.student_id === parseInt(student.student_id) &&
       report.program_id === student.program_id &&
       report.educator_employee_id === student.educator_employee_id &&
       report.quarter === fullQuarter
@@ -232,7 +274,7 @@ const StudentDetails = () => {
         method: 'post',
         url: 'https://fast-api-ubv8.onrender.com/generate_report',
         data: {
-          student_id: student.student_id,
+          student_id: parseInt(student.student_id),
           program_id: student.program_id,
           educator_employee_id: student.educator_employee_id,
           quarter: fullQuarter
@@ -247,7 +289,9 @@ const StudentDetails = () => {
       document.body.appendChild(link);
       link.click();
       
-      link.parentNode?.removeChild(link);
+      if (link.parentNode) {
+        link.parentNode.removeChild(link);
+      }
       window.URL.revokeObjectURL(url);
       
       toast.success('Report downloaded successfully');
@@ -407,7 +451,7 @@ const StudentDetails = () => {
                                 : key.charAt(0).toUpperCase() + key.slice(1);
                               
                               return (
-                                <p key={key}><strong>{displayKey}:</strong> {value}</p>
+                                <p key={key}><strong>{displayKey}:</strong> {String(value)}</p>
                               );
                             })}
                           </div>
