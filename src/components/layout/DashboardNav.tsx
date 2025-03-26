@@ -1,7 +1,7 @@
 
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Home, Users, LogOut, BookOpen, User } from 'lucide-react';
+import { Home, Users, LogOut, BookOpen, User, Kanban } from 'lucide-react';
 import { logout, getCurrentUser, getUserRole } from '@/lib/auth';
 import { toast } from 'sonner';
 import { useLanguage } from '@/components/ui/LanguageProvider';
@@ -26,6 +26,15 @@ export function DashboardNav() {
     return location.pathname === path 
       ? 'bg-ishanya-green/10 text-ishanya-green hover:bg-ishanya-green/20' 
       : 'hover:bg-gray-100';
+  };
+
+  // Function to open Kanban board with employee ID
+  const openKanbanBoard = () => {
+    if (user?.employee_id) {
+      window.open(`https://goalwize.vercel.app/kanban/${user.employee_id}`, '_blank', 'noopener,noreferrer');
+    } else {
+      toast.error('Could not retrieve your employee ID.');
+    }
   };
 
   if (!user) return null;
@@ -65,16 +74,29 @@ export function DashboardNav() {
       
       {/* Show Teacher dashboard link only to teachers */}
       {userRole === 'teacher' && (
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          asChild 
-          className={getButtonClassName('/teacher')}
-        >
-          <Link to="/teacher">
-            <BookOpen className="h-5 w-5" />
-          </Link>
-        </Button>
+        <>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            asChild 
+            className={getButtonClassName('/teacher')}
+          >
+            <Link to="/teacher">
+              <BookOpen className="h-5 w-5" />
+            </Link>
+          </Button>
+          
+          {/* Kanban Board Button for Teachers */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={openKanbanBoard}
+            className="hover:bg-gray-100"
+            title="Kanban Board"
+          >
+            <Kanban className="h-5 w-5" />
+          </Button>
+        </>
       )}
       
       {/* Show Parent dashboard link only to parents */}
