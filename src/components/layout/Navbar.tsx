@@ -50,7 +50,8 @@ const Navbar = () => {
         return 'bg-red-500 text-white';
       case 'hr':
         return 'bg-purple-500 text-white';
-      case 'teacher':
+      case 'educator':
+      case 'teacher': // Keep backward compatibility
         return 'bg-blue-500 text-white';
       case 'parent':
         return 'bg-green-500 text-white';

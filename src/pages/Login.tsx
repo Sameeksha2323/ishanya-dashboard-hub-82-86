@@ -20,7 +20,7 @@ const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z.string().min(4, { message: "Password must be at least 4 characters" }),
   role: z.string({ required_error: "Please select a role" })
-    .refine(val => ['administrator', 'hr', 'teacher', 'parent'].includes(val), {
+    .refine(val => ['administrator', 'hr', 'educator', 'parent'].includes(val), {
       message: "Invalid role selected"
     })
 });
@@ -63,7 +63,7 @@ const Login = () => {
           case 'hr':
             navigate('/hr');
             break;
-          case 'teacher':
+          case 'educator':
             navigate('/teacher');
             break;
           case 'parent':
@@ -187,7 +187,7 @@ const Login = () => {
                           <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
                             <SelectItem value="administrator" className="dark:text-gray-100">Administrator</SelectItem>
                             <SelectItem value="hr" className="dark:text-gray-100">HR</SelectItem>
-                            <SelectItem value="teacher" className="dark:text-gray-100">Teacher</SelectItem>
+                            <SelectItem value="educator" className="dark:text-gray-100">Educator</SelectItem>
                             <SelectItem value="parent" className="dark:text-gray-100">Parent</SelectItem>
                           </SelectContent>
                         </Select>
