@@ -104,11 +104,13 @@ const Login = () => {
           </div>
           <div className="text-center">
             <Link to="/">
-              <img 
-                src="/lovable-uploads/a6017f5f-7947-49ad-a9ed-0bc0e588a9b0.png" 
-                alt="Ishanya Logo"
-                className="h-16 mx-auto"
-              />
+              <div className="bg-white rounded-lg p-2 inline-block">
+                <img 
+                  src="/lovable-uploads/a6017f5f-7947-49ad-a9ed-0bc0e588a9b0.png" 
+                  alt="Ishanya Logo"
+                  className="h-16 mx-auto"
+                />
+              </div>
             </Link>
             <p className="text-gray-500 dark:text-gray-400 mt-1">Journey to Inclusion</p>
           </div>
