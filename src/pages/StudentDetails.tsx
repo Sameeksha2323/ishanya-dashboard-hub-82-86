@@ -124,7 +124,7 @@ const StudentDetails = () => {
 
         if (taskError) throw taskError;
         
-        // Transform the task data to include created_at (using current time as fallback)
+        // Transform the task data to include created_at if missing
         const transformedTasks: Task[] = (taskData || []).map(task => ({
           ...task,
           created_at: task.created_at || new Date().toISOString(),

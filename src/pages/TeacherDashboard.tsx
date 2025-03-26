@@ -21,7 +21,6 @@ const TeacherDashboard = () => {
   const [students, setStudents] = useState<any[]>([]);
   const [selectedProgram, setSelectedProgram] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'programs' | 'attendance' | 'report' | 'discussion'>('programs');
   const [viewingStudentId, setViewingStudentId] = useState<number | null>(null);
   const user = getCurrentUser();
   const { toast } = useToast();
@@ -170,15 +169,6 @@ const TeacherDashboard = () => {
     >
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
-          <Tabs defaultValue="programs" onValueChange={(value) => setActiveTab(value as 'programs' | 'attendance' | 'report' | 'discussion')}>
-            <TabsList className="mb-4 w-full sm:w-auto">
-              <TabsTrigger value="programs" className="flex-1 sm:flex-none">My Programs</TabsTrigger>
-              <TabsTrigger value="attendance" className="flex-1 sm:flex-none">Attendance</TabsTrigger>
-              <TabsTrigger value="report" className="flex-1 sm:flex-none">My Report</TabsTrigger>
-              <TabsTrigger value="discussion" className="flex-1 sm:flex-none">Discussion Room</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          
           <Button 
             onClick={openKanbanBoard}
             className="gap-2"
@@ -188,133 +178,142 @@ const TeacherDashboard = () => {
           </Button>
         </div>
           
-        <TabsContent value="programs" className="mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              {loading ? (
-                <div className="flex justify-center items-center h-64">
-                  <LoadingSpinner size="lg" />
-                </div>
-              ) : (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>My Programs</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {programs.length === 0 ? (
-                      <Alert>
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>No Programs</AlertTitle>
-                        <AlertDescription>
-                          You don't have any programs assigned to you yet.
-                        </AlertDescription>
-                      </Alert>
-                    ) : (
-                      <Tabs 
-                        defaultValue={selectedProgram?.toString()} 
-                        onValueChange={(value) => handleProgramChange(parseInt(value))}
-                      >
-                        <TabsList className="mb-4 overflow-x-auto flex whitespace-nowrap w-full">
+        <Tabs defaultValue="programs">
+          <TabsList className="mb-4 w-full sm:w-auto">
+            <TabsTrigger value="programs">My Programs</TabsTrigger>
+            <TabsTrigger value="attendance">Attendance</TabsTrigger>
+            <TabsTrigger value="report">My Report</TabsTrigger>
+            <TabsTrigger value="discussion">Discussion Room</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="programs" className="mt-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                {loading ? (
+                  <div className="flex justify-center items-center h-64">
+                    <LoadingSpinner size="lg" />
+                  </div>
+                ) : (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>My Programs</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {programs.length === 0 ? (
+                        <Alert>
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertTitle>No Programs</AlertTitle>
+                          <AlertDescription>
+                            You don't have any programs assigned to you yet.
+                          </AlertDescription>
+                        </Alert>
+                      ) : (
+                        <Tabs 
+                          defaultValue={selectedProgram?.toString()} 
+                          onValueChange={(value) => handleProgramChange(parseInt(value))}
+                        >
+                          <TabsList className="mb-4 overflow-x-auto flex whitespace-nowrap w-full">
+                            {programs.map((program) => (
+                              <TabsTrigger key={program.program_id} value={program.program_id.toString()}>
+                                {program.name}
+                              </TabsTrigger>
+                            ))}
+                          </TabsList>
+                          
                           {programs.map((program) => (
-                            <TabsTrigger key={program.program_id} value={program.program_id.toString()}>
-                              {program.name}
-                            </TabsTrigger>
-                          ))}
-                        </TabsList>
-                        
-                        {programs.map((program) => (
-                          <TabsContent key={program.program_id} value={program.program_id.toString()}>
-                            <Card>
-                              <CardHeader>
-                                <CardTitle>
-                                  {program.name} - My Students ({students.length})
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                {students.length === 0 ? (
-                                  <Alert>
-                                    <AlertCircle className="h-4 w-4" />
-                                    <AlertTitle>No Students</AlertTitle>
-                                    <AlertDescription>
-                                      You don't have any students assigned to you in this program.
-                                    </AlertDescription>
-                                  </Alert>
-                                ) : (
-                                  <div className="overflow-x-auto">
-                                    <Table>
-                                      <TableHeader>
-                                        <TableRow>
-                                          <TableHead>ID</TableHead>
-                                          <TableHead>Name</TableHead>
-                                          <TableHead>Status</TableHead>
-                                          <TableHead>Sessions</TableHead>
-                                          <TableHead>Actions</TableHead>
-                                        </TableRow>
-                                      </TableHeader>
-                                      <TableBody>
-                                        {students.map((student) => (
-                                          <TableRow key={student.id}>
-                                            <TableCell>{student.student_id}</TableCell>
-                                            <TableCell>
-                                              {student.first_name} {student.last_name}
-                                            </TableCell>
-                                            <TableCell>
-                                              <span 
-                                                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                  student.status === 'active' 
-                                                    ? 'bg-green-100 text-green-800' 
-                                                    : 'bg-gray-100 text-gray-800'
-                                                }`}
-                                              >
-                                                {student.status || 'N/A'}
-                                              </span>
-                                            </TableCell>
-                                            <TableCell>{student.number_of_sessions || 'N/A'}</TableCell>
-                                            <TableCell>
-                                              <div className="flex gap-2">
-                                                <Button 
-                                                  variant="outline" 
-                                                  size="sm"
-                                                  onClick={() => handleViewStudentDetails(student.student_id)}
-                                                >
-                                                  <Eye className="h-4 w-4 mr-1" />
-                                                  View Details
-                                                </Button>
-                                              </div>
-                                            </TableCell>
+                            <TabsContent key={program.program_id} value={program.program_id.toString()}>
+                              <Card>
+                                <CardHeader>
+                                  <CardTitle>
+                                    {program.name} - My Students ({students.length})
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  {students.length === 0 ? (
+                                    <Alert>
+                                      <AlertCircle className="h-4 w-4" />
+                                      <AlertTitle>No Students</AlertTitle>
+                                      <AlertDescription>
+                                        You don't have any students assigned to you in this program.
+                                      </AlertDescription>
+                                    </Alert>
+                                  ) : (
+                                    <div className="overflow-x-auto">
+                                      <Table>
+                                        <TableHeader>
+                                          <TableRow>
+                                            <TableHead>ID</TableHead>
+                                            <TableHead>Name</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Sessions</TableHead>
+                                            <TableHead>Actions</TableHead>
                                           </TableRow>
-                                        ))}
-                                      </TableBody>
-                                    </Table>
-                                  </div>
-                                )}
-                              </CardContent>
-                            </Card>
-                          </TabsContent>
-                        ))}
-                      </Tabs>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
+                                        </TableHeader>
+                                        <TableBody>
+                                          {students.map((student) => (
+                                            <TableRow key={student.id}>
+                                              <TableCell>{student.student_id}</TableCell>
+                                              <TableCell>
+                                                {student.first_name} {student.last_name}
+                                              </TableCell>
+                                              <TableCell>
+                                                <span 
+                                                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                    student.status === 'active' 
+                                                      ? 'bg-green-100 text-green-800' 
+                                                      : 'bg-gray-100 text-gray-800'
+                                                  }`}
+                                                >
+                                                  {student.status || 'N/A'}
+                                                </span>
+                                              </TableCell>
+                                              <TableCell>{student.number_of_sessions || 'N/A'}</TableCell>
+                                              <TableCell>
+                                                <div className="flex gap-2">
+                                                  <Button 
+                                                    variant="outline" 
+                                                    size="sm"
+                                                    onClick={() => handleViewStudentDetails(student.student_id)}
+                                                  >
+                                                    <Eye className="h-4 w-4 mr-1" />
+                                                    View Details
+                                                  </Button>
+                                                </div>
+                                              </TableCell>
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                    </div>
+                                  )}
+                                </CardContent>
+                              </Card>
+                            </TabsContent>
+                          ))}
+                        </Tabs>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+              <div>
+                <AnnouncementBoard />
+              </div>
             </div>
-            <div>
-              <AnnouncementBoard />
-            </div>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="attendance" className="mt-6">
-          <AttendanceTracker students={students} />
-        </TabsContent>
-        
-        <TabsContent value="report" className="mt-6">
-          <TeacherReport />
-        </TabsContent>
-        
-        <TabsContent value="discussion" className="mt-6">
-          <DiscussionRoom />
-        </TabsContent>
+          </TabsContent>
+          
+          <TabsContent value="attendance" className="mt-6">
+            <AttendanceTracker students={students} />
+          </TabsContent>
+          
+          <TabsContent value="report" className="mt-6">
+            <TeacherReport />
+          </TabsContent>
+          
+          <TabsContent value="discussion" className="mt-6">
+            <DiscussionRoom />
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );
