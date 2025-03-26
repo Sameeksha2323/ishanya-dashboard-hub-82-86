@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -819,3 +820,17 @@ const ParentDetailsPage = () => {
                 </div>
                 
                 <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                  <p className="text-center text-gray-600">
+                    For urgent matters, please contact the center directly at <span className="font-semibold">+91 123-456-7890</span>
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </Layout>
+  );
+};
+
+export default ParentDetailsPage;
