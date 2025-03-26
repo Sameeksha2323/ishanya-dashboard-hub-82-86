@@ -124,7 +124,8 @@ const StudentDetails = () => {
 
         if (taskError) throw taskError;
         
-        // Transform the task data to include created_at if missing
+        // Transform the task data to include created_at property
+        // This ensures all tasks have the created_at property with a default value if it's missing
         const transformedTasks: Task[] = (taskData || []).map(task => ({
           ...task,
           created_at: task.created_at || new Date().toISOString(),
