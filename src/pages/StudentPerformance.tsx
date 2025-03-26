@@ -9,7 +9,6 @@ import { supabase } from '@/integrations/supabase/client';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { Search, Filter } from 'lucide-react';
 import { toast } from 'sonner';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 type Student = {
   id: string;
@@ -32,52 +31,6 @@ type Program = {
   program_id: number;
   name: string;
 };
-
-// Define performance metrics structure
-type PerformanceMetric = {
-  key: string;
-  name: string;
-  description: string;
-};
-
-// List of performance metrics with descriptions
-const performanceMetrics: PerformanceMetric[] = [
-  { 
-    key: 'punctuality', 
-    name: 'Punctuality', 
-    description: 'Student arrives on time for sessions and activities'
-  },
-  { 
-    key: 'preparedness', 
-    name: 'Preparedness', 
-    description: 'Student comes prepared with necessary materials and homework'
-  },
-  { 
-    key: 'participation', 
-    name: 'Participation', 
-    description: 'Level of active engagement in class discussions and activities'
-  },
-  { 
-    key: 'behavior', 
-    name: 'Behavior', 
-    description: 'Conduct during sessions, interactions with peers and educators'
-  },
-  { 
-    key: 'cooperation', 
-    name: 'Cooperation', 
-    description: 'Willingness to work with others and follow instructions'
-  },
-  { 
-    key: 'communication', 
-    name: 'Communication', 
-    description: 'Ability to express ideas and needs effectively'
-  },
-  { 
-    key: 'progress', 
-    name: 'Progress', 
-    description: 'Improvement in skills and knowledge compared to previous assessments'
-  }
-];
 
 const StudentPerformance = () => {
   const [students, setStudents] = useState<Student[]>([]);
@@ -183,28 +136,6 @@ const StudentPerformance = () => {
 
     setFilteredStudents(result);
   }, [searchQuery, selectedCenter, selectedProgram, students]);
-  
-  // Render the performance metrics table
-  const renderPerformanceTable = () => {
-    return (
-      <Table className="border">
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-1/3 font-semibold">Metric</TableHead>
-            <TableHead className="w-2/3 font-semibold">Description</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {performanceMetrics.map((metric) => (
-            <TableRow key={metric.key}>
-              <TableCell className="font-medium">{metric.name}</TableCell>
-              <TableCell>{metric.description}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    );
-  };
 
   return (
     <Layout
@@ -232,7 +163,7 @@ const StudentPerformance = () => {
                 <SelectValue placeholder="Filter by center" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Centers</SelectItem>
+                <SelectItem value="all-centers">All Centers</SelectItem>
                 {centers.map((center) => (
                   <SelectItem key={center.center_id} value={center.center_id.toString()}>
                     {center.center_id} - {center.name}
@@ -249,7 +180,7 @@ const StudentPerformance = () => {
                 <SelectValue placeholder="Filter by program" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Programs</SelectItem>
+                <SelectItem value="all-programs">All Programs</SelectItem>
                 {programs.map((program) => (
                   <SelectItem key={program.program_id} value={program.program_id.toString()}>
                     {program.program_id} - {program.name}
@@ -297,14 +228,6 @@ const StudentPerformance = () => {
             ))}
           </div>
         )}
-        
-        {/* General Report Table */}
-        <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-4">General Report Metrics</h2>
-          <div className="bg-white rounded-lg border shadow-sm">
-            {renderPerformanceTable()}
-          </div>
-        </div>
       </div>
     </Layout>
   );
