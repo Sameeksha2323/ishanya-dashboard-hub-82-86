@@ -1,44 +1,59 @@
-
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Download } from 'lucide-react';
-import axios from 'axios';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import {
+  BarChart,
+  CheckCircle2,
+  Clock,
+  FileText,
+  GraduationCap,
+  ListChecks,
+  User,
+  Activity,
+  CalendarDays,
+  Clock4,
+  Heart,
+  AlertCircle,
+  HelpCircle,
+  Info,
+  Bookmark,
+} from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 type Student = {
-  student_id: number;
+  student_id: string;
   first_name: string;
   last_name: string;
   gender: string;
-  program_id: number;
-  educator_employee_id: number;
+  dob: string;
+  fathers_name: string;
+  mothers_name: string;
+  primary_diagnosis: string;
+  comorbidity: string | null;
+  blood_group: string | null;
+  allergies: string | null;
+  udid: string | null;
+  contact_number: string;
+  alt_contact_number: string | null;
+  status: string;
+  enrollment_year: number;
+  address: string;
+  parents_email: string | null;
+  student_email: string | null;
+  profile_photo: string | null;
   center_id: number;
-};
-
-type PerformanceRecord = {
-  student_id: number;
   program_id: number;
-  educator_employee_id: number;
-  quarter: string;
-  area_of_development: string;
-  [key: string]: any;
-};
-
-type GeneralReport = {
-  student_id: number;
-  program_id: number;
-  educator_employee_id: number;
-  quarter: string;
-  punctuality?: string;
-  preparedness?: string;
-  assistance_required?: string;
-  parental_support?: string;
-  any_behavioral_issues?: string;
 };
 
 type Task = {
@@ -58,8 +73,33 @@ type Task = {
 };
 
 type Attendance = {
-  present: number;
-  absent: number;
+  id: number;
+  date: string;
+  status: string;
+  student_id: string;
+  notes?: string;
+};
+
+type Assessment = {
+  assessment_id: string;
+  title: string;
+  score: number;
+  max_score: number;
+  date: string;
+  notes: string | null;
+  student_id: string;
+  area: string;
+};
+
+type Guardian = {
+  guardian_id: string;
+  name: string;
+  relationship: string;
+  email: string | null;
+  phone: string;
+  address: string | null;
+  is_primary: boolean;
+  student_id: string;
 };
 
 const QUARTERS = [
@@ -89,20 +129,17 @@ const StudentDetails = () => {
       
       setLoading(true);
       try {
-        // Convert studentId to number for database queries
         const studentIdNum = parseInt(studentId, 10);
         
-        // Fetch student info
         const { data: studentData, error: studentError } = await supabase
           .from('students')
-          .select('student_id, first_name, last_name, gender, program_id, educator_employee_id, center_id')
+          .select('student_id, first_name, last_name, gender, dob, fathers_name, mothers_name, primary_diagnosis, comorbidity, blood_group, allergies, udid, contact_number, alt_contact_number, status, enrollment_year, address, parents_email, student_email, profile_photo, center_id, program_id')
           .eq('student_id', studentIdNum)
           .single();
 
         if (studentError) throw studentError;
         setStudent(studentData);
 
-        // Fetch performance records
         const { data: perfData, error: perfError } = await supabase
           .from('performance_records')
           .select('*')
@@ -111,7 +148,6 @@ const StudentDetails = () => {
         if (perfError) throw perfError;
         setPerformanceRecords(perfData || []);
 
-        // Fetch general reports
         const { data: reportData, error: reportError } = await supabase
           .from('general_reporting')
           .select('*')
@@ -120,7 +156,6 @@ const StudentDetails = () => {
         if (reportError) throw reportError;
         setGeneralReports(reportData || []);
 
-        // Fetch tasks
         const { data: taskData, error: taskError } = await supabase
           .from('goals_tasks')
           .select('*')
@@ -128,7 +163,6 @@ const StudentDetails = () => {
 
         if (taskError) throw taskError;
         
-        // Transform the task data to include created_at property
         const transformedTasks = (taskData || []).map(task => ({
           ...task,
           created_at: task.created_at || new Date().toISOString(),
@@ -136,7 +170,6 @@ const StudentDetails = () => {
         
         setTasks(transformedTasks);
 
-        // Fetch attendance
         const { data: attendanceData, error: attendanceError } = await supabase
           .from('student_attendance')
           .select('attendance')
@@ -144,7 +177,6 @@ const StudentDetails = () => {
 
         if (attendanceError) throw attendanceError;
         
-        // Calculate attendance statistics
         const present = attendanceData?.filter(a => a.attendance === true).length || 0;
         const absent = attendanceData?.filter(a => a.attendance === false).length || 0;
         setAttendance({ present, absent });
@@ -163,7 +195,6 @@ const StudentDetails = () => {
   const getQuarterlyPerformance = (quarter: string) => {
     if (!student) return null;
     
-    // Filter for the specific quarter and current year
     const yearPrefix = currentYear.toString();
     const fullQuarter = quarter.includes(yearPrefix) ? quarter : quarter.replace(/\d{4}/g, yearPrefix);
     
@@ -178,7 +209,6 @@ const StudentDetails = () => {
   const getQuarterlyReport = (quarter: string) => {
     if (!student) return null;
     
-    // Filter for the specific quarter and current year
     const yearPrefix = currentYear.toString();
     const fullQuarter = quarter.includes(yearPrefix) ? quarter : quarter.replace(/\d{4}/g, yearPrefix);
     
@@ -207,10 +237,9 @@ const StudentDetails = () => {
           educator_employee_id: student.educator_employee_id,
           quarter: fullQuarter
         },
-        responseType: 'blob' // Important for file download
+        responseType: 'blob'
       });
       
-      // Create a URL for the blob
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -218,7 +247,6 @@ const StudentDetails = () => {
       document.body.appendChild(link);
       link.click();
       
-      // Clean up
       link.parentNode?.removeChild(link);
       window.URL.revokeObjectURL(url);
       
@@ -293,7 +321,6 @@ const StudentDetails = () => {
       onBack={() => window.history.back()}
     >
       <div className="space-y-6">
-        {/* Student Info Card */}
         <Card>
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -323,7 +350,6 @@ const StudentDetails = () => {
           </CardContent>
         </Card>
 
-        {/* Year Navigation */}
         <div className="flex items-center justify-center gap-4 mb-4">
           <Button
             variant="outline"
@@ -344,7 +370,6 @@ const StudentDetails = () => {
           </Button>
         </div>
 
-        {/* Quarterly Performance Cards */}
         <div className="grid grid-cols-1 gap-4">
           {updatedQuarters.map((quarter) => {
             const performance = getQuarterlyPerformance(quarter);
@@ -366,21 +391,17 @@ const StudentDetails = () => {
                 {isExpanded && (
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Performance Records */}
                       <div>
                         <h3 className="font-semibold mb-3">Performance Records</h3>
                         {performance ? (
                           <div className="space-y-3">
                             <p><strong>Area of Development:</strong> {performance.area_of_development}</p>
                             
-                            {/* Dynamic fields from performance record */}
                             {Object.entries(performance).map(([key, value]) => {
-                              // Skip standard fields and null values
                               if (['id', 'student_id', 'program_id', 'educator_employee_id', 'quarter', 'area_of_development'].includes(key) || value === null) {
                                 return null;
                               }
                               
-                              // Format key for display (e.g., "1_score" becomes "Score 1")
                               const displayKey = key.includes('_') 
                                 ? `${key.split('_')[1].charAt(0).toUpperCase() + key.split('_')[1].slice(1)} ${key.split('_')[0]}` 
                                 : key.charAt(0).toUpperCase() + key.slice(1);
@@ -395,7 +416,6 @@ const StudentDetails = () => {
                         )}
                       </div>
                       
-                      {/* General Report */}
                       <div>
                         <h3 className="font-semibold mb-3">General Report</h3>
                         {report ? (
@@ -433,7 +453,6 @@ const StudentDetails = () => {
           })}
         </div>
 
-        {/* Tasks and Goals */}
         <div className="mt-8">
           <h2 className="text-xl font-semibold mb-4">Tasks and Goals</h2>
           {tasks.length > 0 ? (

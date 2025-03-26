@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Clock, Eye, Check, X } from 'lucide-react';
@@ -370,32 +369,32 @@ const PendingReviews = () => {
 
   if (loading) {
     return (
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-gray-500" />
+      <div className="shadow-lg border-t-4 border-ishanya-yellow rounded-lg overflow-hidden h-full">
+        <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-t-lg">
+          <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+            <Clock className="h-5 w-5 text-ishanya-yellow" />
             Pending Form Reviews
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="p-6 bg-white">
           <div className="flex justify-center p-6">
             <LoadingSpinner size="md" />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <div className="shadow-lg border-t-4 border-red-500 rounded-lg overflow-hidden h-full">
+        <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-t-lg">
+          <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
             <Clock className="h-5 w-5 text-red-500" />
             Pending Form Reviews
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="p-6 bg-white">
           <div className="text-red-500">{error}</div>
           <Button 
             variant="outline" 
@@ -405,20 +404,20 @@ const PendingReviews = () => {
           >
             Try Again
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
     <>
-      <Card className="mb-6">
-        <CardHeader className="pb-2">
+      <div className="shadow-lg border-t-4 border-ishanya-yellow rounded-lg overflow-hidden h-full">
+        <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-t-lg">
           <div className="flex justify-between items-center flex-wrap gap-2">
-            <CardTitle className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
               <Clock className="h-5 w-5 text-ishanya-yellow" />
               Pending Form Reviews
-            </CardTitle>
+            </h3>
             <div className="flex items-center gap-2">
               <Button 
                 variant="outline" 
@@ -437,11 +436,8 @@ const PendingReviews = () => {
               </Button>
             </div>
           </div>
-          <div className="text-xs text-gray-500 mt-1">
-            Currently reading from row {currentPointer}
-          </div>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="p-6 bg-white">
           {entries.length === 0 ? (
             <div className="text-center py-4 text-gray-500">
               No pending form submissions to review
@@ -503,8 +499,8 @@ const PendingReviews = () => {
               </Table>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {selectedEntry && (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

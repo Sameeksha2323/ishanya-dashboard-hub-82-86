@@ -1,6 +1,5 @@
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ClipboardList, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -58,14 +57,14 @@ const ActivitiesSection = () => {
   };
 
   return (
-    <Card className="shadow-lg border-t-4 border-blue-500">
-      <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-t-lg">
-        <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
+    <div className="shadow-lg border-t-4 border-blue-500 rounded-lg overflow-hidden h-full">
+      <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-t-lg">
+        <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
           <ClipboardList className="h-5 w-5 text-blue-500" />
           Recent Activities
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-0">
+        </h3>
+      </div>
+      <div className="bg-white">
         {loading ? (
           <div className="flex justify-center items-center py-6">
             <LoadingSpinner />
@@ -75,7 +74,7 @@ const ActivitiesSection = () => {
             No recent activities found
           </div>
         ) : (
-          <ScrollArea className="h-64">
+          <ScrollArea className="h-64 p-4">
             <div className="p-4">
               {activities.map((activity) => (
                 <div 
@@ -96,8 +95,8 @@ const ActivitiesSection = () => {
             </div>
           </ScrollArea>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 

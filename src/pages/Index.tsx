@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
@@ -254,29 +253,19 @@ const Index = () => {
         {showAnalytics && <div className="mb-8"><AnalyticsDashboard /></div>}
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-          <Card className="shadow-md hover:shadow-lg transition-shadow h-full">
-            <CardHeader>
-              <CardTitle className="text-lg">Pending Form Reviews</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <PendingReviews />
-            </CardContent>
-          </Card>
+          <div className="h-full">
+            <PendingReviews />
+          </div>
           
-          <Card className="shadow-md hover:shadow-lg transition-shadow h-full">
-            <CardHeader>
-              <CardTitle className="text-lg">Recent Activities</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ActivitiesSection />
-            </CardContent>
-          </Card>
+          <div className="h-full">
+            <ActivitiesSection />
+          </div>
         </div>
         
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Centers</h2>
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-ishanya-green to-ishanya-yellow bg-clip-text text-transparent inline-block mb-4 border-b-2 border-ishanya-green pb-1">Centers</h2>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-4 border border-gray-100">
               <CenterList onSelectCenter={handleSelectCenter} />
             </div>
             
