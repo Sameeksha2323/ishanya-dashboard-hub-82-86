@@ -26,6 +26,7 @@ const DiscussionRoom = () => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const user = getCurrentUser();
   const { toast } = useToast();
@@ -34,16 +35,17 @@ const DiscussionRoom = () => {
   const fetchMessages = async () => {
     try {
       setLoading(true);
+      setError(null);
       console.log('Fetching messages...');
       
       const { data, error } = await supabase
         .from('discussion_messages')
         .select('*')
-        .order('created_at', { ascending: true })
-        .limit(100);
+        .order('created_at', { ascending: true });
         
       if (error) {
         console.error('Error fetching messages:', error);
+        setError('Failed to load discussion messages');
         toast({
           title: 'Error',
           description: 'Failed to load discussion messages',
@@ -61,6 +63,7 @@ const DiscussionRoom = () => {
       }
     } catch (error) {
       console.error('Error in fetchMessages:', error);
+      setError('An unexpected error occurred');
     } finally {
       setLoading(false);
     }
@@ -89,6 +92,9 @@ const DiscussionRoom = () => {
       )
       .subscribe((status) => {
         console.log('Realtime subscription status:', status);
+        if (status !== 'SUBSCRIBED') {
+          console.error('Failed to subscribe to realtime updates:', status);
+        }
       });
       
     // Cleanup subscription
@@ -115,6 +121,7 @@ const DiscussionRoom = () => {
     
     try {
       setIsSending(true);
+      setError(null);
       
       const messageData = {
         sender_id: user.id,
@@ -125,13 +132,13 @@ const DiscussionRoom = () => {
       
       console.log('Sending message:', messageData);
       
-      const { error, data } = await supabase
+      const { error } = await supabase
         .from('discussion_messages')
-        .insert(messageData)
-        .select();
+        .insert(messageData);
         
       if (error) {
         console.error('Error sending message:', error);
+        setError('Failed to send message');
         toast({
           title: 'Error',
           description: `Failed to send message: ${error.message}`,
@@ -140,16 +147,13 @@ const DiscussionRoom = () => {
         return;
       }
       
-      console.log('Message sent successfully:', data);
+      console.log('Message sent successfully');
       
       // Clear input after successful send
       setNewMessage('');
-      
-      // Fetch messages again to ensure we have the latest
-      // This is a fallback in case the realtime subscription misses something
-      fetchMessages();
     } catch (error) {
       console.error('Error in handleSendMessage:', error);
+      setError('An unexpected error occurred');
       toast({
         title: 'Error',
         description: 'An unexpected error occurred',
@@ -203,6 +207,11 @@ const DiscussionRoom = () => {
     }
   };
   
+  // Retry loading messages if there was an error
+  const handleRetry = () => {
+    fetchMessages();
+  };
+  
   return (
     <Card className="h-[70vh] flex flex-col">
       <CardHeader className="flex flex-row justify-between items-center">
@@ -214,6 +223,13 @@ const DiscussionRoom = () => {
         {loading ? (
           <div className="flex justify-center items-center h-full">
             <LoadingSpinner size="lg" />
+          </div>
+        ) : error ? (
+          <div className="flex flex-col justify-center items-center h-full text-gray-500 p-4">
+            <p className="mb-4 text-center">{error}</p>
+            <Button onClick={handleRetry} variant="outline">
+              Retry
+            </Button>
           </div>
         ) : (
           <ScrollArea className="h-[calc(70vh-8rem)] px-4">
@@ -287,11 +303,11 @@ const DiscussionRoom = () => {
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             className="min-h-[60px] flex-grow text-base"
-            disabled={isSending || !user}
+            disabled={isSending || !user || loading}
           />
           <Button
             onClick={handleSendMessage}
-            disabled={!newMessage.trim() || !user || isSending}
+            disabled={!newMessage.trim() || !user || isSending || loading}
             className="self-end"
             size="icon"
           >
